@@ -1,0 +1,41 @@
+# Virtual Environment
+venv/
+venv2/
+env/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Flask
+instance/
+.webassets-cache
+
+# Data files
+participants.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# PyInstaller
+build/
+dist/
+*.spec
+
+# Excel files
+*.xlsx

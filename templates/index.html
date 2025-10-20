@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Participant Registration System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #1F4E78;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-card h2 {
+            color: #1F4E78;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .required {
+            color: #dc3545;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input.error {
+            border-color: #dc3545;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-download {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-download:hover {
+            background: #138496;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .table-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        .table-container h2 {
+            color: #1F4E78;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 800px;
+        }
+
+        thead {
+            background: #1F4E78;
+            color: white;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        tbody tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        tbody tr:hover {
+            background: #e9ecef;
+        }
+
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn-delete:hover {
+            background: #c82333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+        }
+
+        .instructions {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+
+        .instructions h3 {
+            color: #004085;
+            margin-bottom: 15px;
+        }
+
+        .instructions ol {
+            padding-left: 20px;
+            color: #004085;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>📋 Participant Registration System</h1>
+            <p>Enter participant details for registration and mobile money enrollment</p>
+        </div>
+
+        <!-- Alerts -->
+        <div id="successAlert" class="alert alert-success"></div>
+        <div id="errorAlert" class="alert alert-error"></div>
+
+        <!-- Registration Form -->
+        <div class="form-card">
+            <h2>Enter Participant Information</h2>
+            
+            <form id="participantForm">
+                <div class="form-group">
+                    <label>Participant's Name <span class="required">*</span></label>
+                    <input type="text" id="participantName" placeholder="Enter full name">
+                    <span class="error-message" id="errorParticipantName">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Cadre <span class="required">*</span></label>
+                    <input type="text" id="cadre" placeholder="e.g., Nurse, Doctor, CHW">
+                    <span class="error-message" id="errorCadre">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Duty Station (Facility) <span class="required">*</span></label>
+                    <input type="text" id="dutyStation" placeholder="Enter facility name">
+                    <span class="error-message" id="errorDutyStation">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>District <span class="required">*</span></label>
+                    <input type="text" id="district" placeholder="Enter district">
+                    <span class="error-message" id="errorDistrict">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Mobile Number Registered <span class="required">*</span></label>
+                    <input type="tel" id="mobileNumber" placeholder="e.g., 0701234567">
+                    <span class="error-message" id="errorMobileNumber">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Names Registered on Mobile Money (First & Last Names) <span class="required">*</span></label>
+                    <input type="text" id="mobileMoneyName" placeholder="Enter first and last name">
+                    <span class="error-message" id="errorMobileMoneyName">This field is required</span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    ➕ Add Participant
+                </button>
+            </form>
+        </div>
+
+        <!-- Participants Table -->
+        <div id="tableContainer" class="table-container" style="display: none;">
+            <h2>Registered Participants (<span id="participantCount">0</span>)</h2>
+            
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Participant's Name</th>
+                            <th>Cadre</th>
+                            <th>Duty Station (Facility)</th>
+                            <th>District</th>
+                            <th>Mobile Number Registered</th>
+                            <th>Names Registered on Mobile Money</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="participantsTableBody">
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="action-buttons">
+                <button onclick="downloadExcel()" class="btn btn-download">
+                    📥 Download Excel
+                </button>
+                <button onclick="submitData()" class="btn btn-success" id="submitBtn">
+                    ✉️ Confirm & Send to Email
+                </button>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div id="instructions" class="instructions">
+            <h3>📌 Instructions:</h3>
+            <ol>
+                <li>Fill in all required participant information above</li>
+                <li>Click "Add Participant" to add them to the list</li>
+                <li>Repeat for all participants you need to register</li>
+                <li>Once done, click "Confirm & Send to Email" to generate and email the Excel file</li>
+                <li>You can also download the Excel file directly using "Download Excel" button</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        let participants = [];
+
+        function showAlert(message, type) {
+            const alertId = type === 'success' ? 'successAlert' : 'errorAlert';
+            const alertElement = document.getElementById(alertId);
+            alertElement.textContent = message;
+            alertElement.style.display = 'block';
+            
+            setTimeout(() => {
+                alertElement.style.display = 'none';
+            }, 5000);
+        }
+
+        function validateForm() {
+            let isValid = true;
+            const fields = ['participantName', 'cadre', 'dutyStation', 'district', 'mobileNumber', 'mobileMoneyName'];
+            
+            fields.forEach(field => {
+                const input = document.getElementById(field);
+                const error = document.getElementById('error' + field.charAt(0).toUpperCase() + field.slice(1));
+                
+                if (!input.value.trim()) {
+                    input.classList.add('error');
+                    error.style.display = 'block';
+                    isValid = false;
+                } else {
+                    input.classList.remove('error');
+                    error.style.display = 'none';
+                }
+            });
+            
+            return isValid;
+        }
+
+        document.getElementById('participantForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+            
+            const participant = {
+                participantName: document.getElementById('participantName').value.trim(),
+                cadre: document.getElementById('cadre').value.trim(),
+                dutyStation: document.getElementById('dutyStation').value.trim(),
+                district: document.getElementById('district').value.trim(),
+                mobileNumber: document.getElementById('mobileNumber').value.trim(),
+                mobileMoneyName: document.getElementById('mobileMoneyName').value.trim()
+            };
+            
+            participants.push(participant);
+            updateTable();
+            this.reset();
+            showAlert('Participant added successfully!', 'success');
+        });
+
+        function updateTable() {
+            const tbody = document.getElementById('participantsTableBody');
+            tbody.innerHTML = '';
+            
+            participants.forEach((participant, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${participant.participantName}</td>
+                    <td>${participant.cadre}</td>
+                    <td>${participant.dutyStation}</td>
+                    <td>${participant.district}</td>
+                    <td>${participant.mobileNumber}</td>
+                    <td>${participant.mobileMoneyName}</td>
+                    <td>
+                        <button class="btn-delete" onclick="deleteParticipant(${index})">🗑️ Delete</button>
+                    </td>
+                `;
+            });
+            
+            document.getElementById('participantCount').textContent = participants.length;
+            document.getElementById('tableContainer').style.display = participants.length > 0 ? 'block' : 'none';
+            document.getElementById('instructions').style.display = participants.length > 0 ? 'none' : 'block';
+        }
+
+        function deleteParticipant(index) {
+            if (confirm('Are you sure you want to delete this participant?')) {
+                participants.splice(index, 1);
+                updateTable();
+                showAlert('Participant deleted successfully', 'success');
+            }
+        }
+
+        async function submitData() {
+            if (participants.length === 0) {
+                showAlert('Please add at least one participant before submitting', 'error');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="loading"></span> Sending...';
+            
+            try {
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ participants })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    participants = [];
+                    updateTable();
+                } else {
+                    showAlert(result.message, 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        async function downloadExcel() {
+            if (participants.length === 0) {
+                showAlert('Please add at least one participant before downloading', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/download', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ participants })
+                });
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `participant_registration_${new Date().toISOString().split('T')[0]}.xlsx`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showAlert('Excel file downloaded successfully!', 'success');
+                } else {
+                    showAlert('Error downloading file', 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html>
