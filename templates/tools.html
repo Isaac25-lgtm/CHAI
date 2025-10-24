@@ -367,21 +367,23 @@
             <h2 style="margin-bottom: 20px; color: #333;">Facility Information</h2>
             <div class="info-grid">
                 <div class="info-group">
-                    <label for="facilityName">Facility Name *</label>
-                    <input type="text" id="facilityName" required>
+                    <label for="district">District *</label>
+                    <select id="district" onchange="updateFacilities()" required>
+                        <option value="">Select District</option>
+                        <option value="Agago District">Agago District</option>
+                        <option value="Amuru District">Amuru District</option>
+                        <option value="Gulu City">Gulu City</option>
+                        <option value="Gulu District">Gulu District</option>
+                        <option value="Kitgum District">Kitgum District</option>
+                        <option value="Lamwo District">Lamwo District</option>
+                        <option value="Omoro District">Omoro District</option>
+                        <option value="Pader District">Pader District</option>
+                    </select>
                 </div>
                 <div class="info-group">
-                    <label for="district">District *</label>
-                    <select id="district" required>
-                        <option value="">Select District</option>
-                        <option value="Gulu">Gulu</option>
-                        <option value="Kitgum">Kitgum</option>
-                        <option value="Pader">Pader</option>
-                        <option value="Lamwo">Lamwo</option>
-                        <option value="Agago">Agago</option>
-                        <option value="Amuru">Amuru</option>
-                        <option value="Nwoya">Nwoya</option>
-                        <option value="Omoro">Omoro</option>
+                    <label for="facilityName">Facility *</label>
+                    <select id="facilityName" required>
+                        <option value="">Select District first</option>
                     </select>
                 </div>
                 <div class="info-group">
@@ -484,6 +486,99 @@
     </div>
 
     <script>
+        // Facilities data organized by district
+        const facilitiesData = {
+            'Agago District': [
+                'Wol Health Centre III',
+                'Paimol Health Centre III', 
+                'Lira Kato Health Centre III',
+                'Adilang Health Centre III',
+                'Omot Health Centre III',
+                'Dr. Ambrosoli Memorial Hospital',
+                'Patongo Health Centre IV'
+            ],
+            'Amuru District': [
+                'Amuru Lacor Health Centre III',
+                'Lacor-Pabbo Health Centre III',
+                'Pabor Health Centre III',
+                'Olwal Health Centre III',
+                'Kaladima Health Centre III',
+                'Labongogali Health Centre III',
+                'Atiak Health Centre IV'
+            ],
+            'Gulu City': [
+                'Bardege Health Centre III',
+                'St. Mary\'s Hospital Lacor',
+                'Gulu Regional Referral Hospital',
+                'Gulu Military General Hospital',
+                'Layibi Techo Health Centre III',
+                'Aywee Health Centre III',
+                'Laroo Health Centre III',
+                'Gulu Police Health Centre III'
+            ],
+            'Gulu District': [
+                'Awach Health Centre IV',
+                'Cwero Health Centre III',
+                'Angaya Health Centre III',
+                'Omel Health Centre III',
+                'Labworomor Health Centre III',
+                'Patiko Health Centre III'
+            ],
+            'Kitgum District': [
+                'Pandwong Health Centre III',
+                'Namokora Health Centre IV',
+                'Omiya Anyima Health Centre III',
+                'Kitgum-Matidi Health Centre III',
+                'Orom Health Centre III',
+                'Kitgum General Hospital',
+                'St. Joseph\'s Kitgum Hospital'
+            ],
+            'Lamwo District': [
+                'Lokung Health Centre III',
+                'Paluda Health Centre III',
+                'Agoro Health Centre III',
+                'Akworo Health Centre III',
+                'Palabek-Kal Health Centre IV',
+                'Madi-Opei Health Centre IV',
+                'Padibe Health Centre IV'
+            ],
+            'Omoro District': [
+                'Lacor Opit Health Centre III',
+                'Lalogi Health Centre IV',
+                'Bobi Health Centre III',
+                'Acet Health Centre III',
+                'Lanenober Health Centre III',
+                'Ongako Health Centre III',
+                'Loyoajonga Health Centre III'
+            ],
+            'Pader District': [
+                'Ogom Health Centre III',
+                'Puranga Health Centre III',
+                'Awere Health Centre III',
+                'Pajule Health Centre IV',
+                'Latanya Health Centre II',
+                'Acholi-Bur Health Centre III',
+                'Laguti Health Centre III'
+            ]
+        };
+
+        function updateFacilities() {
+            const districtSelect = document.getElementById('district');
+            const facilitySelect = document.getElementById('facilityName');
+            
+            // Clear existing options
+            facilitySelect.innerHTML = '<option value="">Select Facility</option>';
+            
+            if (districtSelect.value && facilitiesData[districtSelect.value]) {
+                facilitiesData[districtSelect.value].forEach(facility => {
+                    const option = document.createElement('option');
+                    option.value = facility;
+                    option.textContent = facility;
+                    facilitySelect.appendChild(option);
+                });
+            }
+        }
+
         // Assessment data structure - hardcoded for client-side
         const sections = {
             "service_delivery": {
