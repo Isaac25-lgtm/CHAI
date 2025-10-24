@@ -140,8 +140,7 @@ SCORING_CRITERIA = {
     4: "Good - Meets most standards with minor gaps",
     3: "Satisfactory - Meets basic standards with some gaps",
     2: "Needs Improvement - Significant gaps identified",
-    1: "Poor - Major deficiencies requiring urgent attention",
-    0: "Not Applicable/Not Assessed"
+    1: "Poor - Major deficiencies requiring urgent attention"
 }
 
 def api_logger(f):

@@ -92,11 +92,8 @@ A comprehensive, secure web-based platform for health program management in Ugan
 
 | 3 | Satisfactory | Meets basic standards with some gaps |5. **Run the application:**
 
-| 2 | Needs Improvement | Significant gaps identified |   ```bash
-
-| 1 | Poor | Major deficiencies requiring urgent attention |   python app.py
-
-| 0 | N/A | Not Applicable/Not Assessed |   ```
+| 2 | Needs Improvement | Significant gaps identified |
+| 1 | Poor | Major deficiencies requiring urgent attention |
 
 
 
