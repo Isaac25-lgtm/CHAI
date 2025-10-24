@@ -117,6 +117,27 @@
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
         }
 
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+            background-color: white;
+            transition: border-color 0.3s;
+            cursor: pointer;
+        }
+
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group select option {
+            padding: 10px;
+        }
+
         .form-group input.error {
             border-color: #dc3545;
         }
@@ -339,15 +360,33 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Duty Station (Facility) <span class="required">*</span></label>
-                    <input type="text" id="dutyStation" placeholder="Enter facility name">
+                    <label>District <span class="required">*</span></label>
+                    <select id="district" onchange="updateFacilities()">
+                        <option value="">Select District</option>
+                        <option value="Agago District">Agago District</option>
+                        <option value="Amuru District">Amuru District</option>
+                        <option value="Gulu City">Gulu City</option>
+                        <option value="Gulu District">Gulu District</option>
+                        <option value="Kitgum District">Kitgum District</option>
+                        <option value="Lamwo District">Lamwo District</option>
+                        <option value="Omoro District">Omoro District</option>
+                        <option value="Pader District">Pader District</option>
+                    </select>
+                    <span class="error-message" id="errorDistrict">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Facility <span class="required">*</span></label>
+                    <select id="dutyStation">
+                        <option value="">Select District first</option>
+                    </select>
                     <span class="error-message" id="errorDutyStation">This field is required</span>
                 </div>
 
                 <div class="form-group">
-                    <label>District <span class="required">*</span></label>
-                    <input type="text" id="district" placeholder="Enter district">
-                    <span class="error-message" id="errorDistrict">This field is required</span>
+                    <label>Registration Date <span class="required">*</span></label>
+                    <input type="date" id="registrationDate">
+                    <span class="error-message" id="errorRegistrationDate">This field is required</span>
                 </div>
 
                 <div class="form-group">
@@ -386,6 +425,7 @@
                             <th>District</th>
                             <th>Mobile Number Registered</th>
                             <th>Names Registered on Mobile Money</th>
+                            <th>Registration Date</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -451,9 +491,102 @@
             ]);
         }
 
+        // Facilities data organized by district
+        const facilitiesData = {
+            'Agago District': [
+                'Wol Health Centre III',
+                'Paimol Health Centre III', 
+                'Lira Kato Health Centre III',
+                'Adilang Health Centre III',
+                'Omot Health Centre III',
+                'Dr. Ambrosoli Memorial Hospital',
+                'Patongo Health Centre IV'
+            ],
+            'Amuru District': [
+                'Amuru Lacor Health Centre III',
+                'Lacor-Pabbo Health Centre III',
+                'Pabor Health Centre III',
+                'Olwal Health Centre III',
+                'Kaladima Health Centre III',
+                'Labongogali Health Centre III',
+                'Atiak Health Centre IV'
+            ],
+            'Gulu City': [
+                'Bardege Health Centre III',
+                'St. Mary\'s Hospital Lacor',
+                'Gulu Regional Referral Hospital',
+                'Gulu Military General Hospital',
+                'Layibi Techo Health Centre III',
+                'Aywee Health Centre III',
+                'Laroo Health Centre III',
+                'Gulu Police Health Centre III'
+            ],
+            'Gulu District': [
+                'Awach Health Centre IV',
+                'Cwero Health Centre III',
+                'Angaya Health Centre III',
+                'Omel Health Centre III',
+                'Labworomor Health Centre III',
+                'Patiko Health Centre III'
+            ],
+            'Kitgum District': [
+                'Pandwong Health Centre III',
+                'Namokora Health Centre IV',
+                'Omiya Anyima Health Centre III',
+                'Kitgum-Matidi Health Centre III',
+                'Orom Health Centre III',
+                'Kitgum General Hospital',
+                'St. Joseph\'s Kitgum Hospital'
+            ],
+            'Lamwo District': [
+                'Lokung Health Centre III',
+                'Paluda Health Centre III',
+                'Agoro Health Centre III',
+                'Akworo Health Centre III',
+                'Palabek-Kal Health Centre IV',
+                'Madi-Opei Health Centre IV',
+                'Padibe Health Centre IV'
+            ],
+            'Omoro District': [
+                'Lacor Opit Health Centre III',
+                'Lalogi Health Centre IV',
+                'Bobi Health Centre III',
+                'Acet Health Centre III',
+                'Lanenober Health Centre III',
+                'Ongako Health Centre III',
+                'Loyoajonga Health Centre III'
+            ],
+            'Pader District': [
+                'Ogom Health Centre III',
+                'Puranga Health Centre III',
+                'Awere Health Centre III',
+                'Pajule Health Centre IV',
+                'Latanya Health Centre II',
+                'Acholi-Bur Health Centre III',
+                'Laguti Health Centre III'
+            ]
+        };
+
+        function updateFacilities() {
+            const districtSelect = document.getElementById('district');
+            const facilitySelect = document.getElementById('dutyStation');
+            
+            // Clear existing options
+            facilitySelect.innerHTML = '<option value="">Select Facility</option>';
+            
+            if (districtSelect.value && facilitiesData[districtSelect.value]) {
+                facilitiesData[districtSelect.value].forEach(facility => {
+                    const option = document.createElement('option');
+                    option.value = facility;
+                    option.textContent = facility;
+                    facilitySelect.appendChild(option);
+                });
+            }
+        }
+
         function validateForm() {
             let isValid = true;
-            const fields = ['participantName', 'cadre', 'dutyStation', 'district', 'mobileNumber', 'mobileMoneyName'];
+            const fields = ['participantName', 'cadre', 'dutyStation', 'district', 'mobileNumber', 'mobileMoneyName', 'registrationDate'];
             
             fields.forEach(field => {
                 const input = document.getElementById(field);
@@ -490,6 +623,12 @@
             }
         });
 
+        // Set today's date as default for registration date
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('registrationDate').value = today;
+        });
+
         document.getElementById('participantForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -503,7 +642,8 @@
                 dutyStation: document.getElementById('dutyStation').value.trim(),
                 district: document.getElementById('district').value.trim(),
                 mobileNumber: '+256' + document.getElementById('mobileNumber').value.trim(),
-                mobileMoneyName: document.getElementById('mobileMoneyName').value.trim()
+                mobileMoneyName: document.getElementById('mobileMoneyName').value.trim(),
+                registrationDate: document.getElementById('registrationDate').value
             };
             
             participants.push(participant);
@@ -526,6 +666,7 @@
                     <td>${participant.district}</td>
                     <td>${participant.mobileNumber}</td>
                     <td>${participant.mobileMoneyName}</td>
+                    <td>${participant.registrationDate}</td>
                     <td>
                         <button class="btn-delete" onclick="deleteParticipant(${index})">🗑️ Delete</button>
                     </td>
