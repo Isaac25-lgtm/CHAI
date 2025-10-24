@@ -432,9 +432,14 @@
         }
 
         function validatePhoneNumber(phone) {
-            // Uganda phone format: 7XXXXXXXX (9 digits starting with 7)
+            // Uganda phone format: 7XXXXXXXX (9 digits starting with 7, no leading 0)
             const pattern = /^7\d{8}$/;
-            return pattern.test(phone.replace(/\s/g, ''));
+            const cleanPhone = phone.replace(/\s/g, '');
+            // Reject if it starts with 0
+            if (cleanPhone.startsWith('0')) {
+                return false;
+            }
+            return pattern.test(cleanPhone);
         }
 
         function fetchWithTimeout(url, options = {}, timeout = 30000) {
@@ -460,7 +465,7 @@
                     isValid = false;
                 } else if (field === 'mobileNumber' && !validatePhoneNumber(input.value.trim())) {
                     input.classList.add('error');
-                    error.textContent = 'Invalid phone format. Enter 9 digits starting with 7 (e.g., 701234567)';
+                    error.textContent = 'Invalid phone format. Enter 9 digits starting with 7 (e.g., 701234567). Do not start with 0.';
                     error.style.display = 'block';
                     isValid = false;
                 } else {
@@ -471,6 +476,19 @@
             
             return isValid;
         }
+
+        // Add real-time validation for mobile number input
+        document.getElementById('mobileNumber').addEventListener('input', function(e) {
+            const value = e.target.value;
+            // Prevent typing 0 at the beginning
+            if (value.startsWith('0')) {
+                e.target.value = value.substring(1);
+            }
+            // Limit to 9 digits
+            if (value.length > 9) {
+                e.target.value = value.substring(0, 9);
+            }
+        });
 
         document.getElementById('participantForm').addEventListener('submit', function(e) {
             e.preventDefault();
