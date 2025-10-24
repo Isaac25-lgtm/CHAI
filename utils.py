@@ -273,11 +273,15 @@ class ExcelGenerator:
                 {"id": "sd4", "name": "TB/HIV collaborative activities", "max_score": 5},
                 {"id": "sd5", "name": "Laboratory services functionality", "max_score": 5}
             ],
-            "Human Resources for Health": [
-                {"id": "hr1", "name": "Staffing levels adequacy", "max_score": 5},
-                {"id": "hr2", "name": "Staff trained on HIV guidelines", "max_score": 5},
-                {"id": "hr3", "name": "Mentorship programs in place", "max_score": 5},
-                {"id": "hr4", "name": "Performance management systems", "max_score": 5}
+            "Human Resource and Service Delivery Points": [
+                {"id": "hr1", "name": "What is the primary funding source for personnel delivering PMTCT services at this facility?", "max_score": 5},
+                {"id": "hr2", "name": "If partner-supported, which partner(s) support PMTCT personnel?", "max_score": 5},
+                {"id": "hr3", "name": "Are PMTCT services integrated and provided at a designated Mother-Baby Care Point (MBCP)?", "max_score": 5},
+                {"id": "hr4", "name": "Where is hepatitis B testing for pregnant women primarily conducted?", "max_score": 5},
+                {"id": "hr5", "name": "Where is treatment/prophylaxis provided for HBV", "max_score": 5},
+                {"id": "hr6", "name": "Where is the Hepatitis B birth dose vaccine administered?", "max_score": 5},
+                {"id": "hr7", "name": "Are there designated personnel responsible for providing comprehensive PMTCT services at each service delivery point?", "max_score": 5},
+                {"id": "hr8", "name": "If PMTCT services are not co-located, what are the key gaps and how are patients referred between service points?", "max_score": 5}
             ],
             "Supply Chain Reliability for HBV commodities": [
                 {"id": "sc1", "name": "Are HBsAg test kits currently in stock?", "max_score": 5},
