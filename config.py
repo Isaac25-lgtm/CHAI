@@ -46,7 +46,7 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
     PERMANENT_SESSION_LIFETIME = 3600  # Session expires after 1 hour of inactivity
     SESSION_REFRESH_EACH_REQUEST = True  # Refresh session on each request
-    SESSION_VERSION = '2.0'  # Increment this to invalidate all existing sessions
+    SESSION_VERSION = '3.0'  # Increment this to invalidate all existing sessions
     
     @staticmethod
     def validate_config():
