@@ -420,7 +420,7 @@
                 </div>
                 <div class="info-group">
                     <label for="assessmentDate">Assessment Date *</label>
-                    <input type="date" id="assessmentDate" required>
+                    <input type="date" id="assessmentDate" onchange="validateDate(this, 'assessment')" required>
                 </div>
             </div>
         </div>
@@ -921,6 +921,20 @@
             setTimeout(() => {
                 messageDiv.style.display = 'none';
             }, 5000);
+        }
+
+        // Date validation function
+        function validateDate(dateInput, formType) {
+            const today = new Date().toISOString().split('T')[0];
+            const selectedDate = dateInput.value;
+            
+            if (selectedDate && selectedDate !== today) {
+                const formName = formType === 'registration' ? 'Registration' : 'Assessment';
+                const message = `To enter a date other than today's date for ${formName}, please contact the administrators at:\n\n📧 eolal@clintonhealthaccess.org\n📧 omodingisaac111@gmail.com\n\nPlease reset the date to today's date or contact admins for assistance.`;
+                
+                alert(message);
+                dateInput.value = today; // Reset to today's date
+            }
         }
 
         // Initialize on load

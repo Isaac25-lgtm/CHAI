@@ -385,7 +385,7 @@
 
                 <div class="form-group">
                     <label>Registration Date <span class="required">*</span></label>
-                    <input type="date" id="registrationDate">
+                    <input type="date" id="registrationDate" onchange="validateDate(this, 'registration')">
                     <span class="error-message" id="errorRegistrationDate">This field is required</span>
                 </div>
 
@@ -622,6 +622,20 @@
                 e.target.value = value.substring(0, 9);
             }
         });
+
+        // Date validation function
+        function validateDate(dateInput, formType) {
+            const today = new Date().toISOString().split('T')[0];
+            const selectedDate = dateInput.value;
+            
+            if (selectedDate && selectedDate !== today) {
+                const formName = formType === 'registration' ? 'Registration' : 'Assessment';
+                const message = `To enter a date other than today's date for ${formName}, please contact the administrators at:\n\n📧 eolal@clintonhealthaccess.org\n📧 omodingisaac111@gmail.com\n\nPlease reset the date to today's date or contact admins for assistance.`;
+                
+                alert(message);
+                dateInput.value = today; // Reset to today's date
+            }
+        }
 
         // Set today's date as default for registration date
         document.addEventListener('DOMContentLoaded', function() {
