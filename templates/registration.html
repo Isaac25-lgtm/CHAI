@@ -722,16 +722,41 @@
             }
         }
 
+        let submissionCount = 0;
+        
         async function submitData() {
             if (participants.length === 0) {
                 showAlert('Please add at least one participant before submitting', 'error');
                 return;
             }
             
+            // First confirmation
+            if (submissionCount === 0) {
+                const confirm1 = confirm(`⚠️ FIRST CONFIRMATION\n\nYou are about to send ${participants.length} participant(s) data via email.\n\nThis is the FIRST of TWO required confirmations.\n\nClick OK to proceed to second confirmation.`);
+                if (!confirm1) {
+                    return;
+                }
+                submissionCount = 1;
+                showAlert('Please click "Confirm & Send to Email" again to complete the submission (Second confirmation required)', 'success');
+                return;
+            }
+            
+            // Second confirmation
+            if (submissionCount === 1) {
+                const confirm2 = confirm(`✅ SECOND CONFIRMATION (FINAL)\n\nThis is your final confirmation.\n\nAre you absolutely sure you want to send this data?\n\n- ${participants.length} participants will be registered\n- Data will be saved to database\n- Excel file will be generated\n- Email will be sent immediately\n\nClick OK to send now.`);
+                if (!confirm2) {
+                    submissionCount = 0;
+                    return;
+                }
+            }
+            
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.innerHTML;
             submitBtn.disabled = true;
-            submitBtn.innerHTML = '<span class="loading"></span> Sending...';
+            submitBtn.innerHTML = '<span class="loading"></span> Sending... Please wait';
+            
+            // Show delivery status
+            showAlert('📤 Sending data... Please wait for delivery confirmation', 'success');
             
             try {
                 const response = await fetchWithTimeout('/submit', {
@@ -745,14 +770,17 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showAlert(result.message, 'success');
+                    submissionCount = 0;
+                    showAlert('✅ DELIVERED: ' + result.message + '\n\n📧 Email has been successfully sent and delivered!', 'success');
                     participants = [];
                     updateTable();
                 } else {
-                    showAlert(result.message, 'error');
+                    submissionCount = 0;
+                    showAlert('❌ DELIVERY FAILED: ' + result.message, 'error');
                 }
             } catch (error) {
-                showAlert('Error: ' + error.message, 'error');
+                submissionCount = 0;
+                showAlert('❌ ERROR: ' + error.message + '\n\nDelivery status: Failed', 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = originalText;

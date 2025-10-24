@@ -86,8 +86,8 @@ def export_participants():
         if not participants_data:
             return jsonify({'error': 'No participants found'}), 404
         
-        # Generate Excel
-        filepath, filename = ExcelGenerator.create_participant_excel(participants_data)
+        # Generate Excel - Superusers can edit their exports
+        filepath, filename = ExcelGenerator.create_participant_excel(participants_data, protect_sheet=False)
         
         return send_file(
             filepath,
@@ -103,6 +103,9 @@ def export_participants():
 def export_assessments():
     """Export all assessments to Excel"""
     try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font
+        
         start_date = request.args.get('start')
         end_date = request.args.get('end')
         
@@ -165,6 +168,9 @@ def export_assessments():
 def export_analytics():
     """Export combined analytics report"""
     try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill
+        
         start_date = request.args.get('start')
         end_date = request.args.get('end')
         
@@ -184,21 +190,49 @@ def export_analytics():
             query_a = query_a.filter(Assessment.created_at <= datetime.strptime(end_date, '%Y-%m-%d'))
         assessments = query_a.all()
         
-        # Convert to dicts
-        participants_data = [p.to_dict() for p in participants]
-        assessments_data = [a.to_dict() for a in assessments]
+        # Create combined Excel workbook
+        wb = Workbook()
         
-        # Use the aggregated report generator from utils
-        date_range = {
-            'start': start_date or 'All time',
-            'end': end_date or datetime.now().strftime('%Y-%m-%d')
-        }
+        # Sheet 1: Participants
+        ws_p = wb.active
+        ws_p.title = "Participants"
+        p_headers = ['Name', 'Cadre', 'Facility', 'District', 'Mobile', 'Registration Date', 'Campaign Day']
+        for col, header in enumerate(p_headers, 1):
+            cell = ws_p.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
         
-        filepath, filename = ExcelGenerator.create_aggregated_report(
-            participants_data,
-            assessments_data,
-            date_range
-        )
+        for idx, p in enumerate(participants, 2):
+            ws_p.cell(row=idx, column=1, value=p.participant_name)
+            ws_p.cell(row=idx, column=2, value=p.cadre)
+            ws_p.cell(row=idx, column=3, value=p.duty_station)
+            ws_p.cell(row=idx, column=4, value=p.district)
+            ws_p.cell(row=idx, column=5, value=p.mobile_number)
+            ws_p.cell(row=idx, column=6, value=p.registration_date.strftime('%Y-%m-%d') if p.registration_date else '')
+            ws_p.cell(row=idx, column=7, value=f"Day {p.campaign_day}" if p.campaign_day else 'N/A')
+        
+        # Sheet 2: Assessments
+        ws_a = wb.create_sheet("Assessments")
+        a_headers = ['Facility', 'District', 'Level', 'Assessor', 'Date', 'Overall Score', 'Campaign Day']
+        for col, header in enumerate(a_headers, 1):
+            cell = ws_a.cell(row=1, column=col, value=header)
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
+        
+        for idx, a in enumerate(assessments, 2):
+            ws_a.cell(row=idx, column=1, value=a.facility_name)
+            ws_a.cell(row=idx, column=2, value=a.district)
+            ws_a.cell(row=idx, column=3, value=a.facility_level)
+            ws_a.cell(row=idx, column=4, value=a.assessor_name)
+            ws_a.cell(row=idx, column=5, value=a.assessment_date.strftime('%Y-%m-%d') if a.assessment_date else '')
+            ws_a.cell(row=idx, column=6, value=f"{a.overall_score:.1f}%" if a.overall_score else 'N/A')
+            ws_a.cell(row=idx, column=7, value=f"Day {a.campaign_day}" if a.campaign_day else 'N/A')
+        
+        # Save
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'analytics_report_{timestamp}.xlsx'
+        filepath = os.path.join(tempfile.gettempdir(), filename)
+        wb.save(filepath)
         
         return send_file(
             filepath,
@@ -212,31 +246,7 @@ def export_analytics():
 
 @admin_bp.route('/export/all', methods=['GET'])
 def export_all():
-    """Export everything (participants + assessments)"""
-    try:
-        participants = Participant.query.all()
-        assessments = Assessment.query.all()
-        
-        participants_data = [p.to_dict() for p in participants]
-        assessments_data = [a.to_dict() for a in assessments]
-        
-        date_range = {
-            'start': 'All time',
-            'end': datetime.now().strftime('%Y-%m-%d')
-        }
-        
-        filepath, filename = ExcelGenerator.create_aggregated_report(
-            participants_data,
-            assessments_data,
-            date_range
-        )
-        
-        return send_file(
-            filepath,
-            as_attachment=True,
-            download_name=filename,
-            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-        )
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    """Export everything (participants + assessments) - redirects to analytics export"""
+    # Redirect to the analytics export which does the same thing
+    return export_analytics()
 

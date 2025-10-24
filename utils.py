@@ -21,8 +21,13 @@ class ExcelGenerator:
     
     @staticmethod
     @log_function_call
-    def create_participant_excel(participants_data: List[Dict]) -> Tuple[str, str]:
-        """Generate Excel file for participant registration"""
+    def create_participant_excel(participants_data: List[Dict], protect_sheet: bool = False) -> Tuple[str, str]:
+        """Generate Excel file for participant registration
+        
+        Args:
+            participants_data: List of participant dictionaries
+            protect_sheet: If True, protect the sheet to prevent editing (for regular users)
+        """
         try:
             wb = Workbook()
             ws = wb.active
@@ -43,6 +48,15 @@ class ExcelGenerator:
             # Write participant data
             ExcelGenerator._write_participant_data(ws, participants_data)
             
+            # Apply sheet protection for regular users
+            if protect_sheet:
+                ws.protection.sheet = True
+                ws.protection.password = 'CHAI_PROTECTED_2024'
+                ws.protection.enable()
+                # Add a watermark message in a hidden cell
+                ws['Z1'] = 'READ ONLY - Contact superuser for editing'
+                ws['Z1'].font = Font(color="FF0000", size=8)
+            
             # Generate filename and save
             filename = f'participant_registration_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
             filepath = ExcelGenerator._save_workbook(wb, filename)
@@ -54,8 +68,13 @@ class ExcelGenerator:
     
     @staticmethod
     @log_function_call
-    def create_assessment_excel(assessment_data: Dict) -> Tuple[str, str]:
-        """Generate comprehensive Excel assessment report"""
+    def create_assessment_excel(assessment_data: Dict, protect_sheet: bool = False) -> Tuple[str, str]:
+        """Generate comprehensive Excel assessment report
+        
+        Args:
+            assessment_data: Dictionary containing assessment information
+            protect_sheet: If True, protect all sheets to prevent editing (for regular users)
+        """
         try:
             wb = Workbook()
             
@@ -67,6 +86,16 @@ class ExcelGenerator:
             
             # Create action plan sheet
             ExcelGenerator._create_action_plan_sheet(wb, assessment_data)
+            
+            # Apply protection to all sheets if requested
+            if protect_sheet:
+                for ws in wb.worksheets:
+                    ws.protection.sheet = True
+                    ws.protection.password = 'CHAI_PROTECTED_2024'
+                    ws.protection.enable()
+                    # Add watermark
+                    ws['Z1'] = 'READ ONLY - Contact superuser for editing'
+                    ws['Z1'].font = Font(color="FF0000", size=8)
             
             # Generate filename and save
             facility_name = assessment_data.get('facilityName', 'Unknown').replace(' ', '_')

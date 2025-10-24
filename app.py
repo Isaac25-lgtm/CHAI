@@ -388,8 +388,10 @@ def submit_data():
             db.session.rollback()
             logger.error(f"Database commit error: {e}")
         
-        # Generate Excel file
-        filepath, filename = ExcelGenerator.create_participant_excel(participants)
+        # Generate Excel file with protection for regular users
+        user_role = session.get('user_role', 'admin')
+        protect_sheet = (user_role != 'superuser')  # Protect for regular users
+        filepath, filename = ExcelGenerator.create_participant_excel(participants, protect_sheet=protect_sheet)
         
         # Send email
         success, message = EmailService.send_email(filepath, filename, "registration")
@@ -484,8 +486,10 @@ def submit_assessment():
             db.session.rollback()
             logger.error(f"Error saving assessment: {e}")
         
-        # Generate Excel report
-        filepath, filename = ExcelGenerator.create_assessment_excel(data)
+        # Generate Excel report with protection for regular users
+        user_role = session.get('user_role', 'admin')
+        protect_sheet = (user_role != 'superuser')  # Protect for regular users
+        filepath, filename = ExcelGenerator.create_assessment_excel(data, protect_sheet=protect_sheet)
         
         # Send email
         success, message = EmailService.send_email(filepath, filename, "assessment")
@@ -542,7 +546,11 @@ def download_excel():
                 'errors': validation_errors
             }), 400
         
-        filepath, filename = ExcelGenerator.create_participant_excel(participants)
+        # Check if user is superuser - only superusers can edit downloaded files
+        user_role = session.get('user_role', 'admin')
+        protect_sheet = (user_role != 'superuser')  # Protect for regular users
+        
+        filepath, filename = ExcelGenerator.create_participant_excel(participants, protect_sheet=protect_sheet)
         
         return send_file(
             filepath,
@@ -584,7 +592,11 @@ def download_assessment():
                 'errors': errors
             }), 400
         
-        filepath, filename = ExcelGenerator.create_assessment_excel(data)
+        # Check if user is superuser - only superusers can edit downloaded files
+        user_role = session.get('user_role', 'admin')
+        protect_sheet = (user_role != 'superuser')  # Protect for regular users
+        
+        filepath, filename = ExcelGenerator.create_assessment_excel(data, protect_sheet=protect_sheet)
         
         return send_file(
             filepath,
