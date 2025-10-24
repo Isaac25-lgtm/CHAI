@@ -224,6 +224,13 @@ def login_required(f):
     """Decorator to require login for routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Check session version - invalidate old sessions
+        if session.get('session_version') != Config.SESSION_VERSION:
+            session.clear()  # Clear old session
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Session expired - please login again'}), 401
+            return redirect(url_for('login'))
+        
         # Strict authentication check
         if not session.get('logged_in') or not session.get('username'):
             session.clear()  # Clear any invalid session data
@@ -252,6 +259,7 @@ def login():
             
             # Set new session with proper security
             session.permanent = True  # Enable session expiration
+            session['session_version'] = Config.SESSION_VERSION  # Track session version
             session['logged_in'] = True
             session['username'] = username
             session['user_role'] = user.role
@@ -298,6 +306,11 @@ def superuser_required(f):
     """Decorator to require superuser access"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Check session version - invalidate old sessions
+        if session.get('session_version') != Config.SESSION_VERSION:
+            session.clear()  # Clear old session
+            return redirect(url_for('login'))
+        
         # Triple check for authentication
         if not session.get('logged_in') or not session.get('username') or not session.get('user_role'):
             session.clear()  # Clear any partial session data
@@ -319,6 +332,11 @@ def admin_dashboard():
 @api_logger
 def index():
     """Main landing page - always redirects to login first"""
+    # Check session version first - invalidate old sessions
+    if session.get('session_version') != Config.SESSION_VERSION:
+        session.clear()
+        return redirect(url_for('login'))
+    
     # CRITICAL: Always enforce authentication - login page is the ONLY entry point
     if not session.get('logged_in') or not session.get('username') or not session.get('user_role'):
         session.clear()  # Clear any stale session data

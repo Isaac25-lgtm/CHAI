@@ -8,7 +8,8 @@ class Config:
     """Application configuration class"""
     
     # Flask configuration
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    # CRITICAL: Changed SECRET_KEY to invalidate all existing sessions (Oct 24, 2025)
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'chai-portal-secure-key-v2-20251024'
     DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     HOST = os.environ.get('FLASK_HOST', '127.0.0.1')
     PORT = int(os.environ.get('FLASK_PORT', 5000))
@@ -45,6 +46,7 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
     PERMANENT_SESSION_LIFETIME = 3600  # Session expires after 1 hour of inactivity
     SESSION_REFRESH_EACH_REQUEST = True  # Refresh session on each request
+    SESSION_VERSION = '2.0'  # Increment this to invalidate all existing sessions
     
     @staticmethod
     def validate_config():
