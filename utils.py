@@ -411,7 +411,7 @@ class ExcelGenerator:
     
     @staticmethod
     def _create_action_plan_sheet(wb: Workbook, assessment_data: Dict):
-        """Create action plan sheet with recommendations"""
+        """Create action plan sheet with recommendations based on scores"""
         ws = wb.create_sheet("Action Plan")
         
         # Define styling
@@ -420,19 +420,23 @@ class ExcelGenerator:
             top=Side(style='thin'), bottom=Side(style='thin')
         )
         header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-        priority_high = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
-        priority_medium = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
+        
+        # Score-based color coding (matching assessment detail colors)
+        score_1_fill = PatternFill(start_color="DC143C", end_color="DC143C", fill_type="solid")  # Dark Red - Critical
+        score_2_fill = PatternFill(start_color="FF6B6B", end_color="FF6B6B", fill_type="solid")  # Red - Urgent
+        score_3_fill = PatternFill(start_color="FFD93D", end_color="FFD93D", fill_type="solid")  # Yellow - Moderate
+        score_4_fill = PatternFill(start_color="FFA500", end_color="FFA500", fill_type="solid")  # Orange - Minor
         
         # Set column widths
-        ws.column_dimensions['A'].width = 30
-        ws.column_dimensions['B'].width = 50
-        ws.column_dimensions['C'].width = 15
+        ws.column_dimensions['A'].width = 50
+        ws.column_dimensions['B'].width = 60
+        ws.column_dimensions['C'].width = 20
         ws.column_dimensions['D'].width = 30
         
         # Add title
         ws.merge_cells('A1:D1')
         title_cell = ws['A1']
-        title_cell.value = "IMPROVEMENT ACTION PLAN"
+        title_cell.value = "IMPROVEMENT ACTION PLAN - Priority Areas for Intervention"
         title_cell.font = Font(size=16, bold=True, color="FFFFFF")
         title_cell.fill = header_fill
         title_cell.alignment = Alignment(horizontal='center', vertical='center')
@@ -440,7 +444,7 @@ class ExcelGenerator:
         
         # Add headers
         row = 3
-        headers = ['Indicator Area', 'Recommended Action', 'Priority', 'Timeline']
+        headers = ['Indicator Name', 'Recommended Action', 'Priority Level', 'Timeline']
         for col_num, header in enumerate(headers, 1):
             cell = ws.cell(row=row, column=col_num)
             cell.value = header
@@ -449,36 +453,135 @@ class ExcelGenerator:
             cell.border = thin_border
             cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
         
-        # Get scores to identify low-scoring areas
-        scores = assessment_data.get('scores', {})
-        recommendations = assessment_data.get('recommendations', {})
+        # Define all sections and indicators (matching assessment details)
+        sections = {
+            "Service Delivery": [
+                {"id": "sd1", "name": "Are hepatitis B testing services available and integrated in ANC, maternity, and postnatal care?", "max_score": 5},
+                {"id": "sd2", "name": "Are HBV-positive pregnant women immediately enrolled for treatment/prophylaxis (TDF or TDF/3TC) at the facility?", "max_score": 5},
+                {"id": "sd3", "name": "Is the hepatitis B birth dose vaccine (HepB-BD) routinely administered within 24 hours of birth?", "max_score": 5},
+                {"id": "sd4", "name": "Are there documented standard operating procedures (SOPs) for PMTCT of hepatitis B at the facility?", "max_score": 5},
+                {"id": "sd5", "name": "Does the facility have integrated maternity and ANC registers that capture hepatitis B screening, treatment, and HepB-BD vaccination?", "max_score": 5},
+                {"id": "sd6", "name": "Are follow-up mechanisms in place for HBV-positive mothers and their exposed infants (post-vaccination serology at 9-12 months)?", "max_score": 5}
+            ],
+            "Human Resource and Service Delivery Points": [
+                {"id": "hr1", "name": "What is the primary funding source for personnel delivering PMTCT services at this facility?", "max_score": 5},
+                {"id": "hr2", "name": "If partner-supported, which partner(s) support PMTCT personnel?", "max_score": 5},
+                {"id": "hr3", "name": "Are PMTCT services integrated and provided at a designated Mother-Baby Care Point (MBCP)?", "max_score": 5},
+                {"id": "hr4", "name": "Where is hepatitis B testing for pregnant women primarily conducted?", "max_score": 5},
+                {"id": "hr5", "name": "Where is treatment/prophylaxis provided for HBV", "max_score": 5},
+                {"id": "hr6", "name": "Where is the Hepatitis B birth dose vaccine administered?", "max_score": 5},
+                {"id": "hr7", "name": "Are there designated personnel responsible for providing comprehensive PMTCT services at each service delivery point?", "max_score": 5},
+                {"id": "hr8", "name": "If PMTCT services are not co-located, what are the key gaps and how are patients referred between service points?", "max_score": 5}
+            ],
+            "Supply Chain Reliability for HBV commodities": [
+                {"id": "sc1", "name": "Are HBsAg test kits currently in stock?", "max_score": 5},
+                {"id": "sc2", "name": "How many months of stock are available for HBsAg test kits?", "max_score": 5},
+                {"id": "sc3", "name": "Is TDF or TDF/3TC for prophylaxis currently in stock?", "max_score": 5},
+                {"id": "sc4", "name": "How many months of stock are available for TDF or TDF/3TC?", "max_score": 5},
+                {"id": "sc5", "name": "Are hepatitis B birth dose (HepB-BD) vaccines currently available in maternity?", "max_score": 5},
+                {"id": "sc6", "name": "How many months of stock are available for HepB-BD vaccines?", "max_score": 5},
+                {"id": "sc7", "name": "Has a stock-out of HBsAg test kits in the past 3 months caused missed screening of pregnant women?", "max_score": 5},
+                {"id": "sc8", "name": "Has there been a stock-out of TDF or TDF/3TC for HBV-positive women in the last 3 months?", "max_score": 5},
+                {"id": "sc9", "name": "Are hepatitis B birth dose vaccines available 24/7 in maternity units for timely newborn immunization?", "max_score": 5}
+            ],
+            "Infrastructure & Equipment": [
+                {"id": "if1", "name": "Is there a functional cold chain (refrigerator/freezer) for storing hepatitis B vaccines at the correct temperature (2-8°C)?", "max_score": 5},
+                {"id": "if2", "name": "Are rapid diagnostic test kits (RDTs) or laboratory equipment for HBsAg testing available and functional?", "max_score": 5},
+                {"id": "if3", "name": "Does the facility have a designated, private space for counseling HBV-positive pregnant women?", "max_score": 5},
+                {"id": "if4", "name": "Is there reliable power supply or backup generator to maintain cold chain and laboratory services?", "max_score": 5},
+                {"id": "if5", "name": "Are there adequate supplies of safety boxes, gloves, and sharps disposal for safe HBV testing and vaccination?", "max_score": 5}
+            ]
+        }
         
-        # Generate recommendations for low-scoring indicators
+        # Get scores and comments
+        scores = assessment_data.get('scores', {})
+        comments = assessment_data.get('comments', {})
+        
+        # Create indicator lookup dictionary
+        indicator_lookup = {}
+        for section_name, indicators in sections.items():
+            for indicator in indicators:
+                indicator_lookup[indicator['id']] = indicator['name']
+        
+        # Generate action plan for indicators with scores 1-4
         row += 1
+        action_items = []
+        
         for indicator_id, score in scores.items():
-            if isinstance(score, (int, str)) and str(score).isdigit() and int(score) < 3:
-                # This is a low-scoring indicator, add to action plan
-                priority = "High" if int(score) <= 2 else "Medium"
-                timeline = "Immediate (1-3 months)" if priority == "High" else "Short-term (3-6 months)"
+            if isinstance(score, (int, str)) and str(score).isdigit():
+                score_int = int(score)
+                if score_int <= 4:  # Include scores 1-4 in action plan
+                    # Determine priority, timeline, and color based on score
+                    if score_int == 1:
+                        priority = "CRITICAL"
+                        timeline = "Immediate (Within 2 weeks)"
+                        fill_color = score_1_fill
+                        font_color = "FFFFFF"
+                    elif score_int == 2:
+                        priority = "URGENT"
+                        timeline = "Short-term (1-3 months)"
+                        fill_color = score_2_fill
+                        font_color = "FFFFFF"
+                    elif score_int == 3:
+                        priority = "MODERATE"
+                        timeline = "Medium-term (3-6 months)"
+                        fill_color = score_3_fill
+                        font_color = "000000"
+                    else:  # score == 4
+                        priority = "MINOR"
+                        timeline = "Long-term (6-12 months)"
+                        fill_color = score_4_fill
+                        font_color = "000000"
+                    
+                    # Get indicator name
+                    indicator_name = indicator_lookup.get(indicator_id, indicator_id.upper())
+                    
+                    # Generate action based on comment or generic
+                    comment = comments.get(indicator_id, "")
+                    action = f"Address identified gaps: {comment}" if comment else f"Develop and implement improvement plan to enhance this indicator"
+                    
+                    action_items.append({
+                        'name': indicator_name,
+                        'action': action,
+                        'priority': priority,
+                        'timeline': timeline,
+                        'fill': fill_color,
+                        'font_color': font_color,
+                        'score': score_int
+                    })
+        
+        # Sort by score (lowest first - most critical)
+        action_items.sort(key=lambda x: x['score'])
+        
+        # Populate action plan
+        for item in action_items:
+            ws.cell(row=row, column=1).value = item['name']
+            ws.cell(row=row, column=2).value = item['action']
+            ws.cell(row=row, column=3).value = item['priority']
+            ws.cell(row=row, column=4).value = item['timeline']
+            
+            # Apply styling
+            for col_num in range(1, 5):
+                cell = ws.cell(row=row, column=col_num)
+                cell.border = thin_border
+                cell.alignment = Alignment(vertical='center', wrap_text=True)
                 
-                ws.cell(row=row, column=1).value = indicator_id.upper()
-                ws.cell(row=row, column=2).value = recommendations.get(indicator_id, 
-                    f"Develop improvement plan for {indicator_id}")
-                ws.cell(row=row, column=3).value = priority
-                ws.cell(row=row, column=4).value = timeline
-                
-                # Apply styling
-                for col_num in range(1, 5):
-                    cell = ws.cell(row=row, column=col_num)
-                    cell.border = thin_border
-                    cell.alignment = Alignment(vertical='center', wrap_text=True)
-                    if col_num == 3:
-                        if priority == "High":
-                            cell.fill = priority_high
-                        else:
-                            cell.fill = priority_medium
-                
-                row += 1
+                # Color code the priority column
+                if col_num == 3:
+                    cell.fill = item['fill']
+                    cell.font = Font(bold=True, color=item['font_color'])
+            
+            row += 1
+        
+        # Add summary note if no action items
+        if not action_items:
+            ws.cell(row=row, column=1).value = "No critical action items identified. All indicators scored 5 (excellent performance)."
+            ws.merge_cells(f'A{row}:D{row}')
+            cell = ws.cell(row=row, column=1)
+            cell.fill = PatternFill(start_color="6BCF7F", end_color="6BCF7F", fill_type="solid")
+            cell.font = Font(bold=True, color="FFFFFF")
+            cell.border = thin_border
+            cell.alignment = Alignment(horizontal='center', vertical='center')
     
     @staticmethod
     def _save_workbook(wb: Workbook, filename: str) -> str:
