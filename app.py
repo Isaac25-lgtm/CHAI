@@ -305,8 +305,8 @@ def admin_dashboard():
 @api_logger
 def index():
     """Main landing page - redirects to login if not authenticated"""
-    if 'username' not in session:
-        # Show login page directly at root URL
+    # Always check authentication first - login page is the starting page
+    if not session.get('logged_in') or not session.get('username'):
         return redirect(url_for('login'))
     return render_template('index.html', username=session.get('username'))
 
