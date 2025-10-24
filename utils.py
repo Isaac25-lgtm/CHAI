@@ -374,6 +374,7 @@ class ExcelGenerator:
         else:  # Green for high scores (70-100%)
             score_fill = PatternFill(start_color="6BCF7F", end_color="6BCF7F", fill_type="solid")
         
+        # First row: Max Score and Total Score
         ws.cell(row=row, column=4).value = total_possible
         ws.cell(row=row, column=4).fill = header_fill
         ws.cell(row=row, column=4).font = Font(bold=True, color="FFFFFF")
@@ -386,11 +387,27 @@ class ExcelGenerator:
         ws.cell(row=row, column=5).border = thin_border
         ws.cell(row=row, column=5).alignment = Alignment(horizontal='center', vertical='center')
         
-        ws.cell(row=row, column=6).value = f"{percentage}%"
-        ws.cell(row=row, column=6).fill = score_fill
-        ws.cell(row=row, column=6).font = Font(bold=True, size=12, color="FFFFFF")
+        ws.cell(row=row, column=6).value = ""
         ws.cell(row=row, column=6).border = thin_border
-        ws.cell(row=row, column=6).alignment = Alignment(horizontal='center', vertical='center')
+        
+        # Second row: Percentage in the same column as Total Score
+        row += 1
+        ws.merge_cells(f'A{row}:D{row}')
+        percentage_label = ws.cell(row=row, column=1)
+        percentage_label.value = "PERCENTAGE SCORE"
+        percentage_label.fill = header_fill
+        percentage_label.font = Font(bold=True, size=12, color="FFFFFF")
+        percentage_label.border = thin_border
+        percentage_label.alignment = Alignment(horizontal='center', vertical='center')
+        
+        ws.cell(row=row, column=5).value = f"{percentage}%"
+        ws.cell(row=row, column=5).fill = score_fill
+        ws.cell(row=row, column=5).font = Font(bold=True, size=12, color="FFFFFF")
+        ws.cell(row=row, column=5).border = thin_border
+        ws.cell(row=row, column=5).alignment = Alignment(horizontal='center', vertical='center')
+        
+        ws.cell(row=row, column=6).value = ""
+        ws.cell(row=row, column=6).border = thin_border
     
     @staticmethod
     def _create_action_plan_sheet(wb: Workbook, assessment_data: Dict):
