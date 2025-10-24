@@ -200,11 +200,6 @@
             border-color: #f44336;
         }
 
-        .score-btn.selected-0 {
-            background: #9E9E9E;
-            color: white;
-            border-color: #9E9E9E;
-        }
 
         .comment-input {
             width: 100%;
@@ -665,7 +660,7 @@
                         <div class="indicator-row">
                             <div class="indicator-name">${indicator.name}</div>
                             <div class="score-selector">
-                                ${[0, 1, 2, 3, 4, 5].map(score => 
+                                ${[1, 2, 3, 4, 5].map(score => 
                                     `<button class="score-btn" id="score-${indicator.id}-${score}" 
                                             onclick="setScore('${indicator.id}', ${score}, ${indicator.max_score})">${score}</button>`
                                 ).join('')}
@@ -744,7 +739,7 @@
 
             // Calculate total score
             for (const [indicatorId, score] of Object.entries(scores)) {
-                if (score >= 0 && scores[indicatorId] !== undefined) {
+                if (score >= 1 && scores[indicatorId] !== undefined) {
                     totalScore += score;
                     indicatorsAssessed++;
                 }

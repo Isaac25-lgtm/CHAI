@@ -122,8 +122,8 @@ class DataValidator:
         # Validate scores
         if 'scores' in assessment and assessment['scores']:
             for indicator_id, score in assessment['scores'].items():
-                if not isinstance(score, int) or score < 0 or score > 5:
-                    errors.append(f"Invalid score for {indicator_id}. Must be between 0 and 5")
+                if not isinstance(score, int) or score < 1 or score > 5:
+                    errors.append(f"Invalid score for {indicator_id}. Must be between 1 and 5")
         
         return len(errors) == 0, errors
     
