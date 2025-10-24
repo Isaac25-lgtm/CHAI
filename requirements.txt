@@ -1,6 +1,29 @@
+# Core Flask framework
 Flask==3.0.0
-openpyxl==3.1.2
-gunicorn==21.2.0
-python-dotenv==1.0.0
 Werkzeug==3.1.3
+
+# Forms and CSRF protection
 Flask-WTF==1.2.2
+WTForms==3.1.1
+
+# Database
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.25
+
+# PostgreSQL driver (for Render deployment)
+psycopg2-binary==2.9.9
+
+# Excel file handling
+openpyxl==3.1.2
+
+# Environment variables
+python-dotenv==1.0.0
+
+# Date and time handling
+python-dateutil==2.9.0
+
+# Production server
+gunicorn==21.2.0
+
+# Email validation (optional but recommended)
+email-validator==2.1.0

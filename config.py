@@ -13,6 +13,16 @@ class Config:
     HOST = os.environ.get('FLASK_HOST', '127.0.0.1')
     PORT = int(os.environ.get('FLASK_PORT', 5000))
     
+    # Database configuration
+    # For local development, use SQLite
+    # For production (Render), use PostgreSQL from DATABASE_URL env variable
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL', 'sqlite:///chai_portal.db')
+    # Fix for Render's postgres:// URL (should be postgresql://)
+    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith('postgres://'):
+        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ECHO = False  # Set to True for SQL debugging
+    
     # Email configuration
     RECIPIENT_EMAIL = os.environ.get('RECIPIENT_EMAIL', 'omodingisaac111@gmail.com')
     SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')

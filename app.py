@@ -16,6 +16,8 @@ from config import Config
 from logger import setup_logger, log_api_call, log_security_event
 from validators import DataValidator, ValidationError
 from utils import ExcelGenerator, EmailService, FileManager
+from models import db, init_database, User, Participant, Assessment, log_activity
+from admin_routes import admin_bp
 
 # Initialize logger
 logger = setup_logger()
@@ -66,6 +68,12 @@ else:
 
 # Configure Flask app
 app.config.from_object(Config)
+
+# Initialize database
+init_database(app)
+
+# Register admin blueprint
+app.register_blueprint(admin_bp)
 
 # Initialize CSRF protection
 csrf = CSRFProtect(app)
@@ -219,12 +227,9 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# Authentication credentials
-ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = "admin"
-
 # Routes
 @app.route('/login', methods=['GET', 'POST'])
+@csrf.exempt
 @api_logger
 def login():
     """Login page and authentication"""
@@ -232,18 +237,37 @@ def login():
         username = request.form.get('username')
         password = request.form.get('password')
         
-        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+        # Check against database
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.password == password:  # In production, use proper password hashing!
             session['logged_in'] = True
             session['username'] = username
-            logger.info(f"Successful login: {username}")
-            return redirect(url_for('index'))
+            session['user_role'] = user.role
+            
+            # Update last login
+            user.last_login = datetime.utcnow()
+            db.session.commit()
+            
+            # Log activity
+            log_activity('login', username, {'ip': request.remote_addr}, 'authentication')
+            
+            logger.info(f"Successful login: {username} (role: {user.role})")
+            
+            # Redirect based on role
+            if user.role == 'superuser':
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('index'))
         else:
             log_security_event("Failed login attempt", f"Username: {username}", request.remote_addr)
             logger.warning(f"Failed login attempt for username: {username}")
             return render_template('login.html', error='Invalid username or password')
     
-    # If already logged in, redirect to index
+    # If already logged in, redirect appropriately
     if session.get('logged_in'):
+        if session.get('user_role') == 'superuser':
+            return redirect(url_for('admin_dashboard'))
         return redirect(url_for('index'))
     
     return render_template('login.html')
@@ -253,9 +277,29 @@ def login():
 def logout():
     """Logout and clear session"""
     username = session.get('username', 'Unknown')
+    log_activity('logout', username, {'ip': request.remote_addr}, 'authentication')
     session.clear()
     logger.info(f"User logged out: {username}")
     return redirect(url_for('login'))
+
+def superuser_required(f):
+    """Decorator to require superuser access"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            return redirect(url_for('login'))
+        if session.get('user_role') != 'superuser':
+            logger.warning(f"Unauthorized admin access attempt by {session.get('username')}")
+            return jsonify({'success': False, 'message': 'Superuser access required'}), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/admin')
+@api_logger
+@superuser_required
+def admin_dashboard():
+    """Admin dashboard - superuser only"""
+    return render_template('admin_dashboard.html', username=session.get('username'))
 
 @app.route('/')
 @api_logger
@@ -307,6 +351,43 @@ def submit_data():
                 'errors': validation_errors
             }), 400
         
+        # Save to database
+        saved_count = 0
+        for participant_data in participants:
+            try:
+                participant = Participant(
+                    participant_name=participant_data.get('participantName'),
+                    cadre=participant_data.get('cadre'),
+                    duty_station=participant_data.get('dutyStation'),
+                    district=participant_data.get('district'),
+                    mobile_number=participant_data.get('mobileNumber'),
+                    mobile_money_name=participant_data.get('mobileMoneyName'),
+                    registration_date=datetime.strptime(participant_data.get('registrationDate', datetime.now().strftime('%Y-%m-%d')), '%Y-%m-%d').date(),
+                    campaign_day=participant_data.get('campaignDay'),
+                    submitted_by=session.get('username')
+                )
+                db.session.add(participant)
+                saved_count += 1
+            except Exception as e:
+                logger.error(f"Error saving participant: {e}")
+        
+        try:
+            db.session.commit()
+            logger.info(f"Saved {saved_count} participants to database")
+            
+            # Log activity
+            log_activity(
+                'registration',
+                session.get('username'),
+                {'count': saved_count, 'facility': participants[0].get('dutyStation') if participants else 'Unknown'},
+                'registration',
+                participants[0].get('dutyStation') if participants else None,
+                request.remote_addr
+            )
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Database commit error: {e}")
+        
         # Generate Excel file
         filepath, filename = ExcelGenerator.create_participant_excel(participants)
         
@@ -357,6 +438,51 @@ def submit_assessment():
                 'message': 'Validation errors found',
                 'errors': errors
             }), 400
+        
+        # Calculate overall score
+        scores = data.get('scores', {})
+        if scores:
+            total_score = sum(scores.values())
+            max_score = len(scores) * 5
+            overall_score = (total_score / max_score) * 100 if max_score > 0 else 0
+        else:
+            overall_score = 0
+        
+        # Save to database
+        try:
+            assessment = Assessment(
+                facility_name=data.get('facilityName'),
+                district=data.get('district'),
+                facility_level=data.get('facilityLevel'),
+                ownership=data.get('ownership'),
+                assessor_name=data.get('assessorName'),
+                assessment_date=datetime.strptime(data.get('assessmentDate'), '%Y-%m-%d').date(),
+                scores_json=json.dumps(scores),
+                overall_score=overall_score,
+                campaign_day=data.get('campaignDay'),
+                submitted_by=session.get('username')
+            )
+            
+            # Calculate category scores
+            assessment.calculate_category_scores(scores)
+            
+            db.session.add(assessment)
+            db.session.commit()
+            
+            logger.info(f"Saved assessment to database for {data.get('facilityName')}")
+            
+            # Log activity
+            log_activity(
+                'assessment',
+                session.get('username'),
+                {'facility': data.get('facilityName'), 'score': overall_score},
+                'assessment',
+                data.get('facilityName'),
+                request.remote_addr
+            )
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error saving assessment: {e}")
         
         # Generate Excel report
         filepath, filename = ExcelGenerator.create_assessment_excel(data)
