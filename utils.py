@@ -279,12 +279,16 @@ class ExcelGenerator:
                 {"id": "hr3", "name": "Mentorship programs in place", "max_score": 5},
                 {"id": "hr4", "name": "Performance management systems", "max_score": 5}
             ],
-            "Supply Chain Management": [
-                {"id": "sc1", "name": "ARV stock availability", "max_score": 5},
-                {"id": "sc2", "name": "Test kit availability", "max_score": 5},
-                {"id": "sc3", "name": "Stock management practices", "max_score": 5},
-                {"id": "sc4", "name": "Cold chain functionality", "max_score": 5},
-                {"id": "sc5", "name": "Ordering and reporting timeliness", "max_score": 5}
+            "Supply Chain Reliability for HBV commodities": [
+                {"id": "sc1", "name": "Are HBsAg test kits currently in stock?", "max_score": 5},
+                {"id": "sc2", "name": "How many months of stock are available for HBsAg test kits?", "max_score": 5},
+                {"id": "sc3", "name": "Is TDF or TDF/3TC for prophylaxis currently in stock?", "max_score": 5},
+                {"id": "sc4", "name": "How many months of stock are available for TDF or TDF/3TC?", "max_score": 5},
+                {"id": "sc5", "name": "Are hepatitis B birth dose (HepB-BD) vaccines currently available in maternity?", "max_score": 5},
+                {"id": "sc6", "name": "How many months of stock are available for HepB-BD vaccines?", "max_score": 5},
+                {"id": "sc7", "name": "Has a stock-out of HBsAg test kits in the past 3 months caused missed screening of pregnant women?", "max_score": 5},
+                {"id": "sc8", "name": "Has there been a stock-out of TDF or TDF/3TC for HBV-positive women in the last 3 months?", "max_score": 5},
+                {"id": "sc9", "name": "Are hepatitis B birth dose vaccines available 24/7 in maternity units for timely newborn immunization?", "max_score": 5}
             ],
             "Data Management & Use": [
                 {"id": "dm1", "name": "Data quality and completeness", "max_score": 5},
