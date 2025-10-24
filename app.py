@@ -393,23 +393,28 @@ def submit_data():
         protect_sheet = (user_role != 'superuser')  # Protect for regular users
         filepath, filename = ExcelGenerator.create_participant_excel(participants, protect_sheet=protect_sheet)
         
-        # Send email
+        # Send email (optional - don't fail if email not configured)
         success, message = EmailService.send_email(filepath, filename, "registration")
         
         # Clean up temp file
         FileManager.cleanup_temp_file(filepath)
         
+        # Always return success since data is saved to database
+        logger.info(f"Successfully processed {len(participants)} participants")
+        
         if success:
-            logger.info(f"Successfully processed {len(participants)} participants")
             return jsonify({
                 'success': True,
-                'message': f'Successfully sent {len(participants)} participant(s) data to {Config.RECIPIENT_EMAIL}'
+                'message': f'✅ Data saved successfully! Email sent to {Config.RECIPIENT_EMAIL} with {len(participants)} participant(s). You can also download the Excel file manually.'
             })
         else:
+            # Data is saved, but email failed - user can still download manually
+            logger.warning(f"Email sending failed but data was saved: {message}")
             return jsonify({
-                'success': False,
-                'message': f'Failed to send email: {message}'
-            }), 500
+                'success': True,
+                'message': f'✅ Data saved successfully! {len(participants)} participant(s) registered. ⚠️ Email sending failed ({message}), but you can download the Excel file using the "Download Excel" button.',
+                'email_warning': True
+            })
             
     except ValidationError as e:
         logger.warning(f"Validation error in submit_data: {str(e)}")
@@ -491,23 +496,29 @@ def submit_assessment():
         protect_sheet = (user_role != 'superuser')  # Protect for regular users
         filepath, filename = ExcelGenerator.create_assessment_excel(data, protect_sheet=protect_sheet)
         
-        # Send email
+        # Send email (optional - don't fail if email not configured)
         success, message = EmailService.send_email(filepath, filename, "assessment")
         
         # Clean up temp file
         FileManager.cleanup_temp_file(filepath)
         
+        # Always return success since data is saved to database
+        facility_name = data.get('facilityName', 'Unknown')
+        logger.info(f"Successfully processed assessment for {facility_name}")
+        
         if success:
-            logger.info(f"Successfully processed assessment for {data.get('facilityName', 'Unknown')}")
             return jsonify({
                 'success': True,
-                'message': f'Assessment report successfully sent to {Config.RECIPIENT_EMAIL}'
+                'message': f'✅ Assessment saved successfully! Report for {facility_name} sent to {Config.RECIPIENT_EMAIL}. You can also download the Excel file manually.'
             })
         else:
+            # Data is saved, but email failed - user can still download manually
+            logger.warning(f"Email sending failed but assessment was saved: {message}")
             return jsonify({
-                'success': False,
-                'message': f'Failed to send email: {message}'
-            }), 500
+                'success': True,
+                'message': f'✅ Assessment saved successfully for {facility_name}! ⚠️ Email sending failed ({message}), but you can download the Excel report using the "Download Excel" button.',
+                'email_warning': True
+            })
             
     except ValidationError as e:
         logger.warning(f"Validation error in submit_assessment: {str(e)}")
