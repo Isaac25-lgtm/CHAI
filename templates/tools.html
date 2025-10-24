@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Facility Assessment Tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .navbar {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .navbar h1 {
+            color: #333;
+            font-size: 1.5rem;
+        }
+
+        .back-btn {
+            padding: 8px 20px;
+            background: #f093fb;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .back-btn:hover {
+            background: #e083eb;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .facility-info {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .info-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            color: #555;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #f093fb;
+        }
+
+        .assessment-sections {
+            margin-top: 30px;
+        }
+
+        .section-card {
+            background: white;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .section-header h3 {
+            font-size: 1.2rem;
+        }
+
+        .section-score {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .section-content {
+            padding: 20px;
+            display: block;
+        }
+
+        .indicator-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 2fr;
+            gap: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            align-items: center;
+        }
+
+        .indicator-name {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .score-selector {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .score-btn {
+            width: 35px;
+            height: 35px;
+            border: 2px solid #ddd;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .score-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .score-btn.selected-5 {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+
+        .score-btn.selected-4 {
+            background: #8BC34A;
+            color: white;
+            border-color: #8BC34A;
+        }
+
+        .score-btn.selected-3 {
+            background: #FFC107;
+            color: white;
+            border-color: #FFC107;
+        }
+
+        .score-btn.selected-2 {
+            background: #FF9800;
+            color: white;
+            border-color: #FF9800;
+        }
+
+        .score-btn.selected-1 {
+            background: #f44336;
+            color: white;
+            border-color: #f44336;
+        }
+
+        .score-btn.selected-0 {
+            background: #9E9E9E;
+            color: white;
+            border-color: #9E9E9E;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .summary-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+
+        .summary-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .summary-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #FFC107 0%, #FFB300 100%);
+            color: white;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .status-message {
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .criteria-legend {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .criteria-legend h4 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .criteria-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .criteria-score {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 5px;
+            margin-right: 10px;
+            font-weight: bold;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .indicator-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .navbar {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <h1>📊 Facility Assessment Tools</h1>
+        <a href="/" class="back-btn">← Back to Portal</a>
+    </div>
+
+    <div class="container">
+        <!-- Facility Information Section -->
+        <div class="facility-info">
+            <h2 style="margin-bottom: 20px; color: #333;">Facility Information</h2>
+            <div class="info-grid">
+                <div class="info-group">
+                    <label for="facilityName">Facility Name *</label>
+                    <input type="text" id="facilityName" required>
+                </div>
+                <div class="info-group">
+                    <label for="district">District *</label>
+                    <select id="district" required>
+                        <option value="">Select District</option>
+                        <option value="Gulu">Gulu</option>
+                        <option value="Kitgum">Kitgum</option>
+                        <option value="Pader">Pader</option>
+                        <option value="Lamwo">Lamwo</option>
+                        <option value="Agago">Agago</option>
+                        <option value="Amuru">Amuru</option>
+                        <option value="Nwoya">Nwoya</option>
+                        <option value="Omoro">Omoro</option>
+                    </select>
+                </div>
+                <div class="info-group">
+                    <label for="facilityLevel">Facility Level *</label>
+                    <select id="facilityLevel" required>
+                        <option value="">Select Level</option>
+                        <option value="HC II">Health Center II</option>
+                        <option value="HC III">Health Center III</option>
+                        <option value="HC IV">Health Center IV</option>
+                        <option value="Hospital">Hospital</option>
+                        <option value="Regional Referral">Regional Referral Hospital</option>
+                    </select>
+                </div>
+                <div class="info-group">
+                    <label for="ownership">Ownership *</label>
+                    <select id="ownership" required>
+                        <option value="">Select Ownership</option>
+                        <option value="Government">Government</option>
+                        <option value="PNFP">PNFP</option>
+                        <option value="Private">Private</option>
+                    </select>
+                </div>
+                <div class="info-group">
+                    <label for="assessorName">Assessor Name *</label>
+                    <input type="text" id="assessorName" required>
+                </div>
+                <div class="info-group">
+                    <label for="assessmentDate">Assessment Date *</label>
+                    <input type="date" id="assessmentDate" required>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scoring Criteria Legend -->
+        <div class="criteria-legend">
+            <h4>Scoring Criteria</h4>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px;">
+                <div class="criteria-item">
+                    <div class="criteria-score" style="background: #4CAF50;">5</div>
+                    <span>Excellent - Fully meets standards</span>
+                </div>
+                <div class="criteria-item">
+                    <div class="criteria-score" style="background: #8BC34A;">4</div>
+                    <span>Good - Minor gaps</span>
+                </div>
+                <div class="criteria-item">
+                    <div class="criteria-score" style="background: #FFC107;">3</div>
+                    <span>Satisfactory - Some gaps</span>
+                </div>
+                <div class="criteria-item">
+                    <div class="criteria-score" style="background: #FF9800;">2</div>
+                    <span>Needs Improvement</span>
+                </div>
+                <div class="criteria-item">
+                    <div class="criteria-score" style="background: #f44336;">1</div>
+                    <span>Poor - Major deficiencies</span>
+                </div>
+                <div class="criteria-item">
+                    <div class="criteria-score" style="background: #9E9E9E;">0</div>
+                    <span>Not Applicable/Not Assessed</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assessment Sections -->
+        <div class="assessment-sections" id="assessmentSections">
+            <!-- Sections will be dynamically generated here -->
+        </div>
+
+        <!-- Summary Panel -->
+        <div class="summary-panel">
+            <h2 style="margin-bottom: 20px; color: #333;">Assessment Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-value" id="totalScore">0</div>
+                    <div class="summary-label">Total Score</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="maxScore">0</div>
+                    <div class="summary-label">Maximum Score</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="percentage">0%</div>
+                    <div class="summary-label">Overall Percentage</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-value" id="indicatorsAssessed">0</div>
+                    <div class="summary-label">Indicators Assessed</div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button onclick="saveAssessment()" class="btn-success">Submit & Email Report</button>
+                <button onclick="downloadReport()" class="btn-primary">Download Report</button>
+                <button onclick="resetAssessment()" class="btn-warning">Reset Assessment</button>
+            </div>
+
+            <div id="statusMessage" class="status-message"></div>
+        </div>
+    </div>
+
+    <script>
+        // Assessment data structure - hardcoded for client-side
+        const sections = {
+            "service_delivery": {
+                "name": "Service Delivery",
+                "indicators": [
+                    {"id": "sd1", "name": "ART service availability", "max_score": 5},
+                    {"id": "sd2", "name": "PMTCT integration", "max_score": 5},
+                    {"id": "sd3", "name": "Pediatric HIV services", "max_score": 5},
+                    {"id": "sd4", "name": "TB/HIV collaborative activities", "max_score": 5},
+                    {"id": "sd5", "name": "Laboratory services functionality", "max_score": 5}
+                ]
+            },
+            "human_resources": {
+                "name": "Human Resources for Health",
+                "indicators": [
+                    {"id": "hr1", "name": "Staffing levels adequacy", "max_score": 5},
+                    {"id": "hr2", "name": "Staff trained on HIV guidelines", "max_score": 5},
+                    {"id": "hr3", "name": "Mentorship programs in place", "max_score": 5},
+                    {"id": "hr4", "name": "Performance management systems", "max_score": 5}
+                ]
+            },
+            "supply_chain": {
+                "name": "Supply Chain Management",
+                "indicators": [
+                    {"id": "sc1", "name": "ARV stock availability", "max_score": 5},
+                    {"id": "sc2", "name": "Test kit availability", "max_score": 5},
+                    {"id": "sc3", "name": "Stock management practices", "max_score": 5},
+                    {"id": "sc4", "name": "Cold chain functionality", "max_score": 5},
+                    {"id": "sc5", "name": "Ordering and reporting timeliness", "max_score": 5}
+                ]
+            },
+            "data_management": {
+                "name": "Data Management & Use",
+                "indicators": [
+                    {"id": "dm1", "name": "Data quality and completeness", "max_score": 5},
+                    {"id": "dm2", "name": "HMIS reporting timeliness", "max_score": 5},
+                    {"id": "dm3", "name": "Data use for decision making", "max_score": 5},
+                    {"id": "dm4", "name": "Patient tracking systems", "max_score": 5}
+                ]
+            },
+            "quality_improvement": {
+                "name": "Quality Improvement",
+                "indicators": [
+                    {"id": "qi1", "name": "QI committees functionality", "max_score": 5},
+                    {"id": "qi2", "name": "Clinical audits conducted", "max_score": 5},
+                    {"id": "qi3", "name": "Client satisfaction mechanisms", "max_score": 5},
+                    {"id": "qi4", "name": "Continuous improvement plans", "max_score": 5}
+                ]
+            },
+            "infrastructure": {
+                "name": "Infrastructure & Equipment",
+                "indicators": [
+                    {"id": "if1", "name": "Facility physical condition", "max_score": 5},
+                    {"id": "if2", "name": "Essential equipment availability", "max_score": 5},
+                    {"id": "if3", "name": "Power supply reliability", "max_score": 5},
+                    {"id": "if4", "name": "Water and sanitation", "max_score": 5}
+                ]
+            }
+        };
+        
+        const scores = {};
+        const comments = {};
+        let totalPossibleScore = 0;
+
+        // Initialize the assessment sections
+        function initializeSections() {
+            const container = document.getElementById('assessmentSections');
+            let html = '';
+
+            for (const [sectionKey, sectionData] of Object.entries(sections)) {
+                html += `
+                    <div class="section-card">
+                        <div class="section-header" onclick="toggleSection('${sectionKey}')">
+                            <h3>${sectionData.name}</h3>
+                            <div class="section-score" id="section-score-${sectionKey}">0 / 0</div>
+                        </div>
+                        <div class="section-content" id="section-${sectionKey}">
+                `;
+
+                sectionData.indicators.forEach(indicator => {
+                    totalPossibleScore += indicator.max_score;
+                    html += `
+                        <div class="indicator-row">
+                            <div class="indicator-name">${indicator.name}</div>
+                            <div class="score-selector">
+                                ${[0, 1, 2, 3, 4, 5].map(score => 
+                                    `<button class="score-btn" id="score-${indicator.id}-${score}" 
+                                            onclick="setScore('${indicator.id}', ${score}, ${indicator.max_score})">${score}</button>`
+                                ).join('')}
+                            </div>
+                            <input type="text" class="comment-input" 
+                                   id="comment-${indicator.id}" 
+                                   placeholder="Comments (optional)"
+                                   onchange="setComment('${indicator.id}', this.value)">
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html;
+            document.getElementById('maxScore').textContent = totalPossibleScore;
+        }
+
+        function toggleSection(sectionKey) {
+            const content = document.getElementById(`section-${sectionKey}`);
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+            } else {
+                content.style.display = 'none';
+            }
+        }
+
+        function setScore(indicatorId, score, maxScore) {
+            // Update score
+            scores[indicatorId] = score;
+
+            // Update button styling
+            for (let i = 0; i <= 5; i++) {
+                const btn = document.getElementById(`score-${indicatorId}-${i}`);
+                btn.className = 'score-btn';
+                if (i === score) {
+                    btn.classList.add(`selected-${score}`);
+                }
+            }
+
+            // Update summary
+            updateSummary();
+        }
+
+        function setComment(indicatorId, comment) {
+            comments[indicatorId] = comment;
+        }
+
+        function updateSummary() {
+            let totalScore = 0;
+            let indicatorsAssessed = 0;
+
+            // Calculate total score
+            for (const [indicatorId, score] of Object.entries(scores)) {
+                if (score >= 0 && scores[indicatorId] !== undefined) {
+                    totalScore += score;
+                    indicatorsAssessed++;
+                }
+            }
+
+            // Update section scores
+            for (const [sectionKey, sectionData] of Object.entries(sections)) {
+                let sectionScore = 0;
+                let sectionMax = 0;
+
+                sectionData.indicators.forEach(indicator => {
+                    sectionMax += indicator.max_score;
+                    if (scores[indicator.id]) {
+                        sectionScore += scores[indicator.id];
+                    }
+                });
+
+                document.getElementById(`section-score-${sectionKey}`).textContent = 
+                    `${sectionScore} / ${sectionMax}`;
+            }
+
+            // Update summary panel
+            document.getElementById('totalScore').textContent = totalScore;
+            document.getElementById('indicatorsAssessed').textContent = indicatorsAssessed;
+
+            const percentage = totalPossibleScore > 0 
+                ? Math.round((totalScore / totalPossibleScore) * 100) 
+                : 0;
+            document.getElementById('percentage').textContent = percentage + '%';
+        }
+
+        function validateFacilityInfo() {
+            const required = ['facilityName', 'district', 'facilityLevel', 'ownership', 'assessorName', 'assessmentDate'];
+            for (const field of required) {
+                if (!document.getElementById(field).value) {
+                    showMessage(`Please fill in all facility information fields`, 'error');
+                    document.getElementById(field).focus();
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function getAssessmentData() {
+            return {
+                facilityName: document.getElementById('facilityName').value,
+                district: document.getElementById('district').value,
+                facilityLevel: document.getElementById('facilityLevel').value,
+                ownership: document.getElementById('ownership').value,
+                assessorName: document.getElementById('assessorName').value,
+                assessmentDate: document.getElementById('assessmentDate').value,
+                scores: scores,
+                comments: comments,
+                recommendations: {} // Can be enhanced with AI-generated recommendations
+            };
+        }
+
+        function fetchWithTimeout(url, options = {}, timeout = 30000) {
+            return Promise.race([
+                fetch(url, options),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Request timeout')), timeout)
+                )
+            ]);
+        }
+
+        function saveAssessment() {
+            if (!validateFacilityInfo()) return;
+
+            if (Object.keys(scores).length === 0) {
+                showMessage('Please assess at least one indicator', 'error');
+                return;
+            }
+
+            const data = getAssessmentData();
+
+            fetchWithTimeout('/submit-assessment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            }, 30000)
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showMessage(result.message, 'success');
+                } else {
+                    showMessage(result.message, 'error');
+                }
+            })
+            .catch(error => {
+                showMessage('Error: ' + error.message, 'error');
+            });
+        }
+
+        function downloadReport() {
+            if (!validateFacilityInfo()) return;
+
+            if (Object.keys(scores).length === 0) {
+                showMessage('Please assess at least one indicator', 'error');
+                return;
+            }
+
+            const data = getAssessmentData();
+
+            fetchWithTimeout('/download-assessment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            }, 30000)
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `assessment_${document.getElementById('facilityName').value}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                a.click();
+                showMessage('Assessment report downloaded successfully!', 'success');
+            })
+            .catch(error => {
+                showMessage('Error downloading report: ' + error.message, 'error');
+            });
+        }
+
+        function resetAssessment() {
+            if (confirm('This will clear all assessment data. Are you sure?')) {
+                // Clear scores and comments
+                for (const indicatorId in scores) {
+                    delete scores[indicatorId];
+                    delete comments[indicatorId];
+                    
+                    // Reset buttons
+                    for (let i = 0; i <= 5; i++) {
+                        const btn = document.getElementById(`score-${indicatorId}-${i}`);
+                        if (btn) btn.className = 'score-btn';
+                    }
+                    
+                    // Clear comment
+                    const commentField = document.getElementById(`comment-${indicatorId}`);
+                    if (commentField) commentField.value = '';
+                }
+                
+                updateSummary();
+                showMessage('Assessment reset successfully', 'success');
+            }
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('statusMessage');
+            messageDiv.className = `status-message ${type}`;
+            messageDiv.textContent = message;
+            messageDiv.style.display = 'block';
+
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSections();
+            
+            // Set today's date (browser compatible)
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('assessmentDate').value = today;
+        });
+    </script>
+</body>
+</html>

@@ -1,11 +1,5 @@
-from flask import Flask, render_template, request, jsonify, send_file
-from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email.mime.text import MIMEText
-from email import encoders
+from flask import Flask, render_template, request, jsonify, send_file, session
+from flask_wtf.csrf import CSRFProtect
 import os
 import sys
 from datetime import datetime
@@ -13,154 +7,234 @@ import tempfile
 import webbrowser
 import threading
 import time
+import json
+import re
+from functools import wraps
+
+# Import our custom modules
+from config import Config
+from logger import setup_logger, log_api_call, log_security_event
+from validators import DataValidator, ValidationError
+from utils import ExcelGenerator, EmailService, FileManager
+
+# Initialize logger
+logger = setup_logger()
+
+def check_dependencies():
+    """Check if required dependencies are installed"""
+    required_modules = {
+        'flask': 'Flask',
+        'openpyxl': 'openpyxl',
+        'email': 'email (built-in)',
+        'smtplib': 'smtplib (built-in)',
+        'dotenv': 'python-dotenv'
+    }
+    
+    missing = []
+    for module_name, display_name in required_modules.items():
+        try:
+            __import__(module_name)
+        except ImportError:
+            if module_name not in ['email', 'smtplib']:
+                missing.append(display_name)
+    
+    if missing:
+        logger.error(f"Missing required dependencies: {missing}")
+        print("\n" + "="*60)
+        print("ERROR: Missing required dependencies!")
+        print("="*60)
+        print("\nThe following packages are required but not installed:")
+        for pkg in missing:
+            print(f"  - {pkg}")
+        print("\nPlease install them using:")
+        print(f"  pip install {' '.join(missing)}")
+        print("\nOr install from requirements.txt:")
+        print("  pip install -r requirements.txt")
+        print("="*60 + "\n")
+        sys.exit(1)
+
+# Check dependencies before starting
+check_dependencies()
 
 # For Windows executable compatibility
 if getattr(sys, 'frozen', False):
-    # Running as compiled executable
     template_folder = os.path.join(sys._MEIPASS, 'templates')
     static_folder = os.path.join(sys._MEIPASS, 'static')
     app = Flask(__name__, template_folder=template_folder, static_folder=static_folder)
 else:
-    # Running as normal Python script
     app = Flask(__name__)
 
-# Email configuration
-RECIPIENT_EMAIL = "omodingisaac111@gmail.com"
+# Configure Flask app
+app.config.from_object(Config)
 
-# SMTP Configuration - Update these for email functionality
-SMTP_SERVER = "smtp.gmail.com"
-SMTP_PORT = 587
-SMTP_USERNAME = "your-email@gmail.com"  # UPDATE THIS
-SMTP_PASSWORD = "your-app-password"  # UPDATE THIS - Use app password for Gmail
+# Initialize CSRF protection
+csrf = CSRFProtect(app)
 
-def create_excel_file(participants_data):
-    """Generate Excel file matching the exact format"""
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "Participant Registration"
-    
-    # Define headers
-    headers = [
-        "No.",
-        "Participant's Name",
-        "Cadre",
-        "Duty Station (Facility)",
-        "District",
-        "Mobile Number Registered",
-        "Names Registered on Mobile Money (First & Last Names)"
-    ]
-    
-    # Style for headers
-    header_fill = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
-    header_font = Font(color="FFFFFF", bold=True, size=11)
-    border = Border(
-        left=Side(style='thin'),
-        right=Side(style='thin'),
-        top=Side(style='thin'),
-        bottom=Side(style='thin')
-    )
-    
-    # Write headers
-    for col_num, header in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col_num)
-        cell.value = header
-        cell.fill = header_fill
-        cell.font = header_font
-        cell.alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
-        cell.border = border
-    
-    # Set column widths
-    ws.column_dimensions['A'].width = 6
-    ws.column_dimensions['B'].width = 25
-    ws.column_dimensions['C'].width = 20
-    ws.column_dimensions['D'].width = 30
-    ws.column_dimensions['E'].width = 20
-    ws.column_dimensions['F'].width = 25
-    ws.column_dimensions['G'].width = 35
-    
-    # Row fill for data rows
-    data_fill = PatternFill(start_color="D9D9D9", end_color="D9D9D9", fill_type="solid")
-    
-    # Write participant data
-    for idx, participant in enumerate(participants_data, 1):
-        row_num = idx + 1
+# Validate configuration
+if not Config.validate_config():
+    logger.warning("Email configuration incomplete - email functionality will not work")
+
+# Tool Assessment Sections and Indicators
+TOOL_SECTIONS = {
+    "service_delivery": {
+        "name": "Service Delivery",
+        "indicators": [
+            {"id": "sd1", "name": "ART service availability", "max_score": 5},
+            {"id": "sd2", "name": "PMTCT integration", "max_score": 5},
+            {"id": "sd3", "name": "Pediatric HIV services", "max_score": 5},
+            {"id": "sd4", "name": "TB/HIV collaborative activities", "max_score": 5},
+            {"id": "sd5", "name": "Laboratory services functionality", "max_score": 5}
+        ]
+    },
+    "human_resources": {
+        "name": "Human Resources for Health",
+        "indicators": [
+            {"id": "hr1", "name": "Staffing levels adequacy", "max_score": 5},
+            {"id": "hr2", "name": "Staff trained on HIV guidelines", "max_score": 5},
+            {"id": "hr3", "name": "Mentorship programs in place", "max_score": 5},
+            {"id": "hr4", "name": "Performance management systems", "max_score": 5}
+        ]
+    },
+    "supply_chain": {
+        "name": "Supply Chain Management",
+        "indicators": [
+            {"id": "sc1", "name": "ARV stock availability", "max_score": 5},
+            {"id": "sc2", "name": "Test kit availability", "max_score": 5},
+            {"id": "sc3", "name": "Stock management practices", "max_score": 5},
+            {"id": "sc4", "name": "Cold chain functionality", "max_score": 5},
+            {"id": "sc5", "name": "Ordering and reporting timeliness", "max_score": 5}
+        ]
+    },
+    "data_management": {
+        "name": "Data Management & Use",
+        "indicators": [
+            {"id": "dm1", "name": "Data quality and completeness", "max_score": 5},
+            {"id": "dm2", "name": "HMIS reporting timeliness", "max_score": 5},
+            {"id": "dm3", "name": "Data use for decision making", "max_score": 5},
+            {"id": "dm4", "name": "Patient tracking systems", "max_score": 5}
+        ]
+    },
+    "quality_improvement": {
+        "name": "Quality Improvement",
+        "indicators": [
+            {"id": "qi1", "name": "QI committees functionality", "max_score": 5},
+            {"id": "qi2", "name": "Clinical audits conducted", "max_score": 5},
+            {"id": "qi3", "name": "Client satisfaction mechanisms", "max_score": 5},
+            {"id": "qi4", "name": "Continuous improvement plans", "max_score": 5}
+        ]
+    },
+    "infrastructure": {
+        "name": "Infrastructure & Equipment",
+        "indicators": [
+            {"id": "if1", "name": "Facility physical condition", "max_score": 5},
+            {"id": "if2", "name": "Essential equipment availability", "max_score": 5},
+            {"id": "if3", "name": "Power supply reliability", "max_score": 5},
+            {"id": "if4", "name": "Water and sanitation", "max_score": 5}
+        ]
+    }
+}
+
+# Scoring criteria descriptions
+SCORING_CRITERIA = {
+    5: "Excellent - Fully meets standards, best practices observed",
+    4: "Good - Meets most standards with minor gaps",
+    3: "Satisfactory - Meets basic standards with some gaps",
+    2: "Needs Improvement - Significant gaps identified",
+    1: "Poor - Major deficiencies requiring urgent attention",
+    0: "Not Applicable/Not Assessed"
+}
+
+def api_logger(f):
+    """Decorator to log API calls"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        start_time = time.time()
+        try:
+            result = f(*args, **kwargs)
+            response_time = time.time() - start_time
+            log_api_call(request.endpoint, request.method, 200, response_time)
+            return result
+        except Exception as e:
+            response_time = time.time() - start_time
+            log_api_call(request.endpoint, request.method, 500, response_time)
+            logger.error(f"API Error in {f.__name__}: {str(e)}", exc_info=True)
+            raise
+    return decorated_function
+
+def validate_json(f):
+    """Decorator to validate JSON requests"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not request.is_json:
+            return jsonify({'success': False, 'message': 'Request must be JSON'}), 400
         
-        ws.cell(row=row_num, column=1).value = idx
-        ws.cell(row=row_num, column=2).value = participant.get('participantName', '')
-        ws.cell(row=row_num, column=3).value = participant.get('cadre', '')
-        ws.cell(row=row_num, column=4).value = participant.get('dutyStation', '')
-        ws.cell(row=row_num, column=5).value = participant.get('district', '')
-        ws.cell(row=row_num, column=6).value = participant.get('mobileNumber', '')
-        ws.cell(row=row_num, column=7).value = participant.get('mobileMoneyName', '')
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({'success': False, 'message': 'No data provided'}), 400
+        except Exception as e:
+            return jsonify({'success': False, 'message': 'Invalid JSON data'}), 400
         
-        # Apply styling and borders to all cells in the row
-        for col_num in range(1, 8):
-            cell = ws.cell(row=row_num, column=col_num)
-            cell.border = border
-            cell.fill = data_fill
-            cell.alignment = Alignment(vertical='center')
-    
-    # Add empty rows (up to row 24 as shown in your template)
-    for row_num in range(len(participants_data) + 2, 25):
-        for col_num in range(1, 8):
-            cell = ws.cell(row=row_num, column=col_num)
-            cell.border = border
-            cell.fill = data_fill
-    
-    # Save file - Use temp directory that works on Windows
-    filename = f'participant_registration_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
-    temp_dir = tempfile.gettempdir()
-    filepath = os.path.join(temp_dir, filename)
-    wb.save(filepath)
-    
-    return filepath, filename
+        return f(*args, **kwargs)
+    return decorated_function
 
-def send_email_smtp(filepath, filename):
-    """Send email using SMTP (Gmail, etc.)"""
-    msg = MIMEMultipart()
-    msg['Subject'] = f'Participant Registration - {datetime.now().strftime("%Y-%m-%d %H:%M")}'
-    msg['From'] = SMTP_USERNAME
-    msg['To'] = RECIPIENT_EMAIL
-    
-    body = f"""
-    Dear Team,
-    
-    Please find attached the participant registration data.
-    
-    Registration Date: {datetime.now().strftime("%Y-%m-%d at %H:%M")}
-    
-    Best regards,
-    Registration System
-    """
-    
-    msg.attach(MIMEText(body, 'plain'))
-    
-    # Attach Excel
-    with open(filepath, 'rb') as f:
-        part = MIMEBase('application', 'vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        part.set_payload(f.read())
-        encoders.encode_base64(part)
-        part.add_header('Content-Disposition', f'attachment; filename={filename}')
-        msg.attach(part)
-    
-    try:
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
-        server.starttls()
-        server.login(SMTP_USERNAME, SMTP_PASSWORD)
-        server.send_message(msg)
-        server.quit()
-        return True, "Email sent successfully"
-    except Exception as e:
-        return False, str(e)
+def rate_limit(max_requests=100, window=3600):
+    """Simple rate limiting decorator"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            # Simple rate limiting based on IP
+            client_ip = request.remote_addr
+            current_time = time.time()
+            
+            # This is a basic implementation - in production, use Redis or similar
+            if not hasattr(app, 'rate_limit_data'):
+                app.rate_limit_data = {}
+            
+            if client_ip not in app.rate_limit_data:
+                app.rate_limit_data[client_ip] = []
+            
+            # Clean old requests
+            app.rate_limit_data[client_ip] = [
+                req_time for req_time in app.rate_limit_data[client_ip]
+                if current_time - req_time < window
+            ]
+            
+            if len(app.rate_limit_data[client_ip]) >= max_requests:
+                log_security_event("Rate limit exceeded", f"IP: {client_ip}", client_ip)
+                return jsonify({'success': False, 'message': 'Rate limit exceeded'}), 429
+            
+            app.rate_limit_data[client_ip].append(current_time)
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
 
+# Routes
 @app.route('/')
+@api_logger
 def index():
-    """Render the main page"""
+    """Main landing page with navigation"""
     return render_template('index.html')
 
+@app.route('/registration')
+@api_logger
+def registration():
+    """Participant registration page"""
+    return render_template('registration.html')
+
+@app.route('/tools')
+@api_logger
+def tools():
+    """Assessment tools page"""
+    return render_template('tools.html', sections=TOOL_SECTIONS, criteria=SCORING_CRITERIA)
+
 @app.route('/submit', methods=['POST'])
+@csrf.exempt  # Temporarily exempt for AJAX calls - should implement proper CSRF handling
+@api_logger
+@validate_json
+@rate_limit(max_requests=50, window=3600)
 def submit_data():
-    """Handle form submission"""
+    """Handle participant registration submission"""
     try:
         data = request.get_json()
         participants = data.get('participants', [])
@@ -168,20 +242,34 @@ def submit_data():
         if not participants:
             return jsonify({'success': False, 'message': 'No participants data received'}), 400
         
-        # Generate Excel file
-        filepath, filename = create_excel_file(participants)
+        # Validate each participant
+        validation_errors = []
+        for i, participant in enumerate(participants):
+            is_valid, errors = DataValidator.validate_participant_data(participant)
+            if not is_valid:
+                validation_errors.append(f"Participant {i+1}: {', '.join(errors)}")
         
-        # Send email using SMTP (simplified for executable)
-        success, message = send_email_smtp(filepath, filename)
+        if validation_errors:
+            return jsonify({
+                'success': False, 
+                'message': 'Validation errors found',
+                'errors': validation_errors
+            }), 400
+        
+        # Generate Excel file
+        filepath, filename = ExcelGenerator.create_participant_excel(participants)
+        
+        # Send email
+        success, message = EmailService.send_email(filepath, filename, "registration")
         
         # Clean up temp file
-        if os.path.exists(filepath):
-            os.remove(filepath)
+        FileManager.cleanup_temp_file(filepath)
         
         if success:
+            logger.info(f"Successfully processed {len(participants)} participants")
             return jsonify({
                 'success': True,
-                'message': f'Successfully sent {len(participants)} participant(s) data to {RECIPIENT_EMAIL}'
+                'message': f'Successfully sent {len(participants)} participant(s) data to {Config.RECIPIENT_EMAIL}'
             })
         else:
             return jsonify({
@@ -189,12 +277,71 @@ def submit_data():
                 'message': f'Failed to send email: {message}'
             }), 500
             
+    except ValidationError as e:
+        logger.warning(f"Validation error in submit_data: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 400
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logger.error(f"Error in submit_data: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+@app.route('/submit-assessment', methods=['POST'])
+@csrf.exempt  # Temporarily exempt for AJAX calls
+@api_logger
+@validate_json
+@rate_limit(max_requests=20, window=3600)
+def submit_assessment():
+    """Handle assessment submission"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'message': 'No assessment data received'}), 400
+        
+        # Validate assessment data
+        is_valid, errors = DataValidator.validate_assessment_data(data)
+        if not is_valid:
+            return jsonify({
+                'success': False,
+                'message': 'Validation errors found',
+                'errors': errors
+            }), 400
+        
+        # Generate Excel report
+        filepath, filename = ExcelGenerator.create_assessment_excel(data)
+        
+        # Send email
+        success, message = EmailService.send_email(filepath, filename, "assessment")
+        
+        # Clean up temp file
+        FileManager.cleanup_temp_file(filepath)
+        
+        if success:
+            logger.info(f"Successfully processed assessment for {data.get('facilityName', 'Unknown')}")
+            return jsonify({
+                'success': True,
+                'message': f'Assessment report successfully sent to {Config.RECIPIENT_EMAIL}'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': f'Failed to send email: {message}'
+            }), 500
+            
+    except ValidationError as e:
+        logger.warning(f"Validation error in submit_assessment: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error in submit_assessment: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
 
 @app.route('/download', methods=['POST'])
+@csrf.exempt  # Temporarily exempt for AJAX calls
+@api_logger
+@validate_json
+@rate_limit(max_requests=30, window=3600)
 def download_excel():
-    """Download Excel file without sending email"""
+    """Download participant Excel file"""
+    filepath = None
     try:
         data = request.get_json()
         participants = data.get('participants', [])
@@ -202,7 +349,21 @@ def download_excel():
         if not participants:
             return jsonify({'success': False, 'message': 'No participants data'}), 400
         
-        filepath, filename = create_excel_file(participants)
+        # Validate participants
+        validation_errors = []
+        for i, participant in enumerate(participants):
+            is_valid, errors = DataValidator.validate_participant_data(participant)
+            if not is_valid:
+                validation_errors.append(f"Participant {i+1}: {', '.join(errors)}")
+        
+        if validation_errors:
+            return jsonify({
+                'success': False,
+                'message': 'Validation errors found',
+                'errors': validation_errors
+            }), 400
+        
+        filepath, filename = ExcelGenerator.create_participant_excel(participants)
         
         return send_file(
             filepath,
@@ -210,18 +371,102 @@ def download_excel():
             download_name=filename,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
+    except ValidationError as e:
+        logger.warning(f"Validation error in download_excel: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 400
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logger.error(f"Error in download_excel: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+    finally:
+        if filepath and os.path.exists(filepath):
+            FileManager.cleanup_temp_file(filepath)
+
+@app.route('/download-assessment', methods=['POST'])
+@csrf.exempt  # Temporarily exempt for AJAX calls
+@api_logger
+@validate_json
+@rate_limit(max_requests=20, window=3600)
+def download_assessment():
+    """Download assessment Excel file"""
+    filepath = None
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'message': 'No assessment data'}), 400
+        
+        # Validate assessment data
+        is_valid, errors = DataValidator.validate_assessment_data(data)
+        if not is_valid:
+            return jsonify({
+                'success': False,
+                'message': 'Validation errors found',
+                'errors': errors
+            }), 400
+        
+        filepath, filename = ExcelGenerator.create_assessment_excel(data)
+        
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+    except ValidationError as e:
+        logger.warning(f"Validation error in download_assessment: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error in download_assessment: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+    finally:
+        if filepath and os.path.exists(filepath):
+            FileManager.cleanup_temp_file(filepath)
+
+@app.route('/health')
+@csrf.exempt
+@api_logger
+def health_check():
+    """Health check endpoint for monitoring"""
+    return jsonify({
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'version': '2.0.0'
+    })
 
 def open_browser():
     """Open browser after server starts"""
     time.sleep(1.5)
-    webbrowser.open('http://127.0.0.1:5000')
+    webbrowser.open(f'http://{Config.HOST}:{Config.PORT}')
+
+# Error handlers
+@app.errorhandler(404)
+def not_found(error):
+    logger.warning(f"404 error: {request.url}")
+    return jsonify({'success': False, 'message': 'Page not found'}), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    logger.error(f"500 error: {str(error)}", exc_info=True)
+    return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+@app.errorhandler(429)
+def rate_limit_error(error):
+    logger.warning(f"Rate limit exceeded for IP: {request.remote_addr}")
+    return jsonify({'success': False, 'message': 'Rate limit exceeded'}), 429
 
 if __name__ == '__main__':
-    # Open browser automatically when running as executable
+    logger.info("Starting CHAI Health Portal application")
+    
     if getattr(sys, 'frozen', False):
         threading.Thread(target=open_browser, daemon=True).start()
     
-    # Run Flask app
-    app.run(debug=False, host='127.0.0.1', port=5000, use_reloader=False)
+    try:
+        app.run(
+            debug=Config.DEBUG, 
+            host=Config.HOST, 
+            port=Config.PORT, 
+            use_reloader=False
+        )
+    except Exception as e:
+        logger.error(f"Failed to start application: {str(e)}", exc_info=True)
+        sys.exit(1)
