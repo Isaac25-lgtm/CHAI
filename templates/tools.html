@@ -700,11 +700,13 @@
             scores[indicatorId] = score;
 
             // Update button styling
-            for (let i = 0; i <= 5; i++) {
+            for (let i = 1; i <= 5; i++) {
                 const btn = document.getElementById(`score-${indicatorId}-${i}`);
-                btn.className = 'score-btn';
-                if (i === score) {
-                    btn.classList.add(`selected-${score}`);
+                if (btn) {
+                    btn.className = 'score-btn';
+                    if (i === score) {
+                        btn.classList.add(`selected-${score}`);
+                    }
                 }
             }
 
@@ -895,7 +897,7 @@
                     delete comments[indicatorId];
                     
                     // Reset buttons
-                    for (let i = 0; i <= 5; i++) {
+                    for (let i = 1; i <= 5; i++) {
                         const btn = document.getElementById(`score-${indicatorId}-${i}`);
                         if (btn) btn.className = 'score-btn';
                     }
