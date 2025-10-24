@@ -303,9 +303,11 @@ def admin_dashboard():
 
 @app.route('/')
 @api_logger
-@login_required
 def index():
-    """Main landing page with navigation"""
+    """Main landing page - redirects to login if not authenticated"""
+    if 'username' not in session:
+        # Show login page directly at root URL
+        return redirect(url_for('login'))
     return render_template('index.html', username=session.get('username'))
 
 @app.route('/registration')
