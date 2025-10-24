@@ -462,8 +462,8 @@
                 <button onclick="submitData()" class="btn btn-success" id="submitBtn">
                     ✉️ Confirm & Send to Email
                 </button>
-                <button onclick="clearTable()" class="btn btn-danger" style="background: #dc3545;">
-                    🗑️ Clear Table
+                <button onclick="clearForm()" class="btn btn-secondary" style="background: #6c757d;">
+                    🗑️ Clear Form
                 </button>
             </div>
         </div>
@@ -725,24 +725,8 @@
             }
         }
 
-        function clearTable() {
-            if (participants.length === 0) {
-                showAlert('Table is already empty', 'error');
-                return;
-            }
-            
-            const confirmClear = confirm(`⚠️ Are you sure you want to clear all ${participants.length} participant(s) from the table?\n\nThis cannot be undone. Make sure you have downloaded or submitted the data first!`);
-            
-            if (confirmClear) {
-                participants = [];
-                updateTable();
-                submissionCount = 0; // Reset submission counter
-                showAlert('✅ Table cleared successfully. You can now add new participants.', 'success');
-            }
-        }
-
         let submissionCount = 0;
-        
+
         async function submitData() {
             if (participants.length === 0) {
                 showAlert('Please add at least one participant before submitting', 'error');
@@ -790,10 +774,9 @@
                 
                 if (result.success) {
                     submissionCount = 0;
-                    showAlert('✅ DELIVERED: ' + result.message + '\n\n📧 Data saved successfully! You can now download the Excel file if needed.\n\n Click "Clear Table" button to start new registrations.', 'success');
-                    // DON'T auto-clear - let user download first
-                    // participants = [];
-                    // updateTable();
+                    showAlert('✅ DELIVERED: ' + result.message + '\n\n📧 Email has been successfully sent and delivered!\n\n💾 You can still download the Excel file below if needed.\n\nClick "Clear Form" when done to start fresh.', 'success');
+                    // DON'T clear participants array yet - let user download first
+                    // They can manually clear using the Clear Form button
                 } else {
                     submissionCount = 0;
                     showAlert('❌ DELIVERY FAILED: ' + result.message, 'error');
@@ -838,6 +821,21 @@
                 }
             } catch (error) {
                 showAlert('Error: ' + error.message, 'error');
+            }
+        }
+        
+        function clearForm() {
+            if (participants.length === 0) {
+                showAlert('Form is already empty', 'info');
+                return;
+            }
+            
+            const confirmed = confirm(`⚠️ Clear Form?\n\nThis will remove all ${participants.length} participant(s) from the list.\n\nMake sure you've downloaded the Excel file if you need it!\n\nClick OK to clear the form.`);
+            if (confirmed) {
+                participants = [];
+                submissionCount = 0;  // Reset submission counter
+                updateTable();
+                showAlert('✅ Form cleared successfully! You can start adding new participants.', 'success');
             }
         }
     </script>
