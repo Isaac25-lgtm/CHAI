@@ -250,3 +250,162 @@ def export_all():
     # Redirect to the analytics export which does the same thing
     return export_analytics()
 
+
+# ============= DELETE & RESET OPERATIONS (SUPERUSER ONLY) =============
+
+@admin_bp.route('/delete/participant/<int:participant_id>', methods=['DELETE'])
+def delete_participant(participant_id):
+    """Delete a specific participant"""
+    try:
+        from app import superuser_required
+        
+        participant = Participant.query.get(participant_id)
+        if not participant:
+            return jsonify({'success': False, 'message': 'Participant not found'}), 404
+        
+        name = participant.participant_name
+        db.session.delete(participant)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully deleted participant: {name}'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/delete/assessment/<int:assessment_id>', methods=['DELETE'])
+def delete_assessment(assessment_id):
+    """Delete a specific assessment"""
+    try:
+        from app import superuser_required
+        
+        assessment = Assessment.query.get(assessment_id)
+        if not assessment:
+            return jsonify({'success': False, 'message': 'Assessment not found'}), 404
+        
+        facility = assessment.facility_name
+        db.session.delete(assessment)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully deleted assessment for: {facility}'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/delete/facility/<string:facility_name>', methods=['DELETE'])
+def delete_facility_data(facility_name):
+    """Delete all data for a specific facility"""
+    try:
+        from app import superuser_required
+        
+        # Delete all participants from this facility
+        participants = Participant.query.filter_by(duty_station=facility_name).all()
+        for p in participants:
+            db.session.delete(p)
+        
+        # Delete all assessments from this facility
+        assessments = Assessment.query.filter_by(facility_name=facility_name).all()
+        for a in assessments:
+            db.session.delete(a)
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Successfully deleted all data for facility: {facility_name}'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/reset/all', methods=['POST'])
+def reset_all_data():
+    """Reset/clear all data from the database (SUPERUSER ONLY - DANGEROUS)"""
+    try:
+        from app import superuser_required
+        
+        # Count before deletion
+        participant_count = Participant.query.count()
+        assessment_count = Assessment.query.count()
+        activity_count = ActivityLog.query.count()
+        
+        # Delete all data
+        Participant.query.delete()
+        Assessment.query.delete()
+        ActivityLog.query.delete()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'🗑️ Database reset complete! Deleted: {participant_count} participants, {assessment_count} assessments, {activity_count} activity logs'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/participants/all', methods=['GET'])
+def get_all_participants():
+    """Get all participants with full details for management"""
+    try:
+        from app import superuser_required
+        
+        participants = Participant.query.order_by(Participant.created_at.desc()).all()
+        
+        result = []
+        for p in participants:
+            result.append({
+                'id': p.id,
+                'name': p.participant_name,
+                'cadre': p.cadre,
+                'facility': p.duty_station,
+                'district': p.district,
+                'mobile': p.mobile_number,
+                'registrationDate': p.registration_date.strftime('%Y-%m-%d') if p.registration_date else 'N/A',
+                'campaignDay': p.campaign_day,
+                'submittedBy': p.submitted_by,
+                'createdAt': p.created_at.isoformat() if p.created_at else 'N/A'
+            })
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/assessments/all', methods=['GET'])
+def get_all_assessments():
+    """Get all assessments with full details for management"""
+    try:
+        from app import superuser_required
+        
+        assessments = Assessment.query.order_by(Assessment.created_at.desc()).all()
+        
+        result = []
+        for a in assessments:
+            result.append({
+                'id': a.id,
+                'facilityName': a.facility_name,
+                'district': a.district,
+                'facilityLevel': a.facility_level,
+                'ownership': a.ownership,
+                'assessorName': a.assessor_name,
+                'assessmentDate': a.assessment_date.strftime('%Y-%m-%d') if a.assessment_date else 'N/A',
+                'overallScore': round(a.overall_score, 1) if a.overall_score else 0,
+                'campaignDay': a.campaign_day,
+                'submittedBy': a.submitted_by,
+                'createdAt': a.created_at.isoformat() if a.created_at else 'N/A'
+            })
+        
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+

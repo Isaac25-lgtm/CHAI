@@ -677,6 +677,60 @@
                 </div>
             </div>
         </div>
+
+        <!-- Data Management Section (DELETE & RESET) -->
+        <div class="table-section" style="border: 2px solid #dc3545;">
+            <div class="section-header">
+                <h3 class="section-title" style="color: #dc3545;">🗑️ Data Management (Superuser Only)</h3>
+                <button class="action-btn danger" onclick="resetAllData()" style="background: #dc3545;">
+                    ⚠️ RESET ALL DATA
+                </button>
+            </div>
+            
+            <div style="margin-bottom: 30px;">
+                <h4 style="color: #333; margin-bottom: 15px;">📋 Manage Participants</h4>
+                <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px;">
+                    <table class="data-table" id="manage-participants-table">
+                        <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Cadre</th>
+                                <th>Facility</th>
+                                <th>District</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manage-participants-body">
+                            <tr><td colspan="7" style="text-align: center; padding: 20px;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div>
+                <h4 style="color: #333; margin-bottom: 15px;">📊 Manage Assessments</h4>
+                <div style="max-height: 300px; overflow-y: auto; border: 1px solid #ddd; border-radius: 8px;">
+                    <table class="data-table" id="manage-assessments-table">
+                        <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                            <tr>
+                                <th>ID</th>
+                                <th>Facility</th>
+                                <th>District</th>
+                                <th>Assessor</th>
+                                <th>Score</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manage-assessments-body">
+                            <tr><td colspan="7" style="text-align: center; padding: 20px;">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -687,7 +741,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             initializeCharts();
             loadDashboardData();
+            loadManagementData(); // Load management tables
             setInterval(loadDashboardData, 30000); // Refresh every 30 seconds
+            setInterval(loadManagementData, 30000); // Refresh management data too
         });
 
         function initializeCharts() {
@@ -896,6 +952,131 @@
             if (confirm('Export all data (participants + assessments)?')) {
                 window.location.href = '/api/admin/export/all';
             }
+        }
+
+        // ========== DATA MANAGEMENT FUNCTIONS ==========
+
+        function loadManagementData() {
+            // Load all participants for management
+            fetch('/api/admin/participants/all')
+                .then(res => res.json())
+                .then(data => {
+                    const tbody = document.getElementById('manage-participants-body');
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">No participants found</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = data.map(p => `
+                        <tr>
+                            <td>${p.id}</td>
+                            <td>${p.name}</td>
+                            <td>${p.cadre}</td>
+                            <td>${p.facility}</td>
+                            <td>${p.district}</td>
+                            <td>${p.registrationDate}</td>
+                            <td>
+                                <button onclick="deleteParticipant(${p.id}, '${p.name}')" 
+                                        style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">
+                                    🗑️ Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(err => console.error('Error loading participants:', err));
+
+            // Load all assessments for management
+            fetch('/api/admin/assessments/all')
+                .then(res => res.json())
+                .then(data => {
+                    const tbody = document.getElementById('manage-assessments-body');
+                    if (data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">No assessments found</td></tr>';
+                        return;
+                    }
+                    tbody.innerHTML = data.map(a => `
+                        <tr>
+                            <td>${a.id}</td>
+                            <td>${a.facilityName}</td>
+                            <td>${a.district}</td>
+                            <td>${a.assessorName}</td>
+                            <td>${a.overallScore}%</td>
+                            <td>${a.assessmentDate}</td>
+                            <td>
+                                <button onclick="deleteAssessment(${a.id}, '${a.facilityName}')" 
+                                        style="background: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer;">
+                                    🗑️ Delete
+                                </button>
+                            </td>
+                        </tr>
+                    `).join('');
+                })
+                .catch(err => console.error('Error loading assessments:', err));
+        }
+
+        function deleteParticipant(id, name) {
+            if (!confirm(`Are you sure you want to delete participant:\n\n${name}\n\nThis action cannot be undone!`)) {
+                return;
+            }
+
+            fetch(`/api/admin/delete/participant/${id}`, {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    loadManagementData();
+                    loadDashboardData(); // Refresh stats
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(err => alert('❌ Error deleting participant: ' + err.message));
+        }
+
+        function deleteAssessment(id, facilityName) {
+            if (!confirm(`Are you sure you want to delete assessment for:\n\n${facilityName}\n\nThis action cannot be undone!`)) {
+                return;
+            }
+
+            fetch(`/api/admin/delete/assessment/${id}`, {
+                method: 'DELETE'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    loadManagementData();
+                    loadDashboardData(); // Refresh stats
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(err => alert('❌ Error deleting assessment: ' + err.message));
+        }
+
+        function resetAllData() {
+            const confirm1 = confirm('⚠️ WARNING: RESET ALL DATA\n\nThis will permanently delete:\n- All participants\n- All assessments\n- All activity logs\n\nAre you ABSOLUTELY SURE?\n\nClick OK to proceed to final confirmation.');
+            if (!confirm1) return;
+
+            const confirm2 = confirm('⚠️⚠️⚠️ FINAL WARNING ⚠️⚠️⚠️\n\nThis is your LAST CHANCE to cancel!\n\nAll data will be PERMANENTLY DELETED!\n\nType YES in your mind and click OK ONLY if you are 100% certain!');
+            if (!confirm2) return;
+
+            fetch('/api/admin/reset/all', {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    loadManagementData();
+                    loadDashboardData(); // Refresh stats
+                } else {
+                    alert('❌ Error: ' + data.message);
+                }
+            })
+            .catch(err => alert('❌ Error resetting data: ' + err.message));
         }
 
         function getActivityIcon(type) {

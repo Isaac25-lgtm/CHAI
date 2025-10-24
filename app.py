@@ -448,6 +448,15 @@ def submit_assessment():
                 'errors': errors
             }), 400
         
+        # Check if facility already has an assessment (prevent duplicates)
+        facility_name = data.get('facilityName')
+        existing_assessment = Assessment.query.filter_by(facility_name=facility_name).first()
+        if existing_assessment:
+            return jsonify({
+                'success': False,
+                'message': f'⚠️ Assessment already exists for {facility_name}! Each facility can only be assessed once to prevent double reporting. If you need to update the assessment, please contact the superuser to delete the existing one first.'
+            }), 400
+        
         # Calculate overall score
         scores = data.get('scores', {})
         if scores:
