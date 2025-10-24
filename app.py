@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file, session
+from flask import Flask, render_template, request, jsonify, send_file, session, redirect, url_for
 from flask_wtf.csrf import CSRFProtect
 import os
 import sys
@@ -208,21 +208,72 @@ def rate_limit(max_requests=100, window=3600):
         return decorated_function
     return decorator
 
+def login_required(f):
+    """Decorator to require login for routes"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('logged_in'):
+            if request.is_json:
+                return jsonify({'success': False, 'message': 'Authentication required'}), 401
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Authentication credentials
+ADMIN_USERNAME = "admin"
+ADMIN_PASSWORD = "admin"
+
 # Routes
+@app.route('/login', methods=['GET', 'POST'])
+@api_logger
+def login():
+    """Login page and authentication"""
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session['logged_in'] = True
+            session['username'] = username
+            logger.info(f"Successful login: {username}")
+            return redirect(url_for('index'))
+        else:
+            log_security_event("Failed login attempt", f"Username: {username}", request.remote_addr)
+            logger.warning(f"Failed login attempt for username: {username}")
+            return render_template('login.html', error='Invalid username or password')
+    
+    # If already logged in, redirect to index
+    if session.get('logged_in'):
+        return redirect(url_for('index'))
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+@api_logger
+def logout():
+    """Logout and clear session"""
+    username = session.get('username', 'Unknown')
+    session.clear()
+    logger.info(f"User logged out: {username}")
+    return redirect(url_for('login'))
+
 @app.route('/')
 @api_logger
+@login_required
 def index():
     """Main landing page with navigation"""
-    return render_template('index.html')
+    return render_template('index.html', username=session.get('username'))
 
 @app.route('/registration')
 @api_logger
+@login_required
 def registration():
     """Participant registration page"""
     return render_template('registration.html')
 
 @app.route('/tools')
 @api_logger
+@login_required
 def tools():
     """Assessment tools page"""
     return render_template('tools.html', sections=TOOL_SECTIONS, criteria=SCORING_CRITERIA)
@@ -230,6 +281,7 @@ def tools():
 @app.route('/submit', methods=['POST'])
 @csrf.exempt  # Temporarily exempt for AJAX calls - should implement proper CSRF handling
 @api_logger
+@login_required
 @validate_json
 @rate_limit(max_requests=50, window=3600)
 def submit_data():
@@ -286,6 +338,7 @@ def submit_data():
 @app.route('/submit-assessment', methods=['POST'])
 @csrf.exempt  # Temporarily exempt for AJAX calls
 @api_logger
+@login_required
 @validate_json
 @rate_limit(max_requests=20, window=3600)
 def submit_assessment():
@@ -336,6 +389,7 @@ def submit_assessment():
 @app.route('/download', methods=['POST'])
 @csrf.exempt  # Temporarily exempt for AJAX calls
 @api_logger
+@login_required
 @validate_json
 @rate_limit(max_requests=30, window=3600)
 def download_excel():
@@ -383,6 +437,7 @@ def download_excel():
 @app.route('/download-assessment', methods=['POST'])
 @csrf.exempt  # Temporarily exempt for AJAX calls
 @api_logger
+@login_required
 @validate_json
 @rate_limit(max_requests=20, window=3600)
 def download_assessment():

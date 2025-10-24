@@ -137,6 +137,39 @@
             padding-top: 20px;
         }
 
+        .header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .welcome-message {
+            color: #555;
+            font-size: 1rem;
+        }
+
+        .logout-btn {
+            padding: 10px 20px;
+            background: #dc3545;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
+        }
+
         @media (max-width: 768px) {
             .container {
                 padding: 40px 20px;
@@ -149,11 +182,23 @@
             .modules {
                 grid-template-columns: 1fr;
             }
+
+            .header-bar {
+                flex-direction: column;
+                gap: 10px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="header-bar">
+            <div class="welcome-message">
+                Welcome, <strong>{{ username }}</strong>!
+            </div>
+            <a href="/logout" class="logout-btn">🚪 Logout</a>
+        </div>
+        
         <div class="logo">🏥</div>
         <h1>CHAI Health Portal</h1>
         <p class="subtitle">Integrated Onsite Mentorship and Performance Triple Elimination in Acholi Region</p>
