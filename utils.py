@@ -342,6 +342,24 @@ class ExcelGenerator:
                     if col_num in [4, 5]:
                         cell.alignment = Alignment(horizontal='center', vertical='center')
                 
+                # Color code the score column (column 5) based on score value
+                score_cell = ws.cell(row=row, column=5)
+                if score != 'N/A' and isinstance(score, (int, str)) and str(score).isdigit():
+                    score_value = int(score)
+                    max_score = indicator['max_score']
+                    percentage = (score_value / max_score * 100) if max_score > 0 else 0
+                    
+                    # Traffic light color coding
+                    if percentage < 40:  # Red for low scores (0-39%)
+                        score_cell.fill = PatternFill(start_color="FF6B6B", end_color="FF6B6B", fill_type="solid")
+                        score_cell.font = Font(bold=True, color="FFFFFF")
+                    elif percentage < 70:  # Yellow for medium scores (40-69%)
+                        score_cell.fill = PatternFill(start_color="FFD93D", end_color="FFD93D", fill_type="solid")
+                        score_cell.font = Font(bold=True, color="000000")
+                    else:  # Green for high scores (70-100%)
+                        score_cell.fill = PatternFill(start_color="6BCF7F", end_color="6BCF7F", fill_type="solid")
+                        score_cell.font = Font(bold=True, color="FFFFFF")
+                
                 row += 1
         
         # Add summary row
