@@ -462,6 +462,9 @@
                 <button onclick="submitData()" class="btn btn-success" id="submitBtn">
                     ✉️ Confirm & Send to Email
                 </button>
+                <button onclick="clearTable()" class="btn btn-danger" style="background: #dc3545;">
+                    🗑️ Clear Table
+                </button>
             </div>
         </div>
 
@@ -722,6 +725,22 @@
             }
         }
 
+        function clearTable() {
+            if (participants.length === 0) {
+                showAlert('Table is already empty', 'error');
+                return;
+            }
+            
+            const confirmClear = confirm(`⚠️ Are you sure you want to clear all ${participants.length} participant(s) from the table?\n\nThis cannot be undone. Make sure you have downloaded or submitted the data first!`);
+            
+            if (confirmClear) {
+                participants = [];
+                updateTable();
+                submissionCount = 0; // Reset submission counter
+                showAlert('✅ Table cleared successfully. You can now add new participants.', 'success');
+            }
+        }
+
         let submissionCount = 0;
         
         async function submitData() {
@@ -771,9 +790,10 @@
                 
                 if (result.success) {
                     submissionCount = 0;
-                    showAlert('✅ DELIVERED: ' + result.message + '\n\n📧 Email has been successfully sent and delivered!', 'success');
-                    participants = [];
-                    updateTable();
+                    showAlert('✅ DELIVERED: ' + result.message + '\n\n📧 Data saved successfully! You can now download the Excel file if needed.\n\n Click "Clear Table" button to start new registrations.', 'success');
+                    // DON'T auto-clear - let user download first
+                    // participants = [];
+                    // updateTable();
                 } else {
                     submissionCount = 0;
                     showAlert('❌ DELIVERY FAILED: ' + result.message, 'error');
