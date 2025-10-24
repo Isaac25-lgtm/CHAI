@@ -339,13 +339,13 @@ class ExcelGenerator:
                     percentage = (score_value / max_score * 100) if max_score > 0 else 0
                     
                     # Traffic light color coding
-                    if percentage < 40:  # Red for low scores (0-39%)
+                    if percentage < 60:  # Red for low scores (0-59.9%)
                         score_cell.fill = PatternFill(start_color="FF6B6B", end_color="FF6B6B", fill_type="solid")
                         score_cell.font = Font(bold=True, color="FFFFFF")
-                    elif percentage < 70:  # Yellow for medium scores (40-69%)
+                    elif percentage < 80:  # Yellow for medium scores (60-79.9%)
                         score_cell.fill = PatternFill(start_color="FFD93D", end_color="FFD93D", fill_type="solid")
                         score_cell.font = Font(bold=True, color="000000")
-                    else:  # Green for high scores (70-100%)
+                    else:  # Green for high scores (80-100%)
                         score_cell.fill = PatternFill(start_color="6BCF7F", end_color="6BCF7F", fill_type="solid")
                         score_cell.font = Font(bold=True, color="FFFFFF")
                 
@@ -367,11 +367,11 @@ class ExcelGenerator:
         percentage = round((total_scored / total_possible * 100), 1) if total_possible > 0 else 0
         
         # Determine color based on overall percentage
-        if percentage < 40:  # Red for low scores (0-39%)
+        if percentage < 60:  # Red for low scores (0-59.9%)
             score_fill = PatternFill(start_color="FF6B6B", end_color="FF6B6B", fill_type="solid")
-        elif percentage < 70:  # Yellow for medium scores (40-69%)
+        elif percentage < 80:  # Yellow for medium scores (60-79.9%)
             score_fill = PatternFill(start_color="FFD93D", end_color="FFD93D", fill_type="solid")
-        else:  # Green for high scores (70-100%)
+        else:  # Green for high scores (80-100%)
             score_fill = PatternFill(start_color="6BCF7F", end_color="6BCF7F", fill_type="solid")
         
         # First row: Max Score and Total Score

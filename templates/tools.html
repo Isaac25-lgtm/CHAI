@@ -768,7 +768,7 @@
             document.getElementById('indicatorsAssessed').textContent = indicatorsAssessed;
 
             const percentage = totalPossibleScore > 0 
-                ? Math.round((totalScore / totalPossibleScore) * 100) 
+                ? ((totalScore / totalPossibleScore) * 100).toFixed(1) 
                 : 0;
             document.getElementById('percentage').textContent = percentage + '%';
         }
