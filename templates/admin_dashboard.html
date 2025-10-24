@@ -867,18 +867,70 @@
         function updateActivityFeed(activities) {
             const feed = document.getElementById('activity-feed');
             if (!activities || activities.length === 0) {
-                feed.innerHTML = '<p style="color: #666;">No recent activities</p>';
+                feed.innerHTML = '<div class="activity-item" style="text-align: center; color: #666;"><p>No recent activities</p></div>';
                 return;
             }
-            feed.innerHTML = activities.map(a => `
-                <div class="activity-item">
-                    <div class="activity-header">
-                        <span class="activity-type">${getActivityIcon(a.activityType)} ${a.activityType}</span>
-                        <span class="activity-time">${formatTimeAgo(a.createdAt)}</span>
+            feed.innerHTML = activities.map(a => {
+                const icon = getActivityIcon(a.activityType);
+                const typeLabel = formatActivityType(a.activityType);
+                const details = formatActivityDetails(a);
+                
+                return `
+                    <div class="activity-item">
+                        <div class="activity-header">
+                            <span class="activity-type">${icon} ${typeLabel}</span>
+                            <span class="activity-time">${formatTimeAgo(a.createdAt)}</span>
+                        </div>
+                        <div class="activity-details">${details}</div>
                     </div>
-                    <div class="activity-details">${a.details || 'Activity logged'}</div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
+        }
+
+        function formatActivityType(type) {
+            const types = {
+                'registration': 'New Registration',
+                'assessment': 'Assessment Submitted',
+                'login': 'User Login',
+                'logout': 'User Logout',
+                'export': 'Report Exported'
+            };
+            return types[type] || type;
+        }
+
+        function formatActivityDetails(activity) {
+            try {
+                const details = JSON.parse(activity.details || '{}');
+                const user = activity.userId || 'Unknown';
+                const facility = activity.facilityName || '';
+                
+                switch(activity.activityType) {
+                    case 'registration':
+                        const count = details.count || 1;
+                        return `${count} participant(s) registered${facility ? ' at ' + facility : ''} by ${user}`;
+                    
+                    case 'assessment':
+                        const score = details.score ? Math.round(details.score) + '%' : '';
+                        return `${facility || 'Facility'} - Score: ${score} - Assessor: ${user}`;
+                    
+                    case 'login':
+                        return `User ${user} logged in`;
+                    
+                    case 'logout':
+                        return `User ${user} logged out`;
+                    
+                    case 'export':
+                        const reportInfo = details.reportType || 'Report';
+                        const count = details.count || details.participantCount || details.assessmentCount;
+                        const countStr = count ? ` (${count} records)` : '';
+                        return `${reportInfo} exported by ${user}${countStr}`;
+                    
+                    default:
+                        return facility ? `${facility} - ${user}` : `Activity by ${user}`;
+                }
+            } catch (e) {
+                return activity.details || 'Activity logged';
+            }
         }
 
         function updateFacilityTable(facilities) {
@@ -1084,7 +1136,9 @@
                 'registration': '📋',
                 'assessment': '📊',
                 'login': '🔐',
-                'export': '💾'
+                'logout': '🚪',
+                'export': '💾',
+                'delete': '🗑️'
             };
             return icons[type] || '📌';
         }

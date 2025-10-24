@@ -70,6 +70,9 @@ def get_facilities():
 def export_participants():
     """Export all participants to Excel"""
     try:
+        from flask import session
+        from models import log_activity
+        
         start_date = request.args.get('start')
         end_date = request.args.get('end')
         
@@ -85,6 +88,16 @@ def export_participants():
         
         if not participants_data:
             return jsonify({'error': 'No participants found'}), 404
+        
+        # Log export activity
+        log_activity(
+            'export',
+            session.get('username', 'Unknown'),
+            {'reportType': 'All Participants', 'count': len(participants_data), 'dateRange': f'{start_date or "all"} to {end_date or "all"}'},
+            'admin',
+            None,
+            request.remote_addr
+        )
         
         # Generate Excel - Superusers can edit their exports
         filepath, filename = ExcelGenerator.create_participant_excel(participants_data, protect_sheet=False)
@@ -121,6 +134,18 @@ def export_assessments():
         
         if not assessments_data:
             return jsonify({'error': 'No assessments found'}), 404
+        
+        # Log export activity
+        from flask import session
+        from models import log_activity
+        log_activity(
+            'export',
+            session.get('username', 'Unknown'),
+            {'reportType': 'All Assessments', 'count': len(assessments_data), 'dateRange': f'{start_date or "all"} to {end_date or "all"}'},
+            'admin',
+            None,
+            request.remote_addr
+        )
         
         # For now, create a simple Excel file
         # In production, you would use create_assessment_excel for each
@@ -189,6 +214,23 @@ def export_analytics():
         if end_date:
             query_a = query_a.filter(Assessment.created_at <= datetime.strptime(end_date, '%Y-%m-%d'))
         assessments = query_a.all()
+        
+        # Log export activity
+        from flask import session
+        from models import log_activity
+        log_activity(
+            'export',
+            session.get('username', 'Unknown'),
+            {
+                'reportType': 'Combined Analytics Report',
+                'participantCount': len(participants),
+                'assessmentCount': len(assessments),
+                'dateRange': f'{start_date or "all"} to {end_date or "all"}'
+            },
+            'admin',
+            None,
+            request.remote_addr
+        )
         
         # Create combined Excel workbook
         wb = Workbook()
