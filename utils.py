@@ -366,6 +366,14 @@ class ExcelGenerator:
         total_scored = sum(int(score) if isinstance(score, (int, str)) and str(score).isdigit() else 0 for score in scores.values())
         percentage = round((total_scored / total_possible * 100), 1) if total_possible > 0 else 0
         
+        # Determine color based on overall percentage
+        if percentage < 40:  # Red for low scores (0-39%)
+            score_fill = PatternFill(start_color="FF6B6B", end_color="FF6B6B", fill_type="solid")
+        elif percentage < 70:  # Yellow for medium scores (40-69%)
+            score_fill = PatternFill(start_color="FFD93D", end_color="FFD93D", fill_type="solid")
+        else:  # Green for high scores (70-100%)
+            score_fill = PatternFill(start_color="6BCF7F", end_color="6BCF7F", fill_type="solid")
+        
         ws.cell(row=row, column=4).value = total_possible
         ws.cell(row=row, column=4).fill = header_fill
         ws.cell(row=row, column=4).font = Font(bold=True, color="FFFFFF")
@@ -373,14 +381,14 @@ class ExcelGenerator:
         ws.cell(row=row, column=4).alignment = Alignment(horizontal='center', vertical='center')
         
         ws.cell(row=row, column=5).value = total_scored
-        ws.cell(row=row, column=5).fill = header_fill
-        ws.cell(row=row, column=5).font = Font(bold=True, color="FFFFFF")
+        ws.cell(row=row, column=5).fill = score_fill
+        ws.cell(row=row, column=5).font = Font(bold=True, size=12, color="FFFFFF")
         ws.cell(row=row, column=5).border = thin_border
         ws.cell(row=row, column=5).alignment = Alignment(horizontal='center', vertical='center')
         
         ws.cell(row=row, column=6).value = f"{percentage}%"
-        ws.cell(row=row, column=6).fill = header_fill
-        ws.cell(row=row, column=6).font = Font(bold=True, color="FFFFFF")
+        ws.cell(row=row, column=6).fill = score_fill
+        ws.cell(row=row, column=6).font = Font(bold=True, size=12, color="FFFFFF")
         ws.cell(row=row, column=6).border = thin_border
         ws.cell(row=row, column=6).alignment = Alignment(horizontal='center', vertical='center')
     
