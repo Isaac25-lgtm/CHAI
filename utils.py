@@ -295,12 +295,6 @@ class ExcelGenerator:
                 {"id": "sc8", "name": "Has there been a stock-out of TDF or TDF/3TC for HBV-positive women in the last 3 months?", "max_score": 5},
                 {"id": "sc9", "name": "Are hepatitis B birth dose vaccines available 24/7 in maternity units for timely newborn immunization?", "max_score": 5}
             ],
-            "Quality Improvement": [
-                {"id": "qi1", "name": "QI committees functionality", "max_score": 5},
-                {"id": "qi2", "name": "Clinical audits conducted", "max_score": 5},
-                {"id": "qi3", "name": "Client satisfaction mechanisms", "max_score": 5},
-                {"id": "qi4", "name": "Continuous improvement plans", "max_score": 5}
-            ],
             "Infrastructure & Equipment": [
                 {"id": "if1", "name": "Is there a functional cold chain (refrigerator/freezer) for storing hepatitis B vaccines at the correct temperature (2-8°C)?", "max_score": 5},
                 {"id": "if2", "name": "Are rapid diagnostic test kits (RDTs) or laboratory equipment for HBsAg testing available and functional?", "max_score": 5},
