@@ -352,7 +352,10 @@
 
                 <div class="form-group">
                     <label>Mobile Number Registered <span class="required">*</span></label>
-                    <input type="tel" id="mobileNumber" placeholder="e.g., 0701234567">
+                    <div style="display: flex; align-items: center;">
+                        <span style="background: #f8f9fa; border: 1px solid #ddd; border-right: none; padding: 12px 15px; border-radius: 6px 0 0 6px; color: #666; font-weight: 500;">+256</span>
+                        <input type="tel" id="mobileNumber" placeholder="701234567" style="border-radius: 0 6px 6px 0; border-left: none; flex: 1;">
+                    </div>
                     <span class="error-message" id="errorMobileNumber">This field is required</span>
                 </div>
 
@@ -429,8 +432,8 @@
         }
 
         function validatePhoneNumber(phone) {
-            // Uganda phone format: 07XXXXXXXX or +2567XXXXXXXX
-            const pattern = /^(\+256|0)7\d{8}$/;
+            // Uganda phone format: 7XXXXXXXX (9 digits starting with 7)
+            const pattern = /^7\d{8}$/;
             return pattern.test(phone.replace(/\s/g, ''));
         }
 
@@ -457,7 +460,7 @@
                     isValid = false;
                 } else if (field === 'mobileNumber' && !validatePhoneNumber(input.value.trim())) {
                     input.classList.add('error');
-                    error.textContent = 'Invalid phone format. Use 07XXXXXXXX or +2567XXXXXXXX';
+                    error.textContent = 'Invalid phone format. Enter 9 digits starting with 7 (e.g., 701234567)';
                     error.style.display = 'block';
                     isValid = false;
                 } else {
@@ -481,7 +484,7 @@
                 cadre: document.getElementById('cadre').value.trim(),
                 dutyStation: document.getElementById('dutyStation').value.trim(),
                 district: document.getElementById('district').value.trim(),
-                mobileNumber: document.getElementById('mobileNumber').value.trim(),
+                mobileNumber: '+256' + document.getElementById('mobileNumber').value.trim(),
                 mobileMoneyName: document.getElementById('mobileMoneyName').value.trim()
             };
             
