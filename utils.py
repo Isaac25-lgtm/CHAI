@@ -150,28 +150,17 @@ class ExcelGenerator:
         completed_fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
         
         # Set column widths
-        ws.column_dimensions['A'].width = 15
-        ws.column_dimensions['B'].width = 30
-        ws.column_dimensions['C'].width = 10
-        ws.column_dimensions['D'].width = 30
-        ws.column_dimensions['E'].width = 10
-        ws.column_dimensions['F'].width = 15
-        ws.column_dimensions['G'].width = 15
-        ws.column_dimensions['O'].width = 15
-        ws.column_dimensions['P'].width = 15
-        ws.column_dimensions['Q'].width = 20
-        ws.column_dimensions['R'].width = 20
-        ws.column_dimensions['S'].width = 15
-        ws.column_dimensions['T'].width = 20
-        ws.column_dimensions['U'].width = 20
-        ws.column_dimensions['V'].width = 25
+        ws.column_dimensions['A'].width = 20  # District
+        ws.column_dimensions['B'].width = 35  # Health Facility
+        ws.column_dimensions['C'].width = 10  # New
+        ws.column_dimensions['D'].width = 35  # Health Facility
+        ws.column_dimensions['E'].width = 15  # Level
+        ws.column_dimensions['F'].width = 20  # Form Submitted
+        ws.column_dimensions['G'].width = 15  # Completed
         
         # Create headers
         headers = ['District', 'Health Facility', 'New', 'Health Facility', 'Level', 'Form Submitted', 
-                   'Completed', '', '', '', '', '', '', '', 
-                   'ANC Register', 'Maternity Register', 'HBV PMTCT services available',
-                   'ANC1', 'No. PW HBV tested', 'PW HBV tested (%)', 'HBV Prophylaxis available',
-                   'HBV+ Test', 'HBV+ <200,000', 'HBV+ >200,000']
+                   'Completed']
         
         for col_num, header in enumerate(headers, 1):
             cell = ws.cell(row=1, column=col_num)
