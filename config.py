@@ -39,6 +39,13 @@ class Config:
     WTF_CSRF_ENABLED = True
     WTF_CSRF_TIME_LIMIT = 3600  # 1 hour
     
+    # Session security settings
+    SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False').lower() == 'true'  # True in production with HTTPS
+    SESSION_COOKIE_HTTPONLY = True  # Prevent JavaScript access to session cookie
+    SESSION_COOKIE_SAMESITE = 'Lax'  # CSRF protection
+    PERMANENT_SESSION_LIFETIME = 3600  # Session expires after 1 hour of inactivity
+    SESSION_REFRESH_EACH_REQUEST = True  # Refresh session on each request
+    
     @staticmethod
     def validate_config():
         """Validate that required configuration is present"""

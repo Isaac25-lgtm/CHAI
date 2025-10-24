@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify, send_file, session, 
 from flask_wtf.csrf import CSRFProtect
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 import tempfile
 import webbrowser
 import threading
@@ -68,6 +68,10 @@ else:
 
 # Configure Flask app
 app.config.from_object(Config)
+
+# Additional security configuration for sessions
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # Session expires after 1 hour
+app.permanent_session_lifetime = timedelta(hours=1)
 
 # Initialize database
 init_database(app)
@@ -220,7 +224,9 @@ def login_required(f):
     """Decorator to require login for routes"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('logged_in'):
+        # Strict authentication check
+        if not session.get('logged_in') or not session.get('username'):
+            session.clear()  # Clear any invalid session data
             if request.is_json:
                 return jsonify({'success': False, 'message': 'Authentication required'}), 401
             return redirect(url_for('login'))
@@ -241,9 +247,15 @@ def login():
         user = User.query.filter_by(username=username).first()
         
         if user and user.password == password:  # In production, use proper password hashing!
+            # CRITICAL: Clear any existing session data first
+            session.clear()
+            
+            # Set new session with proper security
+            session.permanent = True  # Enable session expiration
             session['logged_in'] = True
             session['username'] = username
             session['user_role'] = user.role
+            session['login_time'] = datetime.utcnow().isoformat()  # Track login time
             
             # Update last login
             user.last_login = datetime.utcnow()
@@ -286,7 +298,9 @@ def superuser_required(f):
     """Decorator to require superuser access"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('logged_in'):
+        # Triple check for authentication
+        if not session.get('logged_in') or not session.get('username') or not session.get('user_role'):
+            session.clear()  # Clear any partial session data
             return redirect(url_for('login'))
         if session.get('user_role') != 'superuser':
             logger.warning(f"Unauthorized admin access attempt by {session.get('username')}")
@@ -304,10 +318,16 @@ def admin_dashboard():
 @app.route('/')
 @api_logger
 def index():
-    """Main landing page - redirects to login if not authenticated"""
-    # Always check authentication first - login page is the starting page
-    if not session.get('logged_in') or not session.get('username'):
+    """Main landing page - always redirects to login first"""
+    # CRITICAL: Always enforce authentication - login page is the ONLY entry point
+    if not session.get('logged_in') or not session.get('username') or not session.get('user_role'):
+        session.clear()  # Clear any stale session data
         return redirect(url_for('login'))
+    
+    # Additional security: redirect superusers to their dashboard
+    if session.get('user_role') == 'superuser':
+        return redirect(url_for('admin_dashboard'))
+    
     return render_template('index.html', username=session.get('username'))
 
 @app.route('/registration')
