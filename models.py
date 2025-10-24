@@ -228,8 +228,9 @@ def get_district_progress(campaign_day=None):
     assessments = []
     
     for district in districts:
-        reg_count = query_participants.filter_by(district=district).count()
-        assess_count = query_assessments.filter_by(district=district).count()
+        # Use LIKE to match "Agago", "Agago District", "Agago City", etc.
+        reg_count = query_participants.filter(Participant.district.like(f'%{district}%')).count()
+        assess_count = query_assessments.filter(Assessment.district.like(f'%{district}%')).count()
         registrations.append(reg_count)
         assessments.append(assess_count)
     
