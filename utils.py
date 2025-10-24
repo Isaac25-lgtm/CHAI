@@ -295,12 +295,6 @@ class ExcelGenerator:
                 {"id": "sc8", "name": "Has there been a stock-out of TDF or TDF/3TC for HBV-positive women in the last 3 months?", "max_score": 5},
                 {"id": "sc9", "name": "Are hepatitis B birth dose vaccines available 24/7 in maternity units for timely newborn immunization?", "max_score": 5}
             ],
-            "Data Management & Use": [
-                {"id": "dm1", "name": "Data quality and completeness", "max_score": 5},
-                {"id": "dm2", "name": "HMIS reporting timeliness", "max_score": 5},
-                {"id": "dm3", "name": "Data use for decision making", "max_score": 5},
-                {"id": "dm4", "name": "Patient tracking systems", "max_score": 5}
-            ],
             "Quality Improvement": [
                 {"id": "qi1", "name": "QI committees functionality", "max_score": 5},
                 {"id": "qi2", "name": "Clinical audits conducted", "max_score": 5},
