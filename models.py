@@ -93,6 +93,10 @@ class Assessment(db.Model):
     enrolment_eid_art_score = db.Column(db.Float)
     hei_eid_registers_score = db.Column(db.Float)
     supply_chain_eid_score = db.Column(db.Float)
+    supply_chain_pmtct_score = db.Column(db.Float)
+    supply_chain_syphilis_score = db.Column(db.Float)
+    supply_chain_hepb_score = db.Column(db.Float)
+    patient_records_score = db.Column(db.Float)
     
     def to_dict(self):
         return {
@@ -126,7 +130,11 @@ class Assessment(db.Model):
                 'trackingHei': self.tracking_hei_score,
                 'enrolmentEidArt': self.enrolment_eid_art_score,
                 'heiEidRegisters': self.hei_eid_registers_score,
-                'supplyChainEid': self.supply_chain_eid_score
+                'supplyChainEid': self.supply_chain_eid_score,
+                'supplyChainPmtct': self.supply_chain_pmtct_score,
+                'supplyChainSyphilis': self.supply_chain_syphilis_score,
+                'supplyChainHepb': self.supply_chain_hepb_score,
+                'patientRecords': self.patient_records_score
             }
         }
     
@@ -153,7 +161,11 @@ class Assessment(db.Model):
             'tracking_hei': ['tracking_hei'],  # Section-level conditional questions
             'enrolment_eid_art': ['enrolment_eid_art'],  # Section-level mixed conditional numeric
             'hei_eid_registers': ['hei_eid_registers'],  # Section-level register checklist
-            'supply_chain_eid': ['supply_chain_eid']  # Section-level conditional questions with NA option
+            'supply_chain_eid': ['supply_chain_eid'],  # Section-level conditional questions with NA option
+            'supply_chain_pmtct': ['supply_chain_pmtct'],  # Section-level supply chain inventory
+            'supply_chain_syphilis': ['supply_chain_syphilis'],  # Section-level supply chain inventory
+            'supply_chain_hepb': ['supply_chain_hepb'],  # Section-level supply chain inventory
+            'patient_records': ['patient_records']
         }
         
         # Max scores per indicator type
@@ -175,7 +187,11 @@ class Assessment(db.Model):
             'tracking_hei': 4,  # Conditional questions: Red=1, Yellow=2, Light Green=3, Dark Green=4
             'enrolment_eid_art': 4,  # Mixed conditional numeric: Red=1, Yellow=2, Light Green=3, Dark Green=4
             'hei_eid_registers': 4,  # Register checklist: Red=1, Yellow=2, Light Green=3, Dark Green=4
-            'supply_chain_eid': 4  # Conditional questions with NA: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'supply_chain_eid': 4,  # Conditional questions with NA: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'supply_chain_pmtct': 4,  # Supply chain inventory: Red=1, Dark Green=4
+            'supply_chain_syphilis': 4,  # Supply chain inventory: Red=1, Light Green=3, Dark Green=4
+            'supply_chain_hepb': 4,  # Supply chain inventory: Red=1, Yellow=2, Dark Green=4
+            'patient_records': 4  # Conditional questions: Red=1, Yellow=2, Light Green=3, Dark Green=4
         }
         
         for category, indicators in categories.items():

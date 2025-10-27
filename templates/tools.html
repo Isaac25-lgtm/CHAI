@@ -129,6 +129,29 @@
             font-weight: 600;
         }
 
+        .btn-download-section {
+            background: rgba(255, 255, 255, 0.95);
+            color: #667eea;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+        }
+
+        .btn-download-section:hover {
+            background: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-download-section:active {
+            transform: translateY(0);
+        }
+
         .section-content {
             padding: 20px;
             display: block;
@@ -311,6 +334,20 @@
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
+        }
+
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            white-space: pre-wrap;
+            font-family: inherit;
+        }
+
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
         }
 
         .criteria-legend {
@@ -1191,12 +1228,280 @@
                         "scoring": {"no": "light_green", "yes": "dark_green"}
                     }
                 ]
+            },
+            "supply_chain_pmtct": {
+                "name": "Supply Chain Reliability – HIV PMTCT (Mother)",
+                "type": "supply_chain_inventory",
+                "standard": "Each PMTCT facility maintains consistent availability of HIV test kits (HIV-syphilis duo, Determine, STAT-PAK/First Response), ARVs for maternal treatment, and cotrimoxazole for prophylaxis.",
+                "instructions": "If HIV testing or maternal ART is not provided at this facility, check NA, and SKIP this section.",
+                "na_option": true,
+                "inventory_questions": [
+                    {"id": "scpm_q1", "text": "Are HIV-syphilis duo kits currently in stock?", "type": "yes_no"},
+                    {"id": "scpm_q2", "text": "How many months of stock are available for HIV test kits?", "type": "numeric"},
+                    {"id": "scpm_q3", "text": "Are the HIV 1/2 STAT-PAK® Assay currently in stock?", "type": "yes_no"},
+                    {"id": "scpm_q4", "text": "How many months of HIV 1/2 STAT-PAK® Assay stock are available?", "type": "numeric"},
+                    {"id": "scpm_q5", "text": "Are maternal ARVs (e.g., TLD) currently in stock?", "type": "yes_no"},
+                    {"id": "scpm_q6", "text": "How many months of stock are available for maternal ARVs?", "type": "numeric"}
+                ],
+                "scoring_questions": [
+                    {
+                        "id": "scpm_q7",
+                        "text": "Has a stock-out of HIV-syphilis duo kits in the past 3 months resulted in missed maternal testing at ANC?"
+                    },
+                    {
+                        "id": "scpm_q8",
+                        "text": "Have there been stock-outs or emergency orders for maternal ARVs in the past 3 months?"
+                    },
+                    {
+                        "id": "scpm_q9",
+                        "text": "Are HIV testing kits and maternal ART consistently available at ANC and maternity points?"
+                    }
+                ],
+                "scoring_logic": "If Q7=Yes OR Q8=Yes OR Q9=No then Red; If Q7=No AND Q8=No AND Q9=Yes then Dark Green"
+            },
+            "supply_chain_syphilis": {
+                "name": "Supply Chain Reliability – Syphilis PMTCT",
+                "type": "supply_chain_inventory",
+                "standard": "Facilities should have continuous access to syphilis RDTs and benzathine penicillin for both initial and follow-up treatment.",
+                "instructions": "If syphilis testing or treatment is not offered at this facility, check NA, and SKIP this section.",
+                "comment": "Note: Consider the use of HIV/Syphilis duo kits where applicable, and syphilis RDTs primarily for women with known HIV negative status.",
+                "na_option": true,
+                "inventory_questions": [
+                    {"id": "scsy_q1", "text": "Are syphilis RDTs currently in stock?", "type": "yes_no"},
+                    {"id": "scsy_q2", "text": "How many months of stock are available for syphilis RDTs?", "type": "numeric"},
+                    {"id": "scsy_q3", "text": "Is benzathine penicillin currently in stock?", "type": "yes_no"},
+                    {"id": "scsy_q4", "text": "How many months of stock are available for benzathine penicillin?", "type": "numeric"}
+                ],
+                "scoring_questions": [
+                    {
+                        "id": "scsy_q5",
+                        "text": "Has a stock-out of syphilis RDTs in the last 3 months led to missed testing for pregnant women?"
+                    },
+                    {
+                        "id": "scsy_q6",
+                        "text": "Was there any interruption in benzathine penicillin availability in the past 3 months?"
+                    },
+                    {
+                        "id": "scsy_q7",
+                        "text": "Are both RDTs and penicillin doses consistently available across ANC and maternity areas?"
+                    }
+                ],
+                "scoring_logic": "If Q5=Yes OR Q6=Yes OR Q7=No then Red; If Q5=No AND Q6=No AND Q7=Yes then Dark Green"
+            },
+            "supply_chain_hepb": {
+                "name": "Supply Chain Reliability – Hepatitis B PMTCT (Maternal and Birth Dose)",
+                "type": "supply_chain_inventory",
+                "standard": "Facilities should have reliable stocks of HBsAg test kits, TDF or TDF/3TC prophylaxis for eligible women, and birth dose hepatitis B vaccines.",
+                "instructions": "If Hepatitis B services are not offered at this facility, check NA, and SKIP this section.",
+                "na_option": true,
+                "inventory_questions": [
+                    {"id": "schb_q1", "text": "Are HBsAg test kits currently in stock?", "type": "yes_no"},
+                    {"id": "schb_q2", "text": "How many months of stock are available for HBsAg test kits?", "type": "numeric"},
+                    {"id": "schb_q3", "text": "Is TDF or TDF/3TC for prophylaxis currently in stock?", "type": "yes_no"},
+                    {"id": "schb_q4", "text": "How many months of stock are available for TDF or TDF/3TC?", "type": "numeric"},
+                    {"id": "schb_q5", "text": "Are hepatitis B birth dose (HepB-BD) vaccines currently available in maternity?", "type": "yes_no"},
+                    {"id": "schb_q6", "text": "How many months of stock are available for HepB-BD vaccines?", "type": "numeric"}
+                ],
+                "scoring_questions": [
+                    {
+                        "id": "schb_q7",
+                        "text": "Has a stock-out of HBsAg test kits in the past 3 months caused missed screening of pregnant women?"
+                    },
+                    {
+                        "id": "schb_q8",
+                        "text": "Has there been a stock-out of TDF or TDF/3TC for HBV-positive women in the last 3 months?"
+                    },
+                    {
+                        "id": "schb_q9",
+                        "text": "Are hepatitis B birth dose vaccines available 24/7 in maternity units for timely newborn immunization?"
+                    }
+                ],
+                "scoring_logic": "If Q7=Yes OR Q9=No then Red; If Q7=No AND Q9=No AND Q8=Yes then Yellow; If Q7=No AND Q8=No AND Q9=Yes then Dark Green"
+            },
+            "human_resources_delivery": {
+                "name": "HUMAN RESOURCES AND SERVICE DELIVERY POINTS",
+                "type": "human_resources_delivery",
+                "standard": "PMTCT services for HIV, syphilis, and hepatitis B should be integrated and delivered at Mother-Baby Care Points (MBCPs), where designated personnel provide testing, treatment, counselling, and vaccination.",
+                "questions": [
+                    {
+                        "id": "hrd_q1",
+                        "text": "What is the primary funding source for personnel delivering PMTCT services at this facility?",
+                        "type": "radio",
+                        "options": [
+                            {"value": "public_payroll", "label": "Public payroll"},
+                            {"value": "partner_supported", "label": "Partner-supported"},
+                            {"value": "both", "label": "Both public and partner"}
+                        ],
+                        "note": "If partner-supported, proceed to Q2"
+                    },
+                    {
+                        "id": "hrd_q2",
+                        "text": "If partner-supported, which partner(s) support PMTCT personnel?",
+                        "type": "text",
+                        "depends_on": "hrd_q1",
+                        "depends_value": "partner_supported",
+                        "placeholder": "E.g., UPMB, Baylor, EGPAF"
+                    },
+                    {
+                        "id": "hrd_q3",
+                        "text": "Are PMTCT services integrated and provided at a designated Mother-Baby Care Point (MBCP)?",
+                        "type": "yes_no",
+                        "note": "If No, proceed to Q4–Q8 to explore distribution of services"
+                    },
+                    {
+                        "id": "hrd_q4",
+                        "text": "Where is HIV testing for pregnant women primarily conducted?",
+                        "type": "checklist",
+                        "depends_on": "hrd_q3",
+                        "depends_value": "no",
+                        "note": "Tick all that apply",
+                        "options": [
+                            {"value": "anc", "label": "ANC"},
+                            {"value": "maternity", "label": "Maternity"},
+                            {"value": "mbcp", "label": "MBCP"},
+                            {"value": "laboratory", "label": "Laboratory"},
+                            {"value": "opd", "label": "OPD"},
+                            {"value": "other", "label": "Other:", "has_text": true}
+                        ]
+                    },
+                    {
+                        "id": "hrd_q5",
+                        "text": "Where is syphilis testing for pregnant women primarily conducted?",
+                        "type": "checklist",
+                        "depends_on": "hrd_q3",
+                        "depends_value": "no",
+                        "note": "Tick all that apply",
+                        "options": [
+                            {"value": "anc", "label": "ANC"},
+                            {"value": "maternity", "label": "Maternity"},
+                            {"value": "mbcp", "label": "MBCP"},
+                            {"value": "laboratory", "label": "Laboratory"},
+                            {"value": "opd", "label": "OPD"},
+                            {"value": "other", "label": "Other:", "has_text": true}
+                        ]
+                    },
+                    {
+                        "id": "hrd_q6",
+                        "text": "Where is hepatitis B testing for pregnant women primarily conducted?",
+                        "type": "checklist",
+                        "depends_on": "hrd_q3",
+                        "depends_value": "no",
+                        "note": "Tick all that apply",
+                        "options": [
+                            {"value": "anc", "label": "ANC"},
+                            {"value": "maternity", "label": "Maternity"},
+                            {"value": "mbcp", "label": "MBCP"},
+                            {"value": "laboratory", "label": "Laboratory"},
+                            {"value": "opd", "label": "OPD"},
+                            {"value": "other", "label": "Other:", "has_text": true}
+                        ]
+                    },
+                    {
+                        "id": "hrd_q7",
+                        "text": "Where is treatment/prophylaxis provided for:",
+                        "type": "multi_checklist",
+                        "depends_on": "hrd_q3",
+                        "depends_value": "no",
+                        "note": "Tick all that apply",
+                        "sub_questions": [
+                            {
+                                "id": "hrd_q7a",
+                                "text": "a. HIV?",
+                                "options": [
+                                    {"value": "anc", "label": "ANC"},
+                                    {"value": "maternity", "label": "Maternity"},
+                                    {"value": "art_clinic", "label": "ART Clinic"},
+                                    {"value": "mbcp", "label": "MBCP"},
+                                    {"value": "other", "label": "Other:", "has_text": true}
+                                ]
+                            },
+                            {
+                                "id": "hrd_q7b",
+                                "text": "b. Syphilis?",
+                                "options": [
+                                    {"value": "anc", "label": "ANC"},
+                                    {"value": "maternity", "label": "Maternity"},
+                                    {"value": "art_clinic", "label": "ART Clinic"},
+                                    {"value": "mbcp", "label": "MBCP"},
+                                    {"value": "other", "label": "Other:", "has_text": true}
+                                ]
+                            },
+                            {
+                                "id": "hrd_q7c",
+                                "text": "c. hepatitis B?",
+                                "options": [
+                                    {"value": "anc", "label": "ANC"},
+                                    {"value": "maternity", "label": "Maternity"},
+                                    {"value": "art_clinic", "label": "ART Clinic"},
+                                    {"value": "mbcp", "label": "MBCP"},
+                                    {"value": "other", "label": "Other:", "has_text": true}
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "id": "hrd_q8",
+                        "text": "Where is the Hepatitis B birth dose vaccine administered?",
+                        "type": "checklist",
+                        "depends_on": "hrd_q3",
+                        "depends_value": "no",
+                        "note": "Tick all that apply",
+                        "options": [
+                            {"value": "maternity_ward", "label": "Maternity ward"},
+                            {"value": "epi_clinic", "label": "EPI/Immunization clinic"},
+                            {"value": "mbcp", "label": "MBCP"},
+                            {"value": "other", "label": "Other:", "has_text": true}
+                        ]
+                    },
+                    {
+                        "id": "hrd_q9",
+                        "text": "Are there designated personnel responsible for providing comprehensive PMTCT services at each service delivery point?",
+                        "type": "yes_no",
+                        "note": "If Yes, indicate cadre(s) and their allocation in comments"
+                    },
+                    {
+                        "id": "hrd_q10",
+                        "text": "If PMTCT services are not co-located, what are the key gaps and how are patients referred between service points?",
+                        "type": "textarea",
+                        "placeholder": "Brief description (e.g., no MBCP, mothers referred from ANC to ART clinic)"
+                    }
+                ]
+            },
+            "patient_records": {
+                "name": "Patient/Beneficiary Records",
+                "type": "conditional_questions",
+                "standard": "Each ART/pre-ART or PMTCT facility maintains current individual patient/beneficiary records and provides an adequate and secure storage space with an organized filing system that allows for easy accessibility and patient confidentiality.",
+                "questions": [
+                    {
+                        "id": "pr_q1",
+                        "text": "Are individual patient/beneficiary records maintained?",
+                        "scoring": {"no": "red", "yes": "next"}
+                    },
+                    {
+                        "id": "pr_q2",
+                        "text": "Is space adequate and secure?",
+                        "depends_on": "pr_q1",
+                        "scoring": {"no": "red", "yes": "next"}
+                    },
+                    {
+                        "id": "pr_q3",
+                        "text": "Is there a standard filing system and accessibility to specific charts so patient care is not impeded?",
+                        "depends_on": "pr_q2",
+                        "scoring": {"no": "yellow", "yes": "next"}
+                    },
+                    {
+                        "id": "pr_q4",
+                        "text": "Does the system allow for identification of patients by category (e.g., pre-ART, ART, peds, pregnant women) and is there written documentation that describes the record filing system?",
+                        "depends_on": "pr_q3",
+                        "scoring": {"no": "light_green", "yes": "dark_green"}
+                    }
+                ]
             }
         };
         
         const scores = {};
         const comments = {};
-        let totalPossibleScore = 0;
+        let totalPossibleScore = 68; // 17 scored sections * 4 points each
 
         // Initialize the assessment sections
         function initializeSections() {
@@ -1219,7 +1524,12 @@
                     <div class="section-card">
                         <div class="section-header" onclick="toggleSection('${sectionKey}')">
                             <h3>${sectionData.name}</h3>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <button class="btn-download-section" onclick="event.stopPropagation(); downloadSectionReport('${sectionKey}')" title="Download this section only">
+                                    📥 Download Section
+                                </button>
                             <div class="section-score" id="section-score-${sectionKey}">0 / 0</div>
+                            </div>
                         </div>
                         <div class="section-content" id="section-${sectionKey}">
                 `;
@@ -1261,7 +1571,6 @@
                     `;
 
                     sectionData.registers.forEach((register, index) => {
-                        totalPossibleScore += 3; // Each register can score max 3 points (green)
                         html += `
                             <tr style="border-bottom: 1px solid #ddd; ${index % 2 === 0 ? 'background: #f8f9fa;' : ''}">
                                 <td style="padding: 12px; border: 1px solid #ddd;">${index + 1}) ${register.name}</td>
@@ -1348,7 +1657,6 @@
                     html += `<div id="questions-container-${sectionKey}">`;
 
                     // Add conditional questions
-                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
                     sectionData.questions.forEach((question, index) => {
                         const isFirst = index === 0;
                         const displayStyle = isFirst ? 'block' : 'none';
@@ -1429,7 +1737,6 @@
                     }
 
                     // Add conditional questions
-                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
                     sectionData.questions.forEach((question, index) => {
                         const isFirst = index === 0;
                         const displayStyle = isFirst ? 'block' : 'none';
@@ -1510,7 +1817,7 @@
                         </div>
                     `;
 
-                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+                    // Score counted in totalPossibleScore (fixed at 64)
 
                     // Render Path 1 questions
                     sectionData.path1.questions.forEach((question, index) => {
@@ -1616,7 +1923,7 @@
                         </div>
                     `;
 
-                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+                    // Score counted in totalPossibleScore (fixed at 64)
 
                     // Render questions
                     sectionData.questions.forEach((question, index) => {
@@ -1694,7 +2001,7 @@
                         </div>
                     `;
 
-                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+                    // Score counted in totalPossibleScore (fixed at 64)
 
                     // Render questions
                     sectionData.questions.forEach((question, index) => {
@@ -1772,7 +2079,7 @@
                         </div>
                     `;
 
-                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+                    // Score counted in totalPossibleScore (fixed at 64)
 
                     // Render questions
                     sectionData.questions.forEach((question, index) => {
@@ -1860,7 +2167,7 @@
                         </div>
                     `;
 
-                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+                    // Score counted in totalPossibleScore (fixed at 64)
                     
                     sectionData.questions.forEach((question, qIndex) => {
                         const isFirst = qIndex === 0;
@@ -1959,7 +2266,7 @@
                     `;
                 } else if (sectionData.type === 'quality_matrix') {
                     // Quality matrix section - chart review
-                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+                    // Score counted in totalPossibleScore (fixed at 64)
                     
                     if (sectionData.instructions) {
                         sectionData.instructions.forEach(instruction => {
@@ -2047,6 +2354,263 @@
                             <p style="margin: 5px 0 0 0;">This section needs either a 'registers' or 'questions' array.</p>
                         </div>
                     `;
+                } else if (sectionData.type === 'supply_chain_inventory') {
+                    // Supply chain inventory section (e.g., Supply Chain Reliability – HIV PMTCT)
+                    if (sectionData.standard) {
+                        html += `<div class="section-standard" style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                            <strong>STANDARD:</strong> ${sectionData.standard}
+                        </div>`;
+                    }
+
+                    // Add instructions and NA option
+                    if (sectionData.instructions || sectionData.na_option) {
+                        html += `<div class="section-instructions" style="background: #fff9e6; padding: 12px; border-radius: 4px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-size: 14px; font-style: italic;">
+                                ${sectionData.instructions ? `<strong>Instructions:</strong> ${sectionData.instructions}` : ''}
+                            </div>
+                            ${sectionData.na_option ? `
+                                <div style="display: flex; align-items: center;">
+                                    <label style="cursor: pointer; font-weight: 600;">
+                                        <input type="checkbox" id="na-${sectionKey}" onchange="handleNAOption('${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> NA
+                                    </label>
+                                </div>
+                            ` : ''}
+                        </div>`;
+                    }
+
+                    // Score counted in totalPossibleScore (fixed at 64)
+
+                    // Render inventory questions (for data collection only)
+                    html += `<div id="inventory-${sectionKey}" style="margin-bottom: 20px;">
+                        <h4 style="margin-bottom: 10px; color: #667eea;">Inventory Questions (For Information Only)</h4>`;
+                    
+                    sectionData.inventory_questions.forEach((question, index) => {
+                        if (question.type === 'yes_no') {
+                            html += `
+                                <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 8px;">Q${index + 1}. ${question.text}</label>
+                                    <div style="display: flex; gap: 15px;">
+                                        <label style="cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="yes" onchange="setScore('${question.id}', this.value, 0)" style="margin-right: 5px; cursor: pointer;"> Yes
+                                        </label>
+                                        <label style="cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="no" onchange="setScore('${question.id}', this.value, 0)" style="margin-right: 5px; cursor: pointer;"> No
+                                        </label>
+                                    </div>
+                                </div>
+                            `;
+                        } else if (question.type === 'numeric') {
+                            html += `
+                                <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 8px;">Q${index + 1}. ${question.text}</label>
+                                    <input type="number" id="${question.id}" min="0" placeholder="Enter number of months" 
+                                           style="width: 200px; padding: 8px; border: 2px solid #ddd; border-radius: 4px;"
+                                           onchange="setScore('${question.id}', this.value, 0)">
+                                </div>
+                            `;
+                        }
+                    });
+                    
+                    html += `</div>`;
+
+                    // Render scoring questions
+                    // Calculate question numbers dynamically
+                    const firstScoringQ = sectionData.inventory_questions.length + 1;
+                    const secondScoringQ = firstScoringQ + 1;
+                    const thirdScoringQ = firstScoringQ + 2;
+                    
+                    // Different scoring guides for different sections
+                    let scoringGuide = '';
+                    if (sectionKey === 'supply_chain_pmtct') {
+                        // HIV PMTCT (Mother) - simpler 2-tier scoring
+                        scoringGuide = `
+                            <strong>Scoring Logic:</strong> Answer all three questions below.<br>
+                            <span style="color: #dc3545;">● Red</span> if Q${firstScoringQ}=Yes OR Q${secondScoringQ}=Yes OR Q${thirdScoringQ}=No (any stock-out issues)<br>
+                            <span style="color: #006400; font-weight: 600;">● Dark Green</span> if Q${firstScoringQ}=No AND Q${secondScoringQ}=No AND Q${thirdScoringQ}=Yes (no stock issues)
+                        `;
+                    } else if (sectionKey === 'supply_chain_syphilis') {
+                        // Syphilis PMTCT - 3-tier scoring with Light Green
+                        scoringGuide = `
+                            <strong>Scoring Logic:</strong> Answer all three questions below.<br>
+                            <span style="color: #dc3545;">● Red</span> if Q${thirdScoringQ}=No (not consistently available)<br>
+                            <span style="color: #90EE90; font-weight: 600;">● Light Green</span> if Q${thirdScoringQ}=Yes but Q${firstScoringQ}=No OR Q${secondScoringQ}=No (consistent but had stock-outs)<br>
+                            <span style="color: #006400; font-weight: 600;">● Dark Green</span> if Q${firstScoringQ}=Yes AND Q${secondScoringQ}=Yes AND Q${thirdScoringQ}=Yes (best: no stock-outs + consistent)
+                        `;
+                    } else if (sectionKey === 'supply_chain_hepb') {
+                        // Hepatitis B PMTCT - 3-tier scoring with Yellow
+                        scoringGuide = `
+                            <strong>Scoring Logic:</strong> Answer all three questions below.<br>
+                            <span style="color: #dc3545;">● Red</span> if Q${firstScoringQ}=Yes OR Q${thirdScoringQ}=No (missed screening or vaccines not available 24/7)<br>
+                            <span style="color: #ffc107; font-weight: 600;">● Yellow</span> if Q${firstScoringQ}=No AND Q${secondScoringQ}=Yes AND Q${thirdScoringQ}=Yes (vaccines available but had TDF stock-out)<br>
+                            <span style="color: #006400; font-weight: 600;">● Dark Green</span> if Q${firstScoringQ}=No AND Q${secondScoringQ}=No AND Q${thirdScoringQ}=Yes (best: no stock-outs + vaccines available 24/7)
+                        `;
+                    }
+                    
+                    html += `<div id="scoring-${sectionKey}">
+                        <h4 style="margin-bottom: 10px; color: #dc3545;">Scoring Questions</h4>
+                        <div style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                            ${scoringGuide}
+                        </div>`;
+                    
+                    sectionData.scoring_questions.forEach((question, index) => {
+                        const qNum = sectionData.inventory_questions.length + index + 1;
+                        
+                        html += `
+                            <div id="cq-${question.id}" style="display: block; margin-bottom: 15px; padding: 15px; background: white; border: 2px solid #ddd; border-radius: 4px;">
+                                <label style="font-weight: 600; display: block; margin-bottom: 12px;">Q${qNum}. ${question.text}</label>
+                                <select id="select-${question.id}" 
+                                        onchange="handleSupplyChainScoring('${question.id}', this.value, '${sectionKey}')"
+                                        style="width: 200px; height: 50px; padding: 12px 16px; font-size: 16px; font-weight: 600; border: 2px solid #ddd; border-radius: 4px; cursor: pointer; background: white; transition: all 0.3s;">
+                                    <option value="" disabled selected>Select</option>
+                                    <option value="yes">Yes</option>
+                                    <option value="no">No</option>
+                                </select>
+                            </div>
+                        `;
+                    });
+                    
+                    html += `</div>`;
+
+                    // Comments section
+                    html += `
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Section Comments:</label>
+                            <textarea id="comment-${sectionKey}" 
+                                   placeholder="Additional comments for this section..."
+                                   rows="3"
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                   onchange="setComment('${sectionKey}', this.value)"></textarea>
+                        </div>
+                    `;
+                } else if (sectionData.type === 'human_resources_delivery') {
+                    // Human Resources and Service Delivery Points - Data collection section (no scoring)
+                    if (sectionData.standard) {
+                        html += `<div class="section-standard" style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                            <strong>STANDARD:</strong> ${sectionData.standard}
+                        </div>`;
+                    }
+
+                    html += `<div style="background: #fff9e6; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px; font-style: italic;">
+                        <strong>Note:</strong> This section collects data about service delivery structure. There is no numerical score.
+                    </div>`;
+
+                    // Render questions
+                    sectionData.questions.forEach((question, index) => {
+                        const qNum = index + 1;
+                        
+                        // Main question container
+                        let questionHtml = `<div id="hrd-${question.id}" ${question.depends_on ? `style="display: none;"` : ''} class="hrd-question" data-depends-on="${question.depends_on || ''}" data-depends-value="${question.depends_value || ''}">`;
+                        
+                        if (question.type === 'radio') {
+                            questionHtml += `
+                                <div style="margin-bottom: 20px; padding: 15px; background: white; border: 2px solid #667eea; border-radius: 4px;">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 12px;">Q${qNum}. ${question.text}</label>
+                                    ${question.options.map(opt => `
+                                        <label style="display: block; padding: 8px; cursor: pointer; margin-bottom: 5px;">
+                                            <input type="radio" name="${question.id}" value="${opt.value}" 
+                                                   onchange="handleHRDRadio('${question.id}', '${opt.value}')" 
+                                                   style="margin-right: 8px; cursor: pointer;">
+                                            ${opt.label}
+                                        </label>
+                                    `).join('')}
+                                    ${question.note ? `<div style="margin-top: 10px; font-size: 13px; color: #666; font-style: italic;">${question.note}</div>` : ''}
+                                </div>
+                            `;
+                        } else if (question.type === 'text') {
+                            questionHtml += `
+                                <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 8px;">Q${qNum}. ${question.text}</label>
+                                    <input type="text" id="${question.id}" placeholder="${question.placeholder || ''}" 
+                                           style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px;"
+                                           onchange="scores['${question.id}'] = this.value">
+                                </div>
+                            `;
+                        } else if (question.type === 'yes_no') {
+                            questionHtml += `
+                                <div style="margin-bottom: 20px; padding: 15px; background: white; border: 2px solid #667eea; border-radius: 4px;">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 12px;">Q${qNum}. ${question.text}</label>
+                                    <div style="display: flex; gap: 15px;">
+                                        <label style="cursor: pointer; padding: 8px 16px; border: 2px solid #28a745; border-radius: 4px; background: white;">
+                                            <input type="radio" name="${question.id}" value="yes" 
+                                                   onchange="handleHRDYesNo('${question.id}', 'yes')" 
+                                                   style="margin-right: 5px; cursor: pointer;"> Yes
+                                        </label>
+                                        <label style="cursor: pointer; padding: 8px 16px; border: 2px solid #dc3545; border-radius: 4px; background: white;">
+                                            <input type="radio" name="${question.id}" value="no" 
+                                                   onchange="handleHRDYesNo('${question.id}', 'no')" 
+                                                   style="margin-right: 5px; cursor: pointer;"> No
+                                        </label>
+                                    </div>
+                                    ${question.note ? `<div style="margin-top: 10px; font-size: 13px; color: #666; font-style: italic;">${question.note}</div>` : ''}
+                                </div>
+                            `;
+                        } else if (question.type === 'checklist') {
+                            questionHtml += `
+                                <div style="margin-bottom: 20px; padding: 15px; background: white; border: 2px solid #667eea; border-radius: 4px;">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 8px;">Q${qNum}. ${question.text}</label>
+                                    ${question.note ? `<div style="margin-bottom: 10px; font-size: 13px; color: #666; font-style: italic;">${question.note}</div>` : ''}
+                                    ${question.options.map(opt => `
+                                        <label style="display: block; padding: 6px; cursor: pointer;">
+                                            <input type="checkbox" id="${question.id}_${opt.value}" value="${opt.value}" 
+                                                   onchange="handleHRDChecklist('${question.id}')" 
+                                                   style="margin-right: 8px; cursor: pointer;">
+                                            ${opt.label}
+                                            ${opt.has_text ? `<input type="text" id="${question.id}_${opt.value}_text" placeholder="Specify..." style="margin-left: 8px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">` : ''}
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            `;
+                        } else if (question.type === 'multi_checklist') {
+                            questionHtml += `
+                                <div style="margin-bottom: 20px; padding: 15px; background: white; border: 2px solid #667eea; border-radius: 4px;">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 12px;">Q${qNum}. ${question.text}</label>
+                                    ${question.note ? `<div style="margin-bottom: 15px; font-size: 13px; color: #666; font-style: italic;">${question.note}</div>` : ''}
+                            `;
+                            
+                            question.sub_questions.forEach(sub => {
+                                questionHtml += `
+                                    <div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-left: 3px solid #667eea; border-radius: 4px;">
+                                        <label style="font-weight: 600; display: block; margin-bottom: 8px;">${sub.text}</label>
+                                        ${sub.options.map(opt => `
+                                            <label style="display: block; padding: 4px; cursor: pointer;">
+                                                <input type="checkbox" id="${sub.id}_${opt.value}" value="${opt.value}" 
+                                                       onchange="handleHRDChecklist('${sub.id}')" 
+                                                       style="margin-right: 8px; cursor: pointer;">
+                                                ${opt.label}
+                                                ${opt.has_text ? `<input type="text" id="${sub.id}_${opt.value}_text" placeholder="Specify..." style="margin-left: 8px; padding: 4px; border: 1px solid #ddd; border-radius: 4px; width: 150px;">` : ''}
+                                            </label>
+                                        `).join('')}
+                                    </div>
+                                `;
+                            });
+                            
+                            questionHtml += `</div>`;
+                        } else if (question.type === 'textarea') {
+                            questionHtml += `
+                                <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-left: 4px solid #667eea; border-radius: 4px;">
+                                    <label style="font-weight: 600; display: block; margin-bottom: 8px;">Q${qNum}. ${question.text}</label>
+                                    <textarea id="${question.id}" placeholder="${question.placeholder || ''}" rows="4"
+                                              style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                              onchange="scores['${question.id}'] = this.value"></textarea>
+                                </div>
+                            `;
+                        }
+                        
+                        questionHtml += `</div>`;
+                        html += questionHtml;
+                    });
+
+                    // Comments section
+                    html += `
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Section Comments:</label>
+                            <textarea id="comment-${sectionKey}" 
+                                   placeholder="Additional comments about human resources and service delivery..."
+                                   rows="3"
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                   onchange="setComment('${sectionKey}', this.value)"></textarea>
+                        </div>
+                    `;
                 } else {
                     // Standard indicator-based section
                     if (!sectionData.indicators || !Array.isArray(sectionData.indicators)) {
@@ -2054,7 +2618,7 @@
                         throw new Error('Missing indicators array');
                     }
                     sectionData.indicators.forEach(indicator => {
-                        totalPossibleScore += indicator.max_score;
+                        // totalPossibleScore is fixed at 64 for scored sections
                         html += `
                             <div class="indicator-row">
                                 <div class="indicator-name">${indicator.name}</div>
@@ -2088,8 +2652,8 @@
                         <div style="background: #fee; border: 2px solid #c00; padding: 15px; margin: 10px 0; border-radius: 8px;">
                             <strong style="color: #c00;">⚠ Error loading section: ${sectionData.name || sectionKey}</strong>
                             <p style="margin: 5px 0 0 0; font-size: 14px;">Please contact support. Error: ${error.message}</p>
-                        </div>
-                    `;
+                    </div>
+                `;
                 }
             }
 
@@ -2971,6 +3535,259 @@
             updateSummary();
         }
 
+        function handleSupplyChainScoring(questionId, answer, sectionKey) {
+            const sectionData = sections[sectionKey];
+            const questions = sectionData.scoring_questions;
+            
+            // Store the response
+            scores[questionId] = answer;
+            
+            // Apply color coding to the dropdown itself
+            const selectElement = document.getElementById(`select-${questionId}`);
+            if (selectElement && answer) {
+                // Find which question this is (0-indexed)
+                const questionIndex = questions.findIndex(q => q.id === questionId);
+                
+                let bgColor, borderColor;
+                
+                // Different color coding for different sections
+                if (sectionKey === 'supply_chain_pmtct') {
+                    // HIV PMTCT (Mother) section: scpm_q7, scpm_q8, scpm_q9
+                    // Q7 & Q8: No = Green, Yes = Red
+                    // Q9: No = Red, Yes = Dark Green
+                    if (questionIndex === 0 || questionIndex === 1) {
+                        // Q7 or Q8: stock-out issues
+                        if (answer === 'no') {
+                            bgColor = '#28a745';  // Green
+                            borderColor = '#28a745';
+                        } else {
+                            bgColor = '#dc3545';  // Red
+                            borderColor = '#dc3545';
+                        }
+                    } else if (questionIndex === 2) {
+                        // Q9: consistent availability
+                        if (answer === 'no') {
+                            bgColor = '#dc3545';  // Red
+                            borderColor = '#dc3545';
+                        } else {
+                            bgColor = '#006400';  // Dark Green
+                            borderColor = '#006400';
+                        }
+                    }
+                } else if (sectionKey === 'supply_chain_syphilis') {
+                    // Syphilis PMTCT section: scsy_q5, scsy_q6, scsy_q7
+                    // Q5 & Q6: No = Light Green, Yes = Dark Green
+                    // Q7: No = Red, Yes = Dark Green
+                    if (questionIndex === 0 || questionIndex === 1) {
+                        // Q5 or Q6: stock-out questions
+                        if (answer === 'no') {
+                            bgColor = '#90EE90';  // Light Green
+                            borderColor = '#90EE90';
+                        } else {
+                            bgColor = '#006400';  // Dark Green
+                            borderColor = '#006400';
+                        }
+                    } else if (questionIndex === 2) {
+                        // Q7: consistent availability
+                        if (answer === 'no') {
+                            bgColor = '#dc3545';  // Red
+                            borderColor = '#dc3545';
+                        } else {
+                            bgColor = '#006400';  // Dark Green
+                            borderColor = '#006400';
+                        }
+                    }
+                } else if (sectionKey === 'supply_chain_hepb') {
+                    // Hepatitis B PMTCT section: schb_q7, schb_q8, schb_q9
+                    // Q7: Y = Red, N = Green
+                    // Q8: Y = Yellow, N = Green
+                    // Q9: N = Red, Y = Dark Green
+                    if (questionIndex === 0) {
+                        // Q7: stock-out caused missed screening
+                        if (answer === 'yes') {
+                            bgColor = '#dc3545';  // Red
+                            borderColor = '#dc3545';
+                        } else {
+                            bgColor = '#28a745';  // Green
+                            borderColor = '#28a745';
+                        }
+                    } else if (questionIndex === 1) {
+                        // Q8: stock-out of TDF/3TC
+                        if (answer === 'yes') {
+                            bgColor = '#ffc107';  // Yellow
+                            borderColor = '#ffc107';
+                        } else {
+                            bgColor = '#28a745';  // Green
+                            borderColor = '#28a745';
+                        }
+                    } else if (questionIndex === 2) {
+                        // Q9: vaccines available 24/7
+                        if (answer === 'no') {
+                            bgColor = '#dc3545';  // Red
+                            borderColor = '#dc3545';
+                        } else {
+                            bgColor = '#006400';  // Dark Green
+                            borderColor = '#006400';
+                        }
+                    }
+                }
+                
+                selectElement.style.backgroundColor = bgColor;
+                selectElement.style.color = 'white';
+                selectElement.style.borderColor = borderColor;
+            }
+            
+            // Check if all three questions are answered
+            let allAnswered = true;
+            for (const question of questions) {
+                if (!scores[question.id]) {
+                    allAnswered = false;
+                    break;
+                }
+            }
+            
+            if (allAnswered) {
+                // Get the three question IDs dynamically
+                const q1 = scores[questions[0].id];  // First scoring question
+                const q2 = scores[questions[1].id];  // Second scoring question
+                const q3 = scores[questions[2].id];  // Third scoring question
+                
+                let sectionScore = 0;
+                let scoreText = '';
+                let scoreColor = '';
+                
+                // Different scoring logic for different sections
+                if (sectionKey === 'supply_chain_pmtct') {
+                    // HIV PMTCT (Mother) section
+                    // Red if Q7=Yes OR Q8=Yes OR Q9=No (any stock issue)
+                    // Dark Green if Q7=No AND Q8=No AND Q9=Yes (no issues)
+                    if (q1 === 'yes' || q2 === 'yes' || q3 === 'no') {
+                        sectionScore = 1;
+                        scoreText = 'Red';
+                        scoreColor = '#dc3545';
+                    } else if (q1 === 'no' && q2 === 'no' && q3 === 'yes') {
+                        sectionScore = 4;
+                        scoreText = 'Dark Green';
+                        scoreColor = '#006400';
+                    }
+                } else if (sectionKey === 'supply_chain_syphilis') {
+                    // Syphilis PMTCT section
+                    // Red (1) if Q7=No (not consistently available)
+                    if (q3 === 'no') {
+                        sectionScore = 1;
+                        scoreText = 'Red';
+                        scoreColor = '#dc3545';
+                    }
+                    // Dark Green (4) if Q3=Yes AND both Q1=Yes AND Q2=Yes (consistent + no stock-outs)
+                    else if (q3 === 'yes' && q1 === 'yes' && q2 === 'yes') {
+                        sectionScore = 4;
+                        scoreText = 'Dark Green';
+                        scoreColor = '#006400';
+                    }
+                    // Light Green (3) if Q3=Yes but had some stock-outs (Q1=No OR Q2=No)
+                    else if (q3 === 'yes' && (q1 === 'no' || q2 === 'no')) {
+                        sectionScore = 3;
+                        scoreText = 'Light Green';
+                        scoreColor = '#90EE90';
+                    }
+                } else if (sectionKey === 'supply_chain_hepb') {
+                    // Hepatitis B PMTCT section
+                    // Red if Q7=Yes OR Q9=No
+                    if (q1 === 'yes' || q3 === 'no') {
+                        sectionScore = 1;
+                        scoreText = 'Red';
+                        scoreColor = '#dc3545';
+                    }
+                    // Dark Green if Q7=No AND Q8=No AND Q9=Yes (best case)
+                    else if (q1 === 'no' && q2 === 'no' && q3 === 'yes') {
+                        sectionScore = 4;
+                        scoreText = 'Dark Green';
+                        scoreColor = '#006400';
+                    }
+                    // Yellow if Q7=No AND Q8=Yes AND Q9=Yes (vaccines available but had TDF stock-out)
+                    else if (q1 === 'no' && q2 === 'yes' && q3 === 'yes') {
+                        sectionScore = 2;
+                        scoreText = 'Yellow';
+                        scoreColor = '#ffc107';
+                    }
+                }
+                
+                // Store section score
+                scores[sectionKey] = sectionScore;
+                
+                // Update section badge
+                const badge = document.getElementById(`score-badge-${sectionKey}`);
+                if (badge) {
+                    badge.textContent = scoreText;
+                    badge.style.backgroundColor = scoreColor;
+                    badge.style.color = 'white';
+                }
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleHRDRadio(questionId, value) {
+            // Store the radio selection
+            scores[questionId] = value;
+            
+            // Handle conditional visibility for Q2 (partner text field)
+            if (questionId === 'hrd_q1') {
+                const q2Container = document.getElementById('hrd-hrd_q2');
+                if (q2Container) {
+                    if (value === 'partner_supported') {
+                        q2Container.style.display = 'block';
+                    } else {
+                        q2Container.style.display = 'none';
+                    }
+                }
+            }
+        }
+
+        function handleHRDYesNo(questionId, value) {
+            // Store the yes/no selection
+            scores[questionId] = value;
+            
+            // Handle conditional visibility for Q4-Q8 (if Q3 = No, show these questions)
+            if (questionId === 'hrd_q3') {
+                const dependentQuestions = ['hrd_q4', 'hrd_q5', 'hrd_q6', 'hrd_q7', 'hrd_q8'];
+                dependentQuestions.forEach(qId => {
+                    const container = document.getElementById(`hrd-${qId}`);
+                    if (container) {
+                        if (value === 'no') {
+                            container.style.display = 'block';
+                        } else {
+                            container.style.display = 'none';
+                        }
+                    }
+                });
+            }
+        }
+
+        function handleHRDChecklist(questionId) {
+            // Collect all checked values for this question
+            const checkedValues = [];
+            const checkboxes = document.querySelectorAll(`input[id^="${questionId}_"]:checked`);
+            
+            checkboxes.forEach(cb => {
+                const value = cb.value;
+                let entry = value;
+                
+                // Check if there's a text field for "other"
+                const textField = document.getElementById(`${questionId}_${value}_text`);
+                if (textField && textField.value) {
+                    entry = `${value}: ${textField.value}`;
+                }
+                
+                checkedValues.push(entry);
+            });
+            
+            // Store the checked values
+            scores[questionId] = checkedValues.join(', ');
+        }
+
         function handleTestingDataEntry(sectionKey, questionId, itemId, answer) {
             const sectionData = sections[sectionKey];
             const question = sectionData.questions.find(q => q.id === questionId);
@@ -3552,22 +4369,57 @@
 
         function handleNAOption(sectionKey) {
             const naCheckbox = document.getElementById(`na-${sectionKey}`);
-            const questionsContainer = document.getElementById(`questions-container-${sectionKey}`);
             const scoreBadge = document.getElementById(`score-badge-${sectionKey}`);
             const sectionData = sections[sectionKey];
             
             if (naCheckbox.checked) {
-                // Hide questions container
-                if (questionsContainer) {
-                    questionsContainer.style.display = 'none';
+                // Hide questions based on section type
+                if (sectionData.type === 'supply_chain_inventory') {
+                    // Hide both inventory and scoring sections
+                    const inventoryContainer = document.getElementById(`inventory-${sectionKey}`);
+                    const scoringContainer = document.getElementById(`scoring-${sectionKey}`);
+                    
+                    if (inventoryContainer) inventoryContainer.style.display = 'none';
+                    if (scoringContainer) scoringContainer.style.display = 'none';
+                    
+                    // Clear inventory questions
+                    if (sectionData.inventory_questions) {
+                        sectionData.inventory_questions.forEach(question => {
+                            if (question.type === 'yes_no') {
+                                const radios = document.querySelectorAll(`input[name="${question.id}"]`);
+                                radios.forEach(r => r.checked = false);
+                            } else if (question.type === 'numeric') {
+                                const input = document.getElementById(question.id);
+                                if (input) input.value = '';
+                            }
+                            delete scores[question.id];
+                        });
+                    }
+                    
+                    // Clear scoring questions
+                    if (sectionData.scoring_questions) {
+                        sectionData.scoring_questions.forEach(question => {
+                            const radios = document.querySelectorAll(`input[name="${question.id}"]`);
+                            radios.forEach(r => r.checked = false);
+                            delete scores[question.id];
+                        });
+                    }
+                } else {
+                    // Handle conditional_questions type (original logic)
+                    const questionsContainer = document.getElementById(`questions-container-${sectionKey}`);
+                    if (questionsContainer) {
+                        questionsContainer.style.display = 'none';
+                    }
+                    
+                    // Clear all question responses
+                    if (sectionData.questions) {
+                        sectionData.questions.forEach(question => {
+                            const radios = document.querySelectorAll(`input[name="${question.id}"]`);
+                            radios.forEach(r => r.checked = false);
+                            delete scores[question.id];
+                        });
+                    }
                 }
-                
-                // Clear all question responses
-                sectionData.questions.forEach(question => {
-                    const radios = document.querySelectorAll(`input[name="${question.id}"]`);
-                    radios.forEach(r => r.checked = false);
-                    delete scores[question.id];
-                });
                 
                 // Mark section as NA
                 scores[sectionKey] = 'NA';
@@ -3580,11 +4432,23 @@
                 }
                 
                 // Add comment noting NA
-                comments[sectionKey] = 'Not Applicable - No community services access';
+                const naReason = sectionData.type === 'supply_chain_inventory' 
+                    ? 'Not Applicable - HIV testing or maternal ART not provided at this facility'
+                    : 'Not Applicable - Service not provided at this facility';
+                comments[sectionKey] = naReason;
             } else {
-                // Show questions container
-                if (questionsContainer) {
-                    questionsContainer.style.display = 'block';
+                // Show questions based on section type
+                if (sectionData.type === 'supply_chain_inventory') {
+                    const inventoryContainer = document.getElementById(`inventory-${sectionKey}`);
+                    const scoringContainer = document.getElementById(`scoring-${sectionKey}`);
+                    
+                    if (inventoryContainer) inventoryContainer.style.display = 'block';
+                    if (scoringContainer) scoringContainer.style.display = 'block';
+                } else {
+                    const questionsContainer = document.getElementById(`questions-container-${sectionKey}`);
+                    if (questionsContainer) {
+                        questionsContainer.style.display = 'block';
+                    }
                 }
                 
                 // Clear NA status
@@ -3608,12 +4472,22 @@
             let totalScore = 0;
             let indicatorsAssessed = 0;
 
-            // Calculate total score
-            for (const [indicatorId, score] of Object.entries(scores)) {
+            // List of section keys that have scores (max_score = 4)
+            const scoredSections = [
+                'triple_elimination_treatment', 'art_pmtct', 'quality_pmtct', 'patient_tracking',
+                'adherence_support', 'facility_linkage', 'sti_screening', 'early_infant_diagnosis',
+                'ctx_hei', 'tracking_hei', 'enrolment_eid_art', 'hei_eid_registers',
+                'supply_chain_eid', 'supply_chain_pmtct', 'supply_chain_syphilis', 'supply_chain_hepb',
+                'patient_records'
+            ];
+
+            // Calculate total score from scored sections only
+            for (const sectionId of scoredSections) {
+                const score = scores[sectionId];
                 // Skip NA scores
                 if (score === 'NA') continue;
                 
-                if (score >= 1 && scores[indicatorId] !== undefined) {
+                if (score && score >= 1) {
                     totalScore += score;
                     indicatorsAssessed++;
                 }
@@ -3650,7 +4524,13 @@
                     if (scores[sectionKey]) {
                         sectionScore = scores[sectionKey];
                     }
-                } else {
+                } else if (sectionData.type === 'supply_chain_inventory') {
+                    // For supply chain inventory sections
+                    sectionMax = 4;
+                    if (scores[sectionKey]) {
+                        sectionScore = scores[sectionKey] === 'NA' ? 0 : scores[sectionKey];
+                    }
+                } else if (sectionData.indicators) {
                     // For standard indicator-based sections
                     sectionData.indicators.forEach(indicator => {
                         sectionMax += indicator.max_score;
@@ -3658,10 +4538,17 @@
                             sectionScore += scores[indicator.id];
                         }
                     });
+                } else {
+                    // Fallback for other section types
+                    sectionMax = 4;
+                    if (scores[sectionKey]) {
+                        sectionScore = scores[sectionKey] === 'NA' ? 0 : scores[sectionKey];
+                    }
                 }
 
-                document.getElementById(`section-score-${sectionKey}`).textContent = 
-                    `${sectionScore} / ${sectionMax}`;
+                // Display score or N/A
+                const scoreDisplay = scores[sectionKey] === 'NA' ? 'N/A' : `${sectionScore} / ${sectionMax}`;
+                document.getElementById(`section-score-${sectionKey}`).textContent = scoreDisplay;
             }
 
             // Update summary panel
@@ -3824,25 +4711,85 @@
             });
         }
 
-        function downloadReport() {
+        function downloadReport(forceDownload = false) {
             if (!validateFacilityInfo()) return;
 
-            if (Object.keys(scores).length === 0) {
-                showMessage('Please assess at least one indicator', 'error');
-                return;
+            // List of all scored sections that should be completed
+            const scoredSections = [
+                'triple_elimination_treatment', 'art_pmtct', 'quality_pmtct', 'patient_tracking',
+                'adherence_support', 'facility_linkage', 'sti_screening', 'early_infant_diagnosis',
+                'ctx_hei', 'tracking_hei', 'enrolment_eid_art', 'hei_eid_registers',
+                'supply_chain_eid', 'supply_chain_pmtct', 'supply_chain_syphilis', 'supply_chain_hepb',
+                'patient_records'
+            ];
+
+            // Check for incomplete sections
+            const incompleteSections = [];
+            
+            for (const sectionKey of scoredSections) {
+                const score = scores[sectionKey];
+                const sectionData = sections[sectionKey];
+                
+                // Skip if marked as NA
+                if (score === 'NA') continue;
+                
+                // Check if section has a score
+                if (!score || score < 1) {
+                    incompleteSections.push({
+                        key: sectionKey,
+                        name: sectionData.name,
+                        reason: 'Not assessed'
+                    });
+                }
             }
 
-            // Validate that all scored indicators have comments
-            for (const indicatorId in scores) {
-                const comment = comments[indicatorId];
-                if (!comment || comment.trim() === '') {
-                    showMessage(`Please add a comment for indicator ${indicatorId.toUpperCase()}`, 'error');
-                    document.getElementById(`comment-${indicatorId}`).focus();
+            // If there are incomplete sections and not forcing download, show warning with option to continue
+            if (incompleteSections.length > 0 && !forceDownload) {
+                const firstIncomplete = incompleteSections[0];
+                const sectionElement = document.getElementById(`section-${firstIncomplete.key}`);
+                const sectionCard = sectionElement.closest('.section-card');
+                
+                // Scroll to the section
+                sectionCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
+                // Expand the section if it's collapsed
+                if (sectionElement.style.display === 'none') {
+                    toggleSection(firstIncomplete.key);
+                }
+                
+                // Highlight the section with a pulsing animation
+                sectionCard.style.transition = 'all 0.3s ease';
+                sectionCard.style.boxShadow = '0 0 20px 5px rgba(255, 193, 7, 0.8)';
+                sectionCard.style.border = '3px solid #ffc107';
+                
+                // Remove highlight after 3 seconds
+                setTimeout(() => {
+                    sectionCard.style.boxShadow = '';
+                    sectionCard.style.border = '';
+                }, 3000);
+                
+                // Show confirmation dialog
+                const proceed = confirm(
+                    `⚠️ INCOMPLETE ASSESSMENT\n\n` +
+                    `${incompleteSections.length} section(s) are not yet assessed.\n\n` +
+                    `Incomplete sections:\n` +
+                    incompleteSections.slice(0, 5).map((s, i) => `${i + 1}. ${s.name}`).join('\n') +
+                    (incompleteSections.length > 5 ? `\n...and ${incompleteSections.length - 5} more` : '') +
+                    `\n\n` +
+                    `📍 Scrolled to: ${firstIncomplete.name}\n\n` +
+                    `Do you want to download a PARTIAL report anyway?\n` +
+                    `(Click OK to download, Cancel to continue assessment)`
+                );
+                
+                if (!proceed) {
                     return;
                 }
             }
 
+            // Proceed with download (complete or partial)
             const data = getAssessmentData();
+
+            showMessage('⏳ Generating your comprehensive assessment report with color coding...', 'info');
 
             fetchWithTimeout('/download-assessment', {
                 method: 'POST',
@@ -3856,12 +4803,104 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `assessment_${document.getElementById('facilityName').value}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                const completionStatus = incompleteSections.length === 0 ? 'Complete' : 'Partial';
+                a.download = `PMTCT_Assessment_${completionStatus}_${document.getElementById('facilityName').value.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
                 a.click();
-                showMessage('Assessment report downloaded successfully!', 'success');
+                showMessage(`✅ ${completionStatus} assessment report downloaded successfully! Check your Downloads folder.`, 'success');
             })
             .catch(error => {
-                showMessage('Error downloading report: ' + error.message, 'error');
+                showMessage('❌ Error downloading report: ' + error.message, 'error');
+            });
+        }
+
+        function downloadSectionReport(sectionKey) {
+            console.log('Download Section clicked for:', sectionKey);
+            
+            if (!validateFacilityInfo()) return;
+
+            const sectionData = sections[sectionKey];
+            console.log('Section data:', sectionData);
+            
+            // Gather ALL data related to this section
+            const sectionExportData = {
+                district: document.getElementById('district').value,
+                facilityName: document.getElementById('facilityName').value,
+                facilityLevel: document.getElementById('facilityLevel').value,
+                ownership: document.getElementById('ownership').value,
+                assessorName: document.getElementById('assessorName').value,
+                assessmentDate: document.getElementById('assessmentDate').value,
+                scores: {},
+                comments: {}
+            };
+
+            // Add all scores/data for this section (including sub-fields)
+            let hasData = false;
+            for (const [key, value] of Object.entries(scores)) {
+                // Include: exact match, starts with sectionKey_, or contains sectionKey prefix
+                if (key === sectionKey || key.startsWith(sectionKey + '_') || key.includes(sectionKey)) {
+                    sectionExportData.scores[key] = value;
+                    hasData = true;
+                }
+            }
+
+            // Add all comments for this section
+            for (const [key, value] of Object.entries(comments)) {
+                if (key === sectionKey || key.startsWith(sectionKey + '_') || key.includes(sectionKey)) {
+                    sectionExportData.comments[key] = value;
+                }
+            }
+
+            // Log collected data
+            console.log('Scores collected for section:', sectionExportData.scores);
+            console.log('Has data:', hasData);
+            
+            // Check if section has any data
+            if (!hasData) {
+                showMessage(`⚠️ Section "${sectionData.name}" has no data yet. Please complete the section first.`, 'warning');
+                
+                // Scroll to the section to help user
+                const sectionElement = document.getElementById(`section-${sectionKey}`);
+                if (sectionElement) {
+                    const sectionCard = sectionElement.closest('.section-card');
+                    sectionCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Expand if collapsed
+                    if (sectionElement.style.display === 'none') {
+                        toggleSection(sectionKey);
+                    }
+                }
+                return;
+            }
+
+            showMessage(`⏳ Generating report for section: ${sectionData.name}...`, 'info');
+
+            fetchWithTimeout('/download-assessment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(sectionExportData)
+            }, 30000)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Section_${sectionKey}_${document.getElementById('facilityName').value.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                showMessage(`✅ Section "${sectionData.name}" downloaded successfully!`, 'success');
+            })
+            .catch(error => {
+                console.error('Download error:', error);
+                showMessage(`❌ Error downloading section: ${error.message}`, 'error');
             });
         }
 
@@ -4001,9 +5040,12 @@
             messageDiv.textContent = message;
             messageDiv.style.display = 'block';
 
+            // Longer timeout for warning messages (they contain more info)
+            const timeout = type === 'warning' ? 8000 : 5000;
+
             setTimeout(() => {
                 messageDiv.style.display = 'none';
-            }, 5000);
+            }, timeout);
         }
 
         // Date validation function

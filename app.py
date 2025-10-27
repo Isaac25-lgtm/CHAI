@@ -565,6 +565,274 @@ TOOL_SECTIONS = {
                 "scoring": {"no": "light_green", "yes": "dark_green"}
             }
         ]
+    },
+    "supply_chain_pmtct": {
+        "name": "Supply Chain Reliability – HIV PMTCT (Mother)",
+        "type": "supply_chain_inventory",
+        "standard": "Each PMTCT facility maintains consistent availability of HIV test kits (HIV-syphilis duo, Determine, STAT-PAK/First Response), ARVs for maternal treatment, and cotrimoxazole for prophylaxis.",
+        "instructions": "If HIV testing or maternal ART is not provided at this facility, check NA, and SKIP this section.",
+        "na_option": True,
+        "inventory_questions": [
+            {"id": "scpm_q1", "text": "Are HIV-syphilis duo kits currently in stock?", "type": "yes_no"},
+            {"id": "scpm_q2", "text": "How many months of stock are available for HIV test kits?", "type": "numeric"},
+            {"id": "scpm_q3", "text": "Are the HIV 1/2 STAT-PAK® Assay currently in stock?", "type": "yes_no"},
+            {"id": "scpm_q4", "text": "How many months of HIV 1/2 STAT-PAK® Assay stock are available?", "type": "numeric"},
+            {"id": "scpm_q5", "text": "Are maternal ARVs (e.g., TLD) currently in stock?", "type": "yes_no"},
+            {"id": "scpm_q6", "text": "How many months of stock are available for maternal ARVs?", "type": "numeric"}
+        ],
+        "scoring_questions": [
+            {
+                "id": "scpm_q7",
+                "text": "Has a stock-out of HIV-syphilis duo kits in the past 3 months resulted in missed maternal testing at ANC?"
+            },
+            {
+                "id": "scpm_q8",
+                "text": "Have there been stock-outs or emergency orders for maternal ARVs in the past 3 months?"
+            },
+            {
+                "id": "scpm_q9",
+                "text": "Are HIV testing kits and maternal ART consistently available at ANC and maternity points?"
+            }
+        ],
+        "scoring_logic": "If Q7=Yes OR Q8=Yes OR Q9=No then Red; If Q7=No AND Q8=No AND Q9=Yes then Dark Green"
+    },
+    "supply_chain_syphilis": {
+        "name": "Supply Chain Reliability – Syphilis PMTCT",
+        "type": "supply_chain_inventory",
+        "standard": "Facilities should have continuous access to syphilis RDTs and benzathine penicillin for both initial and follow-up treatment.",
+        "instructions": "If syphilis testing or treatment is not offered at this facility, check NA, and SKIP this section.",
+        "comment": "Note: Consider the use of HIV/Syphilis duo kits where applicable, and syphilis RDTs primarily for women with known HIV negative status.",
+        "na_option": True,
+        "inventory_questions": [
+            {"id": "scsy_q1", "text": "Are syphilis RDTs currently in stock?", "type": "yes_no"},
+            {"id": "scsy_q2", "text": "How many months of stock are available for syphilis RDTs?", "type": "numeric"},
+            {"id": "scsy_q3", "text": "Is benzathine penicillin currently in stock?", "type": "yes_no"},
+            {"id": "scsy_q4", "text": "How many months of stock are available for benzathine penicillin?", "type": "numeric"}
+        ],
+        "scoring_questions": [
+            {
+                "id": "scsy_q5",
+                "text": "Has a stock-out of syphilis RDTs in the last 3 months led to missed testing for pregnant women?"
+            },
+            {
+                "id": "scsy_q6",
+                "text": "Was there any interruption in benzathine penicillin availability in the past 3 months?"
+            },
+            {
+                "id": "scsy_q7",
+                "text": "Are both RDTs and penicillin doses consistently available across ANC and maternity areas?"
+            }
+        ],
+        "scoring_logic": "If Q5=Yes OR Q6=Yes OR Q7=No then Red; If Q5=No AND Q6=No AND Q7=Yes then Dark Green"
+    },
+    "supply_chain_hepb": {
+        "name": "Supply Chain Reliability – Hepatitis B PMTCT (Maternal and Birth Dose)",
+        "type": "supply_chain_inventory",
+        "standard": "Facilities should have reliable stocks of HBsAg test kits, TDF or TDF/3TC prophylaxis for eligible women, and birth dose hepatitis B vaccines.",
+        "instructions": "If Hepatitis B services are not offered at this facility, check NA, and SKIP this section.",
+        "na_option": True,
+        "inventory_questions": [
+            {"id": "schb_q1", "text": "Are HBsAg test kits currently in stock?", "type": "yes_no"},
+            {"id": "schb_q2", "text": "How many months of stock are available for HBsAg test kits?", "type": "numeric"},
+            {"id": "schb_q3", "text": "Is TDF or TDF/3TC for prophylaxis currently in stock?", "type": "yes_no"},
+            {"id": "schb_q4", "text": "How many months of stock are available for TDF or TDF/3TC?", "type": "numeric"},
+            {"id": "schb_q5", "text": "Are hepatitis B birth dose (HepB-BD) vaccines currently available in maternity?", "type": "yes_no"},
+            {"id": "schb_q6", "text": "How many months of stock are available for HepB-BD vaccines?", "type": "numeric"}
+        ],
+        "scoring_questions": [
+            {
+                "id": "schb_q7",
+                "text": "Has a stock-out of HBsAg test kits in the past 3 months caused missed screening of pregnant women?"
+            },
+            {
+                "id": "schb_q8",
+                "text": "Has there been a stock-out of TDF or TDF/3TC for HBV-positive women in the last 3 months?"
+            },
+            {
+                "id": "schb_q9",
+                "text": "Are hepatitis B birth dose vaccines available 24/7 in maternity units for timely newborn immunization?"
+            }
+        ],
+        "scoring_logic": "If Q7=Yes OR Q9=No then Red; If Q7=No AND Q9=No AND Q8=Yes then Yellow; If Q7=No AND Q8=No AND Q9=Yes then Dark Green"
+    },
+    "human_resources_delivery": {
+        "name": "HUMAN RESOURCES AND SERVICE DELIVERY POINTS",
+        "type": "human_resources_delivery",
+        "standard": "PMTCT services for HIV, syphilis, and hepatitis B should be integrated and delivered at Mother-Baby Care Points (MBCPs), where designated personnel provide testing, treatment, counselling, and vaccination.",
+        "questions": [
+            {
+                "id": "hrd_q1",
+                "text": "What is the primary funding source for personnel delivering PMTCT services at this facility?",
+                "type": "radio",
+                "options": [
+                    {"value": "public_payroll", "label": "Public payroll"},
+                    {"value": "partner_supported", "label": "Partner-supported"},
+                    {"value": "both", "label": "Both public and partner"}
+                ],
+                "note": "If partner-supported, proceed to Q2"
+            },
+            {
+                "id": "hrd_q2",
+                "text": "If partner-supported, which partner(s) support PMTCT personnel?",
+                "type": "text",
+                "depends_on": "hrd_q1",
+                "depends_value": "partner_supported",
+                "placeholder": "E.g., UPMB, Baylor, EGPAF"
+            },
+            {
+                "id": "hrd_q3",
+                "text": "Are PMTCT services integrated and provided at a designated Mother-Baby Care Point (MBCP)?",
+                "type": "yes_no",
+                "note": "If No, proceed to Q4–Q8 to explore distribution of services"
+            },
+            {
+                "id": "hrd_q4",
+                "text": "Where is HIV testing for pregnant women primarily conducted?",
+                "type": "checklist",
+                "depends_on": "hrd_q3",
+                "depends_value": "no",
+                "note": "Tick all that apply",
+                "options": [
+                    {"value": "anc", "label": "ANC"},
+                    {"value": "maternity", "label": "Maternity"},
+                    {"value": "mbcp", "label": "MBCP"},
+                    {"value": "laboratory", "label": "Laboratory"},
+                    {"value": "opd", "label": "OPD"},
+                    {"value": "other", "label": "Other:", "has_text": True}
+                ]
+            },
+            {
+                "id": "hrd_q5",
+                "text": "Where is syphilis testing for pregnant women primarily conducted?",
+                "type": "checklist",
+                "depends_on": "hrd_q3",
+                "depends_value": "no",
+                "note": "Tick all that apply",
+                "options": [
+                    {"value": "anc", "label": "ANC"},
+                    {"value": "maternity", "label": "Maternity"},
+                    {"value": "mbcp", "label": "MBCP"},
+                    {"value": "laboratory", "label": "Laboratory"},
+                    {"value": "opd", "label": "OPD"},
+                    {"value": "other", "label": "Other:", "has_text": True}
+                ]
+            },
+            {
+                "id": "hrd_q6",
+                "text": "Where is hepatitis B testing for pregnant women primarily conducted?",
+                "type": "checklist",
+                "depends_on": "hrd_q3",
+                "depends_value": "no",
+                "note": "Tick all that apply",
+                "options": [
+                    {"value": "anc", "label": "ANC"},
+                    {"value": "maternity", "label": "Maternity"},
+                    {"value": "mbcp", "label": "MBCP"},
+                    {"value": "laboratory", "label": "Laboratory"},
+                    {"value": "opd", "label": "OPD"},
+                    {"value": "other", "label": "Other:", "has_text": True}
+                ]
+            },
+            {
+                "id": "hrd_q7",
+                "text": "Where is treatment/prophylaxis provided for:",
+                "type": "multi_checklist",
+                "depends_on": "hrd_q3",
+                "depends_value": "no",
+                "note": "Tick all that apply",
+                "sub_questions": [
+                    {
+                        "id": "hrd_q7a",
+                        "text": "a. HIV?",
+                        "options": [
+                            {"value": "anc", "label": "ANC"},
+                            {"value": "maternity", "label": "Maternity"},
+                            {"value": "art_clinic", "label": "ART Clinic"},
+                            {"value": "mbcp", "label": "MBCP"},
+                            {"value": "other", "label": "Other:", "has_text": True}
+                        ]
+                    },
+                    {
+                        "id": "hrd_q7b",
+                        "text": "b. Syphilis?",
+                        "options": [
+                            {"value": "anc", "label": "ANC"},
+                            {"value": "maternity", "label": "Maternity"},
+                            {"value": "art_clinic", "label": "ART Clinic"},
+                            {"value": "mbcp", "label": "MBCP"},
+                            {"value": "other", "label": "Other:", "has_text": True}
+                        ]
+                    },
+                    {
+                        "id": "hrd_q7c",
+                        "text": "c. hepatitis B?",
+                        "options": [
+                            {"value": "anc", "label": "ANC"},
+                            {"value": "maternity", "label": "Maternity"},
+                            {"value": "art_clinic", "label": "ART Clinic"},
+                            {"value": "mbcp", "label": "MBCP"},
+                            {"value": "other", "label": "Other:", "has_text": True}
+                        ]
+                    }
+                ]
+            },
+            {
+                "id": "hrd_q8",
+                "text": "Where is the Hepatitis B birth dose vaccine administered?",
+                "type": "checklist",
+                "depends_on": "hrd_q3",
+                "depends_value": "no",
+                "note": "Tick all that apply",
+                "options": [
+                    {"value": "maternity_ward", "label": "Maternity ward"},
+                    {"value": "epi_clinic", "label": "EPI/Immunization clinic"},
+                    {"value": "mbcp", "label": "MBCP"},
+                    {"value": "other", "label": "Other:", "has_text": True}
+                ]
+            },
+            {
+                "id": "hrd_q9",
+                "text": "Are there designated personnel responsible for providing comprehensive PMTCT services at each service delivery point?",
+                "type": "yes_no",
+                "note": "If Yes, indicate cadre(s) and their allocation in comments"
+            },
+            {
+                "id": "hrd_q10",
+                "text": "If PMTCT services are not co-located, what are the key gaps and how are patients referred between service points?",
+                "type": "textarea",
+                "placeholder": "Brief description (e.g., no MBCP, mothers referred from ANC to ART clinic)"
+            }
+        ]
+    },
+    "patient_records": {
+        "name": "Patient/Beneficiary Records",
+        "type": "conditional_questions",
+        "standard": "Each ART/pre-ART or PMTCT facility maintains current individual patient/beneficiary records and provides an adequate and secure storage space with an organized filing system that allows for easy accessibility and patient confidentiality.",
+        "questions": [
+            {
+                "id": "pr_q1",
+                "text": "Are individual patient/beneficiary records maintained?",
+                "scoring": {"no": "red", "yes": "next"}
+            },
+            {
+                "id": "pr_q2",
+                "text": "Is space adequate and secure?",
+                "depends_on": "pr_q1",
+                "scoring": {"no": "red", "yes": "next"}
+            },
+            {
+                "id": "pr_q3",
+                "text": "Is there a standard filing system and accessibility to specific charts so patient care is not impeded?",
+                "depends_on": "pr_q2",
+                "scoring": {"no": "yellow", "yes": "next"}
+            },
+            {
+                "id": "pr_q4",
+                "text": "Does the system allow for identification of patients by category (e.g., pre-ART, ART, peds, pregnant women) and is there written documentation that describes the record filing system?",
+                "depends_on": "pr_q3",
+                "scoring": {"no": "light_green", "yes": "dark_green"}
+            }
+        ]
     }
 }
 
@@ -1073,6 +1341,9 @@ def download_assessment():
                 'message': 'Validation errors found',
                 'errors': errors
             }), 400
+        
+        # Add section definitions to data for accurate question text in reports
+        data['section_definitions'] = TOOL_SECTIONS
         
         # Check if user is superuser - only superusers can edit downloaded files
         user_role = session.get('user_role', 'admin')
