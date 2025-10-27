@@ -119,11 +119,21 @@ class DataValidator:
             except ValueError:
                 errors.append("Invalid assessment date format. Use YYYY-MM-DD")
         
-        # Validate scores
+        # Validate scores - allow various data types for flexibility
         if 'scores' in assessment and assessment['scores']:
             for indicator_id, score in assessment['scores'].items():
-                if not isinstance(score, int) or score < 1 or score > 5:
-                    errors.append(f"Invalid score for {indicator_id}. Must be between 1 and 5")
+                # Allow integers (section scores), strings (yes/no), floats (percentages), and None
+                if score is None:
+                    continue
+                if isinstance(score, (int, float)):
+                    # Section scores or numeric values
+                    if not (0 <= score <= 5 or 0 <= score <= 100):  # Allow 0-5 for scores or 0-100 for percentages
+                        errors.append(f"Invalid numeric score for {indicator_id}. Must be between 0-5 or 0-100")
+                elif isinstance(score, str):
+                    # Allow string responses like "yes", "no", "Red", "Green", etc.
+                    pass  # String responses are valid
+                else:
+                    errors.append(f"Invalid score type for {indicator_id}. Must be int, float, or string")
         
         return len(errors) == 0, errors
     

@@ -4836,45 +4836,51 @@
             // Build a list of all relevant keys for this section
             const relevantKeys = new Set([sectionKey]); // Always include the section key itself
             
-            // Add question IDs from the section definition
-            if (sectionData.questions) {
-                sectionData.questions.forEach(q => {
-                    relevantKeys.add(q.id);
-                    // Also add sub-questions if they exist
-                    if (q.sub_questions) {
-                        q.sub_questions.forEach(sq => relevantKeys.add(sq.id));
-                    }
-                    // Add items for multi_yes_no questions
-                    if (q.items) {
-                        q.items.forEach(item => {
-                            const itemId = `${q.id}_${item.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
-                            relevantKeys.add(itemId);
-                        });
-                    }
-                    // Add field IDs for data_entry_table
-                    if (q.fields) {
-                        q.fields.forEach(field => relevantKeys.add(field.id));
-                    }
-                });
+            try {
+                // Add question IDs from the section definition
+                if (sectionData.questions) {
+                    sectionData.questions.forEach(q => {
+                        relevantKeys.add(q.id);
+                        // Also add sub-questions if they exist
+                        if (q.sub_questions) {
+                            q.sub_questions.forEach(sq => relevantKeys.add(sq.id));
+                        }
+                        // Add items for multi_yes_no questions
+                        if (q.items) {
+                            q.items.forEach(item => {
+                                const itemId = `${q.id}_${item.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+                                relevantKeys.add(itemId);
+                            });
+                        }
+                        // Add field IDs for data_entry_table
+                        if (q.fields) {
+                            q.fields.forEach(field => relevantKeys.add(field.id));
+                        }
+                    });
+                }
+                
+                // Add inventory and scoring question IDs for supply chain sections
+                if (sectionData.inventory_questions) {
+                    sectionData.inventory_questions.forEach(q => relevantKeys.add(q.id));
+                }
+                if (sectionData.scoring_questions) {
+                    sectionData.scoring_questions.forEach(q => relevantKeys.add(q.id));
+                }
+                
+                // Add register IDs
+                if (sectionData.registers) {
+                    sectionData.registers.forEach(reg => {
+                        relevantKeys.add(`${reg.id}_available`);
+                        relevantKeys.add(`${reg.id}_standard`);
+                        relevantKeys.add(`${reg.id}_complete`);
+                        relevantKeys.add(reg.id); // The register score itself
+                    });
+                }
+            } catch (error) {
+                console.error('Error building relevant keys:', error);
             }
             
-            // Add inventory and scoring question IDs for supply chain sections
-            if (sectionData.inventory_questions) {
-                sectionData.inventory_questions.forEach(q => relevantKeys.add(q.id));
-            }
-            if (sectionData.scoring_questions) {
-                sectionData.scoring_questions.forEach(q => relevantKeys.add(q.id));
-            }
-            
-            // Add register IDs
-            if (sectionData.registers) {
-                sectionData.registers.forEach(reg => {
-                    relevantKeys.add(`${reg.id}_available`);
-                    relevantKeys.add(`${reg.id}_standard`);
-                    relevantKeys.add(`${reg.id}_complete`);
-                    relevantKeys.add(reg.id); // The register score itself
-                });
-            }
+            console.log('Relevant keys for', sectionKey, ':', Array.from(relevantKeys));
             
             // Add all scores/data for this section
             let hasData = false;
@@ -4888,9 +4894,15 @@
                 }
             }
 
+            console.log('Section export data scores:', sectionExportData.scores);
+            console.log('Has data:', hasData);
+
             // Add all comments for this section
             for (const [key, value] of Object.entries(comments)) {
-                if (key === sectionKey || key.startsWith(sectionKey + '_') || key.includes(sectionKey)) {
+                if (relevantKeys.has(key) ||
+                    key === sectionKey || 
+                    key.startsWith(sectionKey + '_') || 
+                    key.includes(sectionKey)) {
                     sectionExportData.comments[key] = value;
                 }
             }
