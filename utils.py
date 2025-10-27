@@ -91,9 +91,8 @@ class ExcelGenerator:
             # Create summary dashboard
             ExcelGenerator._create_summary_sheet(wb, assessment_data)
             
-            # Create detailed scores sheet (only for full reports)
-            if not is_section_download:
-                ExcelGenerator._create_details_sheet(wb, assessment_data)
+            # Create detailed scores sheet (filtered for section-specific downloads)
+            ExcelGenerator._create_details_sheet(wb, assessment_data, is_section_download)
             
             # Create action plan sheet
             ExcelGenerator._create_action_plan_sheet(wb, assessment_data)
@@ -533,8 +532,8 @@ class ExcelGenerator:
                 row += 1
     
     @staticmethod
-    def _create_details_sheet(wb: Workbook, assessment_data: Dict):
-        """Create comprehensive detailed scores sheet with ALL assessment sections"""
+    def _create_details_sheet(wb: Workbook, assessment_data: Dict, is_section_download: bool = False):
+        """Create comprehensive detailed scores sheet with ALL assessment sections (or just one section for section downloads)"""
         ws = wb.create_sheet("Assessment Details")
         
         # Define styling
@@ -551,7 +550,7 @@ class ExcelGenerator:
         ws.column_dimensions['C'].width = 15
         ws.column_dimensions['D'].width = 50
         
-        # Detect if this is a section-specific download
+        # For section downloads, identify which section
         scores = assessment_data.get('scores', {})
         section_keys = ['triple_elimination_treatment', 'art_pmtct', 'quality_pmtct', 'patient_tracking',
                        'adherence_support', 'facility_linkage', 'sti_screening', 'early_infant_diagnosis',
@@ -561,7 +560,6 @@ class ExcelGenerator:
         
         # Check which sections have scores
         sections_with_data = [key for key in section_keys if key in scores or any(k.startswith(key + '_') for k in scores.keys())]
-        is_section_download = len(sections_with_data) == 1
         
         # Get section name mapping
         section_name_map = {
@@ -584,15 +582,14 @@ class ExcelGenerator:
             'patient_records': 'Patient/Beneficiary Records'
         }
         
-        # Add title
+        # Add title (uniform 6-column format)
+        ws.merge_cells('A1:F1')
+        title_cell = ws['A1']
+        
         if is_section_download:
-            ws.merge_cells('A1:C1')
             section_key = sections_with_data[0]
-            title_cell = ws['A1']
-            title_cell.value = section_name_map.get(section_key, section_key.upper())
+            title_cell.value = f"ASSESSMENT DETAILS: {section_name_map.get(section_key, section_key.upper())}"
         else:
-            ws.merge_cells('A1:F1')
-            title_cell = ws['A1']
             title_cell.value = "FACILITY ASSESSMENT DETAILED REPORT"
         
         title_cell.font = Font(size=16, bold=True, color="FFFFFF")
@@ -600,57 +597,40 @@ class ExcelGenerator:
         title_cell.alignment = Alignment(horizontal='center', vertical='center')
         title_cell.border = thin_border
         
-        # Add facility information
+        # Add facility information (uniform format for all downloads)
         row = 3
         ws[f'A{row}'] = "District:"
-        if is_section_download:
-            ws.merge_cells(f'B{row}:C{row}')
-        else:
-            ws.merge_cells(f'B{row}:D{row}')
+        ws.merge_cells(f'B{row}:D{row}')
         ws[f'B{row}'] = DataValidator.sanitize_input(assessment_data.get('district', 'N/A'))
         
         row += 1
         ws[f'A{row}'] = "Facility Name:"
-        if is_section_download:
-            ws.merge_cells(f'B{row}:C{row}')
-        else:
-            ws.merge_cells(f'B{row}:D{row}')
+        ws.merge_cells(f'B{row}:D{row}')
         ws[f'B{row}'] = DataValidator.sanitize_input(assessment_data.get('facilityName', 'N/A'))
         
         row += 1
-        if is_section_download:
-            ws[f'A{row}'] = "Assessment Date:"
-            ws.merge_cells(f'B{row}:C{row}')
-            ws[f'B{row}'] = DataValidator.sanitize_input(assessment_data.get('assessmentDate', 'N/A'))
-        else:
-            ws[f'A{row}'] = "Facility Level:"
-            ws[f'B{row}'] = DataValidator.sanitize_input(assessment_data.get('facilityLevel', 'N/A'))
-            ws[f'C{row}'] = "Ownership:"
-            ws[f'D{row}'] = DataValidator.sanitize_input(assessment_data.get('ownership', 'N/A'))
-            
-            row += 1
-            ws[f'A{row}'] = "Assessor Name:"
-            ws[f'B{row}'] = DataValidator.sanitize_input(assessment_data.get('assessorName', 'N/A'))
-            ws[f'C{row}'] = "Assessment Date:"
-            ws[f'D{row}'] = DataValidator.sanitize_input(assessment_data.get('assessmentDate', 'N/A'))
+        ws[f'A{row}'] = "Facility Level:"
+        ws[f'B{row}'] = DataValidator.sanitize_input(assessment_data.get('facilityLevel', 'N/A'))
+        ws[f'C{row}'] = "Ownership:"
+        ws[f'D{row}'] = DataValidator.sanitize_input(assessment_data.get('ownership', 'N/A'))
         
-        # Add headers for assessment data
+        row += 1
+        ws[f'A{row}'] = "Assessor Name:"
+        ws[f'B{row}'] = DataValidator.sanitize_input(assessment_data.get('assessorName', 'N/A'))
+        ws[f'C{row}'] = "Assessment Date:"
+        ws[f'D{row}'] = DataValidator.sanitize_input(assessment_data.get('assessmentDate', 'N/A'))
+        
+        # Add headers for assessment data (uniform format for all downloads)
         row += 2
-        if is_section_download:
-            headers = ['Indicator', 'Result/Value', 'Comments']
-            # Adjust column widths for section download
-            ws.column_dimensions['A'].width = 60
-            ws.column_dimensions['B'].width = 25
-            ws.column_dimensions['C'].width = 50
-        else:
-            headers = ['Section', 'Indicator ID', 'Indicator Name', 'Max Score', 'Score', 'Comments']
-            # Reset column widths for full report
-            ws.column_dimensions['A'].width = 15
-            ws.column_dimensions['B'].width = 30
-            ws.column_dimensions['C'].width = 50
-            ws.column_dimensions['D'].width = 10
-            ws.column_dimensions['E'].width = 10
-            ws.column_dimensions['F'].width = 50
+        headers = ['Section', 'Indicator ID', 'Indicator Name', 'Max Score', 'Score', 'Comments']
+        
+        # Set uniform column widths
+        ws.column_dimensions['A'].width = 30
+        ws.column_dimensions['B'].width = 20
+        ws.column_dimensions['C'].width = 50
+        ws.column_dimensions['D'].width = 12
+        ws.column_dimensions['E'].width = 12
+        ws.column_dimensions['F'].width = 40
         
         for col_num, header in enumerate(headers, 1):
             cell = ws.cell(row=row, column=col_num)
@@ -786,16 +766,15 @@ class ExcelGenerator:
         # Populate data
         row += 1
         for section_name, indicators in sections_to_show.items():
-            if not is_section_download:
-                # Add section header for full report
-                ws.merge_cells(f'A{row}:F{row}')
-                section_cell = ws.cell(row=row, column=1)
-                section_cell.value = section_name
-                section_cell.fill = section_fill
-                section_cell.font = Font(bold=True, size=12)
-                section_cell.border = thin_border
-                section_cell.alignment = Alignment(horizontal='left', vertical='center')
-                row += 1
+            # Add section header (uniform for all downloads)
+            ws.merge_cells(f'A{row}:F{row}')
+            section_cell = ws.cell(row=row, column=1)
+            section_cell.value = section_name
+            section_cell.fill = section_fill
+            section_cell.font = Font(bold=True, size=12)
+            section_cell.border = thin_border
+            section_cell.alignment = Alignment(horizontal='left', vertical='center')
+            row += 1
             
             # Add indicators
             for indicator in indicators:
@@ -807,61 +786,43 @@ class ExcelGenerator:
                 if is_section_download and score in ['N/A', '', None] and not comment:
                     continue
                 
-                if is_section_download:
-                    # Simplified format for section download - only show data fields, not final scores
-                    # Skip the final score line (max_score > 0) as it will appear in Assessment Summary
-                    if indicator['max_score'] > 0:
-                        continue
-                    
-                    ws.cell(row=row, column=1).value = indicator['name']
-                    ws.cell(row=row, column=2).value = score if score != 'N/A' else ''
-                    ws.cell(row=row, column=3).value = comment
-                    
-                    # Apply styling
-                    for col_num in range(1, 4):
-                        cell = ws.cell(row=row, column=col_num)
-                        cell.border = thin_border
-                        cell.alignment = Alignment(vertical='center', wrap_text=True)
-                        if col_num == 2:  # Center the Result/Value column
-                            cell.alignment = Alignment(horizontal='center', vertical='center')
-                else:
-                    # Full format for complete report
-                    ws.cell(row=row, column=1).value = section_name
-                    ws.cell(row=row, column=2).value = indicator_id.upper()
-                    ws.cell(row=row, column=3).value = indicator['name']
-                    ws.cell(row=row, column=4).value = indicator['max_score']
-                    ws.cell(row=row, column=5).value = score if score != 'N/A' else ''
-                    ws.cell(row=row, column=6).value = comment
-                    
-                    # Apply styling
-                    for col_num in range(1, 7):
-                        cell = ws.cell(row=row, column=col_num)
-                        cell.border = thin_border
-                        cell.alignment = Alignment(vertical='center', wrap_text=True)
-                        if col_num in [4, 5]:
-                            cell.alignment = Alignment(horizontal='center', vertical='center')
-                    
-                    # Color code the score column (column 5) based on score value (1-4 scale)
-                    score_cell = ws.cell(row=row, column=5)
-                    if score != 'N/A' and isinstance(score, (int, str, float)):
-                        try:
-                            score_value = int(float(score))
-                            if score_value == 1:
-                                score_cell.fill = PatternFill(start_color="DC3545", end_color="DC3545", fill_type="solid")
-                                score_cell.font = Font(bold=True, color="FFFFFF")
-                            elif score_value == 2:
-                                score_cell.fill = PatternFill(start_color="FFC107", end_color="FFC107", fill_type="solid")
-                                score_cell.font = Font(bold=True, color="000000")
-                            elif score_value == 3:
-                                score_cell.fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
-                                score_cell.font = Font(bold=True, color="000000")
-                            elif score_value == 4:
-                                score_cell.fill = PatternFill(start_color="006400", end_color="006400", fill_type="solid")
-                                score_cell.font = Font(bold=True, color="FFFFFF")
-                            else:
-                                score_cell.fill = PatternFill(start_color="F8F9FA", end_color="F8F9FA", fill_type="solid")
-                        except (ValueError, TypeError):
-                            pass
+                # Uniform 6-column format for all downloads
+                ws.cell(row=row, column=1).value = section_name
+                ws.cell(row=row, column=2).value = indicator_id.upper()
+                ws.cell(row=row, column=3).value = indicator['name']
+                ws.cell(row=row, column=4).value = indicator['max_score']
+                ws.cell(row=row, column=5).value = score if score != 'N/A' else ''
+                ws.cell(row=row, column=6).value = comment
+                
+                # Apply styling
+                for col_num in range(1, 7):
+                    cell = ws.cell(row=row, column=col_num)
+                    cell.border = thin_border
+                    cell.alignment = Alignment(vertical='center', wrap_text=True)
+                    if col_num in [4, 5]:
+                        cell.alignment = Alignment(horizontal='center', vertical='center')
+                
+                # Color code the score column (column 5) based on score value (1-4 scale)
+                score_cell = ws.cell(row=row, column=5)
+                if score != 'N/A' and isinstance(score, (int, str, float)):
+                    try:
+                        score_value = int(float(score))
+                        if score_value == 1:
+                            score_cell.fill = PatternFill(start_color="DC3545", end_color="DC3545", fill_type="solid")
+                            score_cell.font = Font(bold=True, color="FFFFFF")
+                        elif score_value == 2:
+                            score_cell.fill = PatternFill(start_color="FFC107", end_color="FFC107", fill_type="solid")
+                            score_cell.font = Font(bold=True, color="000000")
+                        elif score_value == 3:
+                            score_cell.fill = PatternFill(start_color="90EE90", end_color="90EE90", fill_type="solid")
+                            score_cell.font = Font(bold=True, color="000000")
+                        elif score_value == 4:
+                            score_cell.fill = PatternFill(start_color="006400", end_color="006400", fill_type="solid")
+                            score_cell.font = Font(bold=True, color="FFFFFF")
+                        else:
+                            score_cell.fill = PatternFill(start_color="F8F9FA", end_color="F8F9FA", fill_type="solid")
+                    except (ValueError, TypeError):
+                        pass
                 
                 row += 1
         
