@@ -80,7 +80,18 @@ class Assessment(db.Model):
     supply_chain_score = db.Column(db.Float)
     data_management_score = db.Column(db.Float)
     quality_improvement_score = db.Column(db.Float)
-    infrastructure_score = db.Column(db.Float)
+    triple_elimination_treatment_score = db.Column(db.Float)
+    art_pmtct_score = db.Column(db.Float)
+    quality_pmtct_score = db.Column(db.Float)
+    patient_tracking_score = db.Column(db.Float)
+    adherence_support_score = db.Column(db.Float)
+    facility_linkage_score = db.Column(db.Float)
+    sti_screening_score = db.Column(db.Float)
+    early_infant_diagnosis_score = db.Column(db.Float)
+    ctx_hei_score = db.Column(db.Float)
+    tracking_hei_score = db.Column(db.Float)
+    enrolment_eid_art_score = db.Column(db.Float)
+    hei_eid_registers_score = db.Column(db.Float)
     
     def to_dict(self):
         return {
@@ -102,27 +113,73 @@ class Assessment(db.Model):
                 'supplyChain': self.supply_chain_score,
                 'dataManagement': self.data_management_score,
                 'qualityImprovement': self.quality_improvement_score,
-                'infrastructure': self.infrastructure_score
+                'tripleEliminationTreatment': self.triple_elimination_treatment_score,
+                'artPmtct': self.art_pmtct_score,
+                'qualityPmtct': self.quality_pmtct_score,
+                'patientTracking': self.patient_tracking_score,
+                'adherenceSupport': self.adherence_support_score,
+                'facilityLinkage': self.facility_linkage_score,
+                'stiScreening': self.sti_screening_score,
+                'earlyInfantDiagnosis': self.early_infant_diagnosis_score,
+                'ctxHei': self.ctx_hei_score,
+                'trackingHei': self.tracking_hei_score,
+                'enrolmentEidArt': self.enrolment_eid_art_score,
+                'heiEidRegisters': self.hei_eid_registers_score
             }
         }
     
     def calculate_category_scores(self, scores_dict):
         """Calculate category scores from individual indicator scores"""
         # Define which indicators belong to which category
+        # Note: registers section uses reg1-reg11 with max score of 3 per register
+        # patient_records is a section-level score (stored as sectionKey)
         categories = {
-            'service_delivery': ['sd1', 'sd2', 'sd3', 'sd4', 'sd5'],
-            'human_resources': ['hr1', 'hr2', 'hr3', 'hr4'],
-            'supply_chain': ['sc1', 'sc2', 'sc3', 'sc4', 'sc5'],
+            'service_delivery': ['reg1', 'reg2', 'reg3', 'reg4', 'reg5', 'reg6', 'reg7', 'reg8', 'reg9', 'reg10', 'reg11'],
+            'human_resources': ['patient_records'],  # Section-level conditional questions
+            'supply_chain': ['sc1', 'sc2', 'sc3', 'sc4', 'sc5', 'sc6', 'sc7', 'sc8', 'sc9'],
             'data_management': ['dm1', 'dm2', 'dm3', 'dm4'],
             'quality_improvement': ['qi1', 'qi2', 'qi3', 'qi4'],
-            'infrastructure': ['if1', 'if2', 'if3', 'if4']
+            'triple_elimination_treatment': ['triple_elimination_treatment'],  # Section-level calculated score
+            'art_pmtct': ['art_pmtct'],  # Section-level calculated score
+            'quality_pmtct': ['quality_pmtct'],  # Section-level calculated score
+            'patient_tracking': ['patient_tracking'],  # Section-level conditional questions
+            'adherence_support': ['adherence_support'],  # Section-level conditional questions with percentage
+            'facility_linkage': ['facility_linkage'],  # Section-level conditional questions
+            'sti_screening': ['sti_screening'],  # Section-level conditional questions with percentage
+            'early_infant_diagnosis': ['early_infant_diagnosis'],  # Section-level dual path questions
+            'ctx_hei': ['ctx_hei'],  # Section-level numeric conditional questions
+            'tracking_hei': ['tracking_hei'],  # Section-level conditional questions
+            'enrolment_eid_art': ['enrolment_eid_art'],  # Section-level mixed conditional numeric
+            'hei_eid_registers': ['hei_eid_registers']  # Section-level register checklist
+        }
+        
+        # Max scores per indicator type
+        max_scores = {
+            'service_delivery': 3,  # Registers are scored out of 3 (Red=1, Yellow=2, Green=3)
+            'human_resources': 4,  # Conditional questions: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'supply_chain': 5,
+            'data_management': 5,
+            'quality_improvement': 5,
+            'triple_elimination_treatment': 4,  # Calculated based on %: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'art_pmtct': 4,  # Section-level: Red=1, Dark Green=4
+            'quality_pmtct': 4,  # Section-level matrix: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'patient_tracking': 4,  # Conditional questions: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'adherence_support': 4,  # Conditional questions with percentage: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'facility_linkage': 4,  # Conditional questions: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'sti_screening': 4,  # Conditional questions with percentage: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'early_infant_diagnosis': 4,  # Dual path questions: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'ctx_hei': 4,  # Numeric conditional questions: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'tracking_hei': 4,  # Conditional questions: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'enrolment_eid_art': 4,  # Mixed conditional numeric: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'hei_eid_registers': 4  # Register checklist: Red=1, Yellow=2, Light Green=3, Dark Green=4
         }
         
         for category, indicators in categories.items():
             scores = [scores_dict.get(ind, 0) for ind in indicators if ind in scores_dict]
             if scores:
                 avg_score = sum(scores) / len(scores)
-                percentage = (avg_score / 5) * 100
+                max_score = max_scores.get(category, 5)
+                percentage = (avg_score / max_score) * 100
                 setattr(self, f'{category}_score', percentage)
 
 
@@ -180,13 +237,13 @@ def init_database(app):
         
         try:
             db.session.commit()
-            print("✅ Database initialized successfully")
-            print("👤 Default users created:")
+            print("[OK] Database initialized successfully")
+            print("[INFO] Default users created:")
             print("   - admin/admin (regular user)")
             print("   - superuser/superuser (admin access)")
         except Exception as e:
             db.session.rollback()
-            print(f"⚠️ Database initialization error: {e}")
+            print(f"[WARNING] Database initialization error: {e}")
 
 
 def get_dashboard_stats():
@@ -248,7 +305,7 @@ def get_indicator_performance():
     if not assessments:
         return {
             'labels': ['Service Delivery', 'Human Resources', 'Supply Chain', 
-                      'Data Management', 'Quality Improvement', 'Infrastructure'],
+                      'Data Management', 'Quality Improvement', 'Triple Elimination'],
             'currentPerformance': [0, 0, 0, 0, 0, 0],
             'target': [85, 85, 85, 85, 85, 85]
         }
@@ -259,14 +316,14 @@ def get_indicator_performance():
     sc_avg = sum(a.supply_chain_score or 0 for a in assessments) / len(assessments)
     dm_avg = sum(a.data_management_score or 0 for a in assessments) / len(assessments)
     qi_avg = sum(a.quality_improvement_score or 0 for a in assessments) / len(assessments)
-    if_avg = sum(a.infrastructure_score or 0 for a in assessments) / len(assessments)
+    tet_avg = sum(a.triple_elimination_treatment_score or 0 for a in assessments) / len(assessments)
     
     return {
         'labels': ['Service Delivery', 'Human Resources', 'Supply Chain', 
-                  'Data Management', 'Quality Improvement', 'Infrastructure'],
+                  'Data Management', 'Quality Improvement', 'Triple Elimination'],
         'currentPerformance': [
             round(sd_avg, 1), round(hr_avg, 1), round(sc_avg, 1),
-            round(dm_avg, 1), round(qi_avg, 1), round(if_avg, 1)
+            round(dm_avg, 1), round(qi_avg, 1), round(tet_avg, 1)
         ],
         'target': [85, 85, 85, 85, 85, 85]
     }

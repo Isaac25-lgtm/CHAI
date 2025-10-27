@@ -69,6 +69,11 @@ else:
 # Configure Flask app
 app.config.from_object(Config)
 
+# Disable template caching for development
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.jinja_env.auto_reload = True
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
+
 # Additional security configuration for sessions
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # Session expires after 1 hour
 app.permanent_session_lifetime = timedelta(hours=1)
@@ -135,13 +140,404 @@ TOOL_SECTIONS = {
             {"id": "qi4", "name": "Continuous improvement plans", "max_score": 5}
         ]
     },
-    "infrastructure": {
-        "name": "Infrastructure & Equipment",
-        "indicators": [
-            {"id": "if1", "name": "Facility physical condition", "max_score": 5},
-            {"id": "if2", "name": "Essential equipment availability", "max_score": 5},
-            {"id": "if3", "name": "Power supply reliability", "max_score": 5},
-            {"id": "if4", "name": "Water and sanitation", "max_score": 5}
+    "triple_elimination_treatment": {
+        "name": "TRIPLE ELIMINATION (HIV, Syphilis and Hep B): Linkage to treatment",
+        "standard": "All pregnant women with a positive HIV, syphilis, Hep. B test – with viral load more than 200,000 copies/ml) result are eligible for treatment/prophylaxis.",
+        "questions": [
+            {
+                "id": "tet_q1",
+                "text": "Q1. Is facility offering treatment/prophylaxis for HIV, Syphilis, and Hep B?",
+                "items": ["HIV", "Syphilis", "Hepatitis B"],
+                "type": "multi_yes_no",
+                "scoring": "If N to any = Red"
+            },
+            {
+                "id": "tet_q2",
+                "text": "Q2. Review ANC1 entries for previous month, ascertain treatment initiation",
+                "type": "data_entry_table",
+                "fields": [
+                    {"id": "hiv_positive", "name": "Number with a document positive HIV status (TRRK, TRR, or TRR+)", "type": "number"},
+                    {"id": "art_initiated", "name": "Number with a documented ART initiation status", "type": "number"},
+                    {"id": "art_pct", "name": "% On ART", "type": "calculated", "formula": "(art_initiated / hiv_positive) * 100"},
+                    {"id": "syphilis_positive", "name": "Number with a documented positive Syphilis Test Result", "type": "number"},
+                    {"id": "syphilis_treated", "name": "Number with a documented positive Syphilis Test Result initiated on treatment", "type": "number"},
+                    {"id": "syphilis_treated_pct", "name": "% Treated for Syphilis", "type": "calculated", "formula": "(syphilis_treated / syphilis_positive) * 100"},
+                    {"id": "hepb_positive", "name": "Number with a documented Hepatitis B positive Test Result", "type": "number"},
+                    {"id": "hepb_vl_high", "name": "Number with a documented Hepatitis B positive Test Result with viral load more than 200,000 copies/ml", "type": "number"},
+                    {"id": "hepb_art_initiated", "name": "Number with a documented Hepatitis B positive Test Result with viral load more than 200,000 copies/ml initiated on ARVs", "type": "number"},
+                    {"id": "hepb_art_pct", "name": "% on ART for Hep. B Prophylaxis", "type": "calculated", "formula": "(hepb_art_initiated / hepb_vl_high) * 100"},
+                    {"id": "average_pct", "name": "% Average", "type": "calculated", "formula": "(art_pct + syphilis_treated_pct + hepb_art_pct) / 3"}
+                ],
+                "scoring": {
+                    "field": "average_pct",
+                    "thresholds": {
+                        "red": "<60",
+                        "yellow": "60-79.9",
+                        "light_green": "80-89.9",
+                        "dark_green": ">=90"
+                    }
+                }
+            }
+        ]
+    },
+    "art_pmtct": {
+        "name": "ART in PMTCT Facilities (VL uptake at ANC1 for ARTK)",
+        "standard": "All pregnant and breastfeeding women LHIV are expected to have additional screening and tests for clinical monitoring.",
+        "questions": [
+            {
+                "id": "art_pmtct_q1",
+                "text": "Are the following provided at the health facility for pregnant and breastfeeding women LHIV?",
+                "items": [
+                    "STI /ca cx/ GBV screening",
+                    "FP",
+                    "VL testing",
+                    "IAC",
+                    "CD4",
+                    "CTX"
+                ],
+                "type": "multi_yes_no",
+                "scoring": "If N to any = Red"
+            }
+        ]
+    },
+    "quality_pmtct": {
+        "name": "Quality of PMTCT services (Review 10 client's charts who have been in care for at least a year)",
+        "type": "quality_matrix",
+        "instructions": "Indicate Y for Yes, N for No and NA for Not Applicable for each of the clients' charts below and calculate a %ge score of the Y against the total eligible (Excluding the NAs). After calculating the %ge score, indicate the score using the following guidance: If <60%=Red, If 60-79%=Yellow, If 80-89%=Light Green, If ≥ 90%=Dark Green",
+        "services": [
+            {"id": "sti_screening", "name": "Screened for STI"},
+            {"id": "cacx_screening", "name": "Screened for CaCx"},
+            {"id": "sgbv_screening", "name": "Screened for SGBV"},
+            {"id": "fp_counselling", "name": "Counselled on FP"},
+            {"id": "vl_3months", "name": "Had a VL after 3 months"},
+            {"id": "suppressed", "name": "Suppressed"},
+            {"id": "unsuppressed", "name": "Unsuppressed"},
+            {"id": "unsuppressed_iac", "name": "Unsuppressed with IAC"},
+            {"id": "baseline_cd4", "name": "Had a Baseline CD4"},
+            {"id": "on_ctx", "name": "On CTX"},
+            {"id": "retained", "name": "Retained"}
+        ]
+    },
+    "patient_tracking": {
+        "name": "Patient Tracking HIV+ Pregnant Women",
+        "type": "conditional_questions",
+        "standard": "Each ART facility has a standard procedure for identifying and tracking HIV positive pregnant women on ART who have defaulted on their appointments. The system contains the following core elements: defined staff roles/responsibilities, procedures for patient identification and tracking, and standardized documentation that includes updating of relevant facility indicators.",
+        "questions": [
+            {
+                "id": "pt_q1",
+                "text": "Are there standard procedures for identifying and tracking HIV+ pregnant women who have defaulted on their ART appointments?",
+                "scoring": {"no": "red", "yes": "next"}
+            },
+            {
+                "id": "pt_q2",
+                "text": "Is ART patient tracking documentation complete and does it show evidence of defaulted ART patients brought back into care?",
+                "depends_on": "pt_q1",
+                "scoring": {"no": "yellow", "yes": "next"}
+            },
+            {
+                "id": "pt_q3",
+                "text": "Are tracking results used to update site indicators (e.g., Lost-to-Follow-Up [LTFU] rates)?",
+                "depends_on": "pt_q2",
+                "scoring": {"no": "yellow", "yes": "next"}
+            },
+            {
+                "id": "pt_q4",
+                "text": "Is a written SOP available for identifying and tracking defaulters?",
+                "depends_on": "pt_q3",
+                "scoring": {"no": "light_green", "yes": "dark_green"}
+            }
+        ]
+    },
+    "adherence_support": {
+        "name": "Adherence Support",
+        "type": "conditional_questions_with_percentage",
+        "standard": "Each facility that provides ART has an adherence support system that provides and documents all the following: 1) Adherence counselling prior to ARV treatment initiation, 2) Routine adherence assessments during ART, 3) Counselling interventions for patients with poor adherence.",
+        "questions": [
+            {
+                "id": "as_q1",
+                "text": "Are there any adherence support procedures in place?",
+                "scoring": {"no": "red", "yes": "next"}
+            },
+            {
+                "id": "as_q2",
+                "text": "Are all three adherence support elements (pre-ART counselling, routine adherence assessment, and intervention counselling) implemented?",
+                "depends_on": "as_q1",
+                "scoring": {"no": "yellow", "yes": "next"}
+            },
+            {
+                "id": "as_q3",
+                "text": "Review 10 charts of adult ART patients. What percent of reviewed charts have documentation of adherence assessment at the last clinical visit?",
+                "type": "percentage",
+                "depends_on": "as_q2",
+                "scoring": {"<60": "yellow", "60-79": "light_green", ">=80": "next"}
+            },
+            {
+                "id": "as_q4",
+                "text": "Is a written procedure or algorithm available that addresses all the adherence support elements?",
+                "depends_on": "as_q3",
+                "scoring": {"no": "light_green", "yes": "dark_green"}
+            }
+        ]
+    },
+    "facility_linkage": {
+        "name": "Facility Linkage to Community Care and Support Services for Adult PLHIV",
+        "type": "conditional_questions",
+        "standard": "All health facilities treating adult PLHIV document and track referrals of pre-ART and ART patients to community services.",
+        "instructions": "If patients at this facility do not have access to community services, check NA, and SKIP this section.",
+        "na_option": True,
+        "questions": [
+            {
+                "id": "fl_q1",
+                "text": "Is a system in place to document referrals of PLHIV to community-based services (e.g., community health workers, community-based care, PLHIV support groups)?",
+                "scoring": {"no": "red", "yes": "next"}
+            },
+            {
+                "id": "fl_q2",
+                "text": "Does the referral system include follow-up and documentation to determine if the patient accessed the referral services?",
+                "depends_on": "fl_q1",
+                "scoring": {"no": "yellow", "yes": "next"}
+            },
+            {
+                "id": "fl_q3",
+                "text": "Can the facility provide documentation showing that facility staff review the referrals logbook routinely to optimize linkages to community services?",
+                "depends_on": "fl_q2",
+                "scoring": {"no": "light_green", "yes": "dark_green"}
+            }
+        ]
+    },
+    "sti_screening": {
+        "name": "STI Screening and Management in HIV Clinics Serving General Population",
+        "type": "conditional_questions_with_percentage",
+        "instructions": "Review 10 ART charts",
+        "questions": [
+            {
+                "id": "sti_q1",
+                "text": "Are all PLHIV routinely offered syndromic screening for STIs [e.g., vaginal, or urethral discharge, genital ulcer disease, or (for women) lower abdominal pain] at the initial consultation and then at every clinical assessment thereafter?",
+                "scoring": {"no": "red", "yes": "next"}
+            },
+            {
+                "id": "sti_q2",
+                "text": "Do clients with STI signs or symptoms have access to STI treatment either onsite or through referral?",
+                "depends_on": "sti_q1",
+                "scoring": {"no": "yellow", "yes": "next"}
+            },
+            {
+                "id": "sti_q3",
+                "text": "What percent of reviewed charts have documentation of syndromic screening for STIs [e.g., vaginal or ureteral discharge, genital ulcer disease, or (for women) lower abdominal pain] at the last clinical assessment?",
+                "type": "percentage",
+                "depends_on": "sti_q2",
+                "scoring": {"<70": "yellow", ">=70": "next"},
+                "note": "Review 10 adult charts."
+            },
+            {
+                "id": "sti_q4",
+                "text": "Are there written procedures or algorithms for routinely offering partner notification services, including STI screening and treatment?",
+                "depends_on": "sti_q3",
+                "scoring": {"no": "light_green", "yes": "dark_green"}
+            }
+        ]
+    },
+    "early_infant_diagnosis": {
+        "name": "Early Infant Diagnosis [HEI]",
+        "type": "dual_path_questions",
+        "standard": "All HIV-exposed infants (HEIs) receive DNA PCR or other virologic testing for early infant diagnosis, with a documented final HIV status at the end of breastfeeding and documented return of HIV results to caregivers.",
+        "instructions": "If the answer to Q1 is NO, Skip to Q5",
+        "path1": {
+            "name": "Facility has DBS collection",
+            "questions": [
+                {
+                    "id": "eid_q1",
+                    "text": "Is there routine collection of dried blood spots (DBS) at this facility for PCR testing for HEIs?",
+                    "is_branch": True,
+                    "scoring": {"no": "skip_to_path2", "yes": "next"}
+                },
+                {
+                    "id": "eid_q2",
+                    "text": "Is there a system in place for tracking HEIs through the end of breastfeeding and documenting final HIV status?",
+                    "depends_on": "eid_q1",
+                    "scoring": {"no": "red", "yes": "next"}
+                },
+                {
+                    "id": "eid_q3",
+                    "text": "Is there a system for documenting return of HIV results to a caregiver?",
+                    "depends_on": "eid_q2",
+                    "scoring": {"no": "yellow", "yes": "next"}
+                },
+                {
+                    "id": "eid_q4",
+                    "text": "How many HEIs do not have documentation that the results of PCR testing were provided to a caregiver?",
+                    "type": "numeric",
+                    "note": "Review register entries of 10 HEIs born 3 or more months prior to the visit",
+                    "depends_on": "eid_q3",
+                    "scoring": {
+                        ">=3": "red",
+                        "2": "yellow",
+                        "1": "light_green",
+                        "0": "dark_green"
+                    },
+                    "stop_note": "All infants with documentation= Dark Green STOP. Q5-7 are only scored if the answer to Q1 is NO."
+                }
+            ]
+        },
+        "path2": {
+            "name": "Facility refers to DBS collection",
+            "questions": [
+                {
+                    "id": "eid_q5",
+                    "text": "Does the facility have a system for tracking the linkage of HIV-exposed infants to DBS collection services?",
+                    "scoring": {"no": "red", "yes": "next"}
+                },
+                {
+                    "id": "eid_q6",
+                    "text": "Does the referral system include follow-up and documentation to determine if the patient accessed the DBS collection service?",
+                    "depends_on": "eid_q5",
+                    "scoring": {"no": "yellow", "yes": "next"}
+                },
+                {
+                    "id": "eid_q7",
+                    "text": "Can the facility provide documentation showing that facility staff review the referrals logbook routinely to optimize linkages to DBS collection?",
+                    "depends_on": "eid_q6",
+                    "scoring": {"no": "light_green", "yes": "dark_green"}
+                }
+            ]
+        }
+    },
+    "ctx_hei": {
+        "name": "CTX for HIV-Exposed Infants [HEI]",
+        "type": "numeric_conditional_questions",
+        "standard": "All HEIs initiate CTX by 8 weeks of age.",
+        "instructions": "Review registers or charts for 10 HEI's born 3-12 months prior to SIMS visit. Use the SAME HEIs as above in EID section.",
+        "questions": [
+            {
+                "id": "ctx_q1",
+                "text": "How many HEIs do not have documented receipt of CTX by 8 weeks of age?",
+                "type": "numeric",
+                "note": "Review register or charts for 10 HEIs born 3-12 months prior to the visit.",
+                "scoring": {
+                    ">=3": "red",
+                    "2": "yellow",
+                    "1": "light_green",
+                    "0": "next"
+                },
+                "continue_note": "If All infants have documentation, then Q2"
+            },
+            {
+                "id": "ctx_q2",
+                "text": "Is a written procedure or algorithm for provision of CTX to HEIs available?",
+                "depends_on": "ctx_q1",
+                "scoring": {"no": "light_green", "yes": "dark_green"}
+            }
+        ]
+    },
+    "tracking_hei": {
+        "name": "Tracking HIV-Exposed Infants [HEI]",
+        "type": "conditional_questions",
+        "standard": "Each facility caring for HIV-exposed infants (HEIs) has a standard procedure for identifying and tracking HIV-exposed infants through the documentation of final HIV status at the end of breastfeeding period. It contains the following core elements: defined staff roles/responsibilities, procedures for patient identification and tracking, and standardized documentation that includes updating of relevant facility indicators.",
+        "questions": [
+            {
+                "id": "thei_q1",
+                "text": "Are there standard procedures for identifying and tracking HIV-exposed infants through the end of breastfeeding and documenting final HIV status?",
+                "scoring": {"no": "red", "yes": "next"}
+            },
+            {
+                "id": "thei_q2",
+                "text": "Is patient tracking documentation complete and does it show evidence of defaulted patients brought back into care?",
+                "depends_on": "thei_q1",
+                "scoring": {"no": "yellow", "yes": "next"}
+            },
+            {
+                "id": "thei_q3",
+                "text": "Are results used to update facility indicators (e.g., Lost to Follow-up [LTFU] rates)?",
+                "depends_on": "thei_q2",
+                "scoring": {"no": "yellow", "yes": "next"}
+            },
+            {
+                "id": "thei_q4",
+                "text": "Is there a mother-infant appointment book or register for mother baby pairs (i.e., HIV-positive mothers and their HIV-exposed infants) used as part of the defaulter tracking program?",
+                "depends_on": "thei_q3",
+                "scoring": {"no": "light_green", "yes": "next"}
+            },
+            {
+                "id": "thei_q5",
+                "text": "Is a written SOP for identifying and tracking defaulters available?",
+                "depends_on": "thei_q4",
+                "scoring": {"no": "light_green", "yes": "dark_green"}
+            }
+        ]
+    },
+    "enrolment_eid_art": {
+        "name": "Enrolment of HIV-Infected Infants identified through Early Infant Diagnosis (EID) Services into ART Services",
+        "type": "mixed_conditional_numeric",
+        "standard": "All HIV-infected infants are enrolled into ART services.",
+        "questions": [
+            {
+                "id": "eea_q1",
+                "text": "Is there a system in place for documenting enrolment into ART services of HIV-infected infants identified through EID services?",
+                "scoring": {"no": "red", "yes": "next"}
+            },
+            {
+                "id": "eea_q2",
+                "text": "Does the HIV-exposed infant/EID register document linkage to treatment (such as by including date of enrolment, ART number, or ART regimen)?",
+                "depends_on": "eea_q1",
+                "scoring": {"no": "yellow", "yes": "next"}
+            },
+            {
+                "id": "eea_q3",
+                "text": "How many HIV-infected infants do not have documentation of linkage into ART services?",
+                "type": "numeric",
+                "note": "Review register entries of last 10 HIV-infected infants (up to one year prior to the visit).",
+                "depends_on": "eea_q2",
+                "scoring": {
+                    ">=3": "red",
+                    "2": "yellow",
+                    "1": "light_green",
+                    "0": "dark_green"
+                }
+            }
+        ]
+    },
+    "hei_eid_registers": {
+        "name": "HIV Exposed Infant/Early Infant Diagnosis Registers",
+        "type": "register_checklist",
+        "standard": "Each facility retains accurate, complete, and updated patient registers that are regularly reviewed.",
+        "questions": [
+            {
+                "id": "heir_q1",
+                "text": "Do HEI/EID registers exist and are they in use?",
+                "scoring": {"no": "red", "yes": "next"}
+            },
+            {
+                "id": "heir_q2",
+                "text": "Do the HEI/EID patient registers meet all the following criteria? Tick all that apply:",
+                "type": "checklist",
+                "note": "Review the last 10 pages of register.",
+                "depends_on": "heir_q1",
+                "items": [
+                    {"id": "heir_q2_1", "text": "National or IP standard versions in use?"},
+                    {"id": "heir_q2_2", "text": "Entries are legible and 90% of every field complete?"},
+                    {"id": "heir_q2_3", "text": "Updated daily/weekly (per guidelines)?"}
+                ],
+                "scoring": {"any_no": "red", "all_yes": "next"}
+            },
+            {
+                "id": "heir_q3",
+                "text": "Do the HEI/EID patient registers meet all the following criteria? Tick all that apply:",
+                "type": "checklist",
+                "depends_on": "heir_q2",
+                "items": [
+                    {"id": "heir_q3_1", "text": "Regularly reviewed?"},
+                    {"id": "heir_q3_2", "text": "Used for routine facility reporting?"},
+                    {"id": "heir_q3_3", "text": "When in use, placed so that patient confidentiality is maintained?"},
+                    {"id": "heir_q3_4", "text": "Stored (when not in use) in a secure location?"}
+                ],
+                "scoring": {"any_no": "yellow", "all_yes": "next"}
+            },
+            {
+                "id": "heir_q4",
+                "text": "Are HEI/EID patient registers used to inform clinic processes?",
+                "depends_on": "heir_q3",
+                "scoring": {"no": "light_green", "yes": "dark_green"}
+            }
         ]
     }
 }
@@ -684,6 +1080,18 @@ def health_check():
         'timestamp': datetime.now().isoformat(),
         'version': '2.0.0'
     })
+
+@app.route('/api/pmtct-config')
+@login_required
+@api_logger
+def get_pmtct_config():
+    """Get PMTCT assessment configuration"""
+    try:
+        from pmtct_config import PMTCT_ASSESSMENT
+        return jsonify({'success': True, 'config': PMTCT_ASSESSMENT})
+    except Exception as e:
+        logger.error(f"Error loading PMTCT config: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Error loading PMTCT configuration'}), 500
 
 def open_browser():
     """Open browser after server starts"""

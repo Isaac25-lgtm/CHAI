@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Facility Assessment Tools</title>
+    <title>Facility Assessment Tools - v2.0 (Triple Elimination)</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pmtct_assessment.css') }}">
     <style>
         * {
             margin: 0;
@@ -370,6 +371,23 @@
     </div>
 
     <div class="container">
+        <!-- Assessment Type Selector -->
+        <div class="assessment-type-selector" style="background: white; border-radius: 15px; padding: 20px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <h2 style="margin-bottom: 15px; color: #333;">Select Assessment Type</h2>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <button onclick="switchAssessmentType('standard')" id="btn-standard" style="padding: 12px 25px; font-size: 16px; font-weight: 600; border: 2px solid #3498db; background: #3498db; color: white; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+                    Standard Hepatitis B Assessment
+                </button>
+                <button onclick="switchAssessmentType('pmtct')" id="btn-pmtct" style="padding: 12px 25px; font-size: 16px; font-weight: 600; border: 2px solid #3498db; background: white; color: #3498db; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
+                    Comprehensive PMTCT Assessment
+                </button>
+            </div>
+            <p style="margin-top: 15px; color: #666; font-size: 14px;">
+                <strong>Standard:</strong> Quick Hepatitis B PMTCT assessment with 5-point scoring<br>
+                <strong>Comprehensive:</strong> Detailed PMTCT assessment covering HIV, Syphilis, and Hepatitis B with multiple question types
+            </p>
+        </div>
+
         <!-- Facility Information Section -->
         <div class="facility-info">
             <h2 style="margin-bottom: 20px; color: #333;">Facility Information</h2>
@@ -473,8 +491,13 @@
         </div>
 
         <!-- Assessment Sections -->
-        <div class="assessment-sections" id="assessmentSections">
+        <div class="assessment-sections" id="assessmentSections" style="display: block;">
             <!-- Sections will be dynamically generated here -->
+        </div>
+
+        <!-- PMTCT Assessment Sections -->
+        <div id="pmtctAssessmentSections" style="display: none;">
+            <!-- PMTCT assessment will be loaded here -->
         </div>
 
         <!-- Summary Panel -->
@@ -605,52 +628,542 @@
 
         // Assessment data structure - hardcoded for client-side
         const sections = {
-            "service_delivery": {
-                "name": "Service Delivery",
-                "indicators": [
-                    {"id": "sd1", "name": "Are hepatitis B testing services available and integrated in ANC, maternity, and postnatal care?", "max_score": 5},
-                    {"id": "sd2", "name": "Are HBV-positive pregnant women immediately enrolled for treatment/prophylaxis (TDF or TDF/3TC) at the facility?", "max_score": 5},
-                    {"id": "sd3", "name": "Is the hepatitis B birth dose vaccine (HepB-BD) routinely administered within 24 hours of birth?", "max_score": 5},
-                    {"id": "sd4", "name": "Are there documented standard operating procedures (SOPs) for PMTCT of hepatitis B at the facility?", "max_score": 5},
-                    {"id": "sd5", "name": "Does the facility have integrated maternity and ANC registers that capture hepatitis B screening, treatment, and HepB-BD vaccination?", "max_score": 5},
-                    {"id": "sd6", "name": "Are follow-up mechanisms in place for HBV-positive mothers and their exposed infants (post-vaccination serology at 9-12 months)?", "max_score": 5}
+            "registers": {
+                "name": "ANC/Maternity/PNC Registers",
+                "type": "register_checklist",
+                "instructions": "Review the last 10 pages of each register to assess legibility and completeness. If the entry fields are at least 90% complete, score Y for Yes, and N for No if less than 90%.",
+                "question": "Do following registers exist and are they in use?",
+                "registers": [
+                    {"id": "reg1", "name": "ANC registers"},
+                    {"id": "reg2", "name": "Maternity Registers"},
+                    {"id": "reg3", "name": "PNC Registers"},
+                    {"id": "reg4", "name": "Family Planning Register"},
+                    {"id": "reg5", "name": "ART Cards"},
+                    {"id": "reg6", "name": "ART Register"},
+                    {"id": "reg7", "name": "HEI clinical cards"},
+                    {"id": "reg8", "name": "HEI Register"},
+                    {"id": "reg9", "name": "SGBV register"},
+                    {"id": "reg10", "name": "Appointment register"},
+                    {"id": "reg11", "name": "Missed appointment register"}
+                ],
+                "columns": ["Available", "Standard versions", "90% complete"],
+                "scoring": {
+                    "description": "For each register, assess if it meets all 3 criteria: Available, Standard versions, 90% complete",
+                    "thresholds": {
+                        "red": "1/3 - Only 1 criterion met",
+                        "yellow": "2/3 - Two criteria met",
+                        "green": "3/3 - All criteria met"
+                    }
+                }
+            },
+            "patient_records": {
+                "name": "Patient/Beneficiary Records",
+                "type": "conditional_questions",
+                "standard": "Each ART/pre-ART or PMTCT facility maintains current individual patient/beneficiary records and provides an adequate and secure storage space with an organized filing system that allows for easy accessibility and patient confidentiality.",
+                "questions": [
+                    {
+                        "id": "pr_q1",
+                        "text": "Are individual patient/beneficiary records maintained?",
+                        "scoring": {"no": "red", "yes": "next"}
+                    },
+                    {
+                        "id": "pr_q2",
+                        "text": "Is space adequate and secure?",
+                        "depends_on": "pr_q1",
+                        "scoring": {"no": "red", "yes": "next"}
+                    },
+                    {
+                        "id": "pr_q3",
+                        "text": "Is there a standard filing system and accessibility to specific charts so patient care is not impeded?",
+                        "depends_on": "pr_q2",
+                        "scoring": {"no": "yellow", "yes": "next"}
+                    },
+                    {
+                        "id": "pr_q4",
+                        "text": "Does the system allow for identification of patients by category (e.g., pre-ART, ART, peds, pregnant women) and is there written documentation that describes the record filing system?",
+                        "depends_on": "pr_q3",
+                        "scoring": {"no": "light_green", "yes": "dark_green"}
+                    }
                 ]
             },
-            "human_resources": {
-                "name": "Human Resource and Service Delivery Points",
-                "indicators": [
-                    {"id": "hr1", "name": "What is the primary funding source for personnel delivering PMTCT services at this facility?", "max_score": 5},
-                    {"id": "hr2", "name": "If partner-supported, which partner(s) support PMTCT personnel?", "max_score": 5},
-                    {"id": "hr3", "name": "Are PMTCT services integrated and provided at a designated Mother-Baby Care Point (MBCP)?", "max_score": 5},
-                    {"id": "hr4", "name": "Where is hepatitis B testing for pregnant women primarily conducted?", "max_score": 5},
-                    {"id": "hr5", "name": "Where is treatment/prophylaxis provided for HBV", "max_score": 5},
-                    {"id": "hr6", "name": "Where is the Hepatitis B birth dose vaccine administered?", "max_score": 5},
-                    {"id": "hr7", "name": "Are there designated personnel responsible for providing comprehensive PMTCT services at each service delivery point?", "max_score": 5},
-                    {"id": "hr8", "name": "If PMTCT services are not co-located, what are the key gaps and how are patients referred between service points?", "max_score": 5}
+            "triple_elimination": {
+                "name": "TRIPLE ELIMINATION (HIV, Syphilis and Hep B)",
+                "type": "testing_data_entry",
+                "standard": "Testing Section",
+                "questions": [
+                    {
+                        "id": "te_q1",
+                        "text": "Is facility offering testing for HIV, Syphilis and Hep B?",
+                        "type": "checklist",
+                        "items": [
+                            {"id": "te_q1_hiv", "name": "HIV"},
+                            {"id": "te_q1_syphilis", "name": "Syphilis"},
+                            {"id": "te_q1_hepb", "name": "Hepatitis B"}
+                        ],
+                        "scoring": "If N to any = Red"
+                    },
+                    {
+                        "id": "te_q2",
+                        "text": "Review ANC1 entries for previous month, ascertain triple testing vs ANC1",
+                        "type": "data_entry",
+                        "depends_on": "te_q1",
+                        "fields": [
+                            {"id": "anc1_attendances", "label": "ANC 1 Attendances", "type": "number"},
+                            {"id": "hiv_tested", "label": "Number tested for HIV at ANC 1 (documented records)", "type": "number"},
+                            {"id": "hiv_pct", "label": "% HIV Screening/Testing at ANC", "type": "calculated", "formula": "(hiv_tested/anc1_attendances)*100"},
+                            {"id": "syphilis_tested", "label": "Number tested for syphilis at ANC 1 (documented records)", "type": "number"},
+                            {"id": "syphilis_pct", "label": "% Syphilis Testing", "type": "calculated", "formula": "(syphilis_tested/anc1_attendances)*100"},
+                            {"id": "hepb_tested", "label": "Number of pregnant women tested for Hepatitis B at ANC 1", "type": "number"},
+                            {"id": "hepb_pct", "label": "% Hep. B Testing", "type": "calculated", "formula": "(hepb_tested/anc1_attendances)*100"},
+                            {"id": "hiv_status_documented", "label": "Number with a documented HIV status", "type": "number"},
+                            {"id": "section_label_1", "label": "Testing Results Section", "type": "section_label"},
+                            {"id": "hiv_positive", "label": "Number of pregnant women tested positive for HIV for the first time in this pregnancy", "type": "number"},
+                            {"id": "hiv_positive_pct", "label": "% HIV positive for the first time at ANC 1", "type": "calculated", "formula": "(hiv_positive/hiv_tested)*100"},
+                            {"id": "syphilis_positive", "label": "Number of pregnant women tested positive for syphilis for the first time in this pregnancy", "type": "number"},
+                            {"id": "syphilis_positive_pct", "label": "% Syphilis Testing Positive", "type": "calculated", "formula": "(syphilis_positive/syphilis_tested)*100"},
+                            {"id": "hepb_positive", "label": "Number of pregnant women documented tested positive for hepatitis B for the first time in this pregnancy", "type": "number"},
+                            {"id": "hepb_positive_pct", "label": "% Hep. B Testing Positive", "type": "calculated", "formula": "(hepb_positive/hepb_tested)*100"},
+                            {"id": "section_label_2", "label": "Hepatitis B viral load testing", "type": "section_label"},
+                            {"id": "hepb_vl_sent", "label": "Number of pregnant women with documented HBV-positive test results who had Hepatitis B viral load samples sent to CPHL", "type": "number"},
+                            {"id": "hepb_vl_sent_pct", "label": "% Hep. B Testing Positive sample sent to CPHL for viral load testing", "type": "calculated", "formula": "(hepb_vl_sent/hepb_positive)*100", "note": "Convert to percentage"},
+                            {"id": "hepb_vl_received", "label": "Number of viral load sample results with HBV positive test received from CPHL", "type": "number"},
+                            {"id": "hepb_vl_received_pct", "label": "% Hep. B viral load results received from CPHL", "type": "calculated", "formula": "(hepb_vl_received/hepb_vl_sent)*100", "note": "Convert to percentage"},
+                            {"id": "hepb_vl_high", "label": "Number of Hepatitis B viral load samples for pregnant women with VL >200,000 IU/mL", "type": "number"},
+                            {"id": "hepb_vl_high_pct", "label": "% Hep. B Testing Positive VL results >200,000 IU/mL", "type": "calculated", "formula": "(hepb_vl_high/hepb_vl_received)*100", "note": "Convert to percentage"}
+                        ]
+                    },
+                    {
+                        "id": "te_q3",
+                        "text": "Is facility offering maternal re-testing for pregnant women in the 3rd Trimester, L&D and PNC; Male Partner Testing, and HIV Self-Testing Kits (HIVSTKs)?",
+                        "type": "checklist",
+                        "depends_on": "te_q1_hiv",
+                        "items": [
+                            {"id": "te_q3_anc", "name": "1. Re-testing: ANC"},
+                            {"id": "te_q3_maternity", "name": "2. Re-testing: Maternity"},
+                            {"id": "te_q3_pnc", "name": "3. Re-testing: PNC"},
+                            {"id": "te_q3_male", "name": "4. Male Partner Testing"},
+                            {"id": "te_q3_hivstks", "name": "5. HIVSTKs"}
+                        ],
+                        "scoring": "If N to any = Light Green, If Y to All = Dark Green"
+                    }
                 ]
             },
-            "supply_chain": {
-                "name": "Supply Chain Reliability for HBV commodities",
-                "indicators": [
-                    {"id": "sc1", "name": "Are HBsAg test kits currently in stock?", "max_score": 5},
-                    {"id": "sc2", "name": "How many months of stock are available for HBsAg test kits?", "max_score": 5},
-                    {"id": "sc3", "name": "Is TDF or TDF/3TC for prophylaxis currently in stock?", "max_score": 5},
-                    {"id": "sc4", "name": "How many months of stock are available for TDF or TDF/3TC?", "max_score": 5},
-                    {"id": "sc5", "name": "Are hepatitis B birth dose (HepB-BD) vaccines currently available in maternity?", "max_score": 5},
-                    {"id": "sc6", "name": "How many months of stock are available for HepB-BD vaccines?", "max_score": 5},
-                    {"id": "sc7", "name": "Has a stock-out of HBsAg test kits in the past 3 months caused missed screening of pregnant women?", "max_score": 5},
-                    {"id": "sc8", "name": "Has there been a stock-out of TDF or TDF/3TC for HBV-positive women in the last 3 months?", "max_score": 5},
-                    {"id": "sc9", "name": "Are hepatitis B birth dose vaccines available 24/7 in maternity units for timely newborn immunization?", "max_score": 5}
+            "triple_elimination_treatment": {
+                "name": "TRIPLE ELIMINATION (HIV, Syphilis and Hep B): Linkage to treatment",
+                "standard": "All pregnant women with a positive HIV, syphilis, Hep. B test – with viral load more than 200,000 copies/ml) result are eligible for treatment/prophylaxis.",
+                "type": "testing_data_entry",
+                "questions": [
+                    {
+                        "id": "tet_q1",
+                        "text": "Is facility offering treatment/prophylaxis for HIV, Syphilis, and Hep B?",
+                        "type": "checklist",
+                        "items": [
+                            {"id": "tet_q1_hiv", "name": "1. HIV"},
+                            {"id": "tet_q1_syphilis", "name": "2. Syphilis"},
+                            {"id": "tet_q1_hepb", "name": "3. Hepatitis B"}
+                        ],
+                        "scoring": "If N to any = Red"
+                    },
+                    {
+                        "id": "tet_q2",
+                        "text": "Review ANC1 entries for previous month, ascertain treatment initiation",
+                        "type": "data_entry",
+                        "depends_on": "tet_q1",
+                        "fields": [
+                            {"id": "tet_hiv_positive", "label": "Number with a document positive HIV status (TRRK, TRR, or TRR+)", "type": "number"},
+                            {"id": "tet_art_initiated", "label": "Number with a documented ART initiation status", "type": "number"},
+                            {"id": "tet_art_pct", "label": "% On ART", "type": "calculated", "formula": "(tet_art_initiated / tet_hiv_positive) * 100"},
+                            {"id": "tet_syphilis_positive", "label": "Number with a documented positive Syphilis Test Result", "type": "number"},
+                            {"id": "tet_syphilis_treated", "label": "Number with a documented positive Syphilis Test Result initiated on treatment", "type": "number"},
+                            {"id": "tet_syphilis_treated_pct", "label": "% Treated for Syphilis", "type": "calculated", "formula": "(tet_syphilis_treated / tet_syphilis_positive) * 100"},
+                            {"id": "tet_hepb_positive", "label": "Number with a documented Hepatitis B positive Test Result", "type": "number"},
+                            {"id": "tet_hepb_vl_high", "label": "Number with a documented Hepatitis B positive Test Result with viral load more than 200,000 copies/ml", "type": "number"},
+                            {"id": "tet_hepb_art_initiated", "label": "Number with a documented Hepatitis B positive Test Result with viral load more than 200,000 copies/ml initiated on ARVs", "type": "number"},
+                            {"id": "tet_hepb_art_pct", "label": "% on ART for Hep. B Prophylaxis", "type": "calculated", "formula": "(tet_hepb_art_initiated / tet_hepb_vl_high) * 100"},
+                            {"id": "tet_average_pct", "label": "% Average", "type": "calculated", "formula": "(tet_art_pct + tet_syphilis_treated_pct + tet_hepb_art_pct) / 3"}
+                        ],
+                        "scoring": {
+                            "field": "average_pct",
+                            "thresholds": {
+                                "red": "<60",
+                                "yellow": "60-79",
+                                "light_green": "80-89",
+                                "dark_green": ">=90"
+                            }
+                        }
+                    }
                 ]
             },
-            "infrastructure": {
-                "name": "Infrastructure & Equipment",
-                "indicators": [
-                    {"id": "if1", "name": "Is there a functional cold chain (refrigerator/freezer) for storing hepatitis B vaccines at the correct temperature (2-8°C)?", "max_score": 5},
-                    {"id": "if2", "name": "Are rapid diagnostic test kits (RDTs) or laboratory equipment for HBsAg testing available and functional?", "max_score": 5},
-                    {"id": "if3", "name": "Does the facility have a designated, private space for counseling HBV-positive pregnant women?", "max_score": 5},
-                    {"id": "if4", "name": "Is there reliable power supply or backup generator to maintain cold chain and laboratory services?", "max_score": 5},
-                    {"id": "if5", "name": "Are there adequate supplies of safety boxes, gloves, and sharps disposal for safe HBV testing and vaccination?", "max_score": 5}
+            "art_pmtct": {
+                "name": "ART in PMTCT Facilities (VL uptake at ANC1 for ARTK)",
+                "standard": "All pregnant and breastfeeding women LHIV are expected to have additional screening and tests for clinical monitoring.",
+                "type": "testing_data_entry",
+                "questions": [
+                    {
+                        "id": "art_pmtct_q1",
+                        "text": "Are the following provided at the health facility for pregnant and breastfeeding women LHIV?",
+                        "type": "checklist",
+                        "items": [
+                            {"id": "art_pmtct_q1_sti", "name": "1. STI /ca cx/ GBV screening"},
+                            {"id": "art_pmtct_q1_fp", "name": "2. FP"},
+                            {"id": "art_pmtct_q1_vl", "name": "3. VL testing"},
+                            {"id": "art_pmtct_q1_iac", "name": "4. IAC"},
+                            {"id": "art_pmtct_q1_cd4", "name": "5. CD4"},
+                            {"id": "art_pmtct_q1_ctx", "name": "6. CTX"}
+                        ],
+                        "scoring": "If N to any = Red"
+                    }
+                ]
+            },
+            "quality_pmtct": {
+                "name": "Quality of PMTCT services (Review 10 client's charts who have been in care for at least a year)",
+                "type": "quality_matrix",
+                "instructions": [
+                    "Indicate Y for Yes, N for No and NA for Not Applicable for each of the clients' charts below and calculate a %ge score of the Y against the total eligible (Excluding the NAs).",
+                    "After calculating the %ge score, indicate the score using the following guidance: If <60%=Red, If 60-79%=Yellow, If 80-89%=Light Green, If ≥ 90%=Dark Green"
+                ],
+                "services": [
+                    {"id": "sti_screening", "name": "Screened for STI"},
+                    {"id": "cacx_screening", "name": "Screened for CaCx"},
+                    {"id": "sgbv_screening", "name": "Screened for SGBV"},
+                    {"id": "fp_counselling", "name": "Counselled on FP"},
+                    {"id": "vl_3months", "name": "Had a VL after 3 months"},
+                    {"id": "suppressed", "name": "Suppressed"},
+                    {"id": "unsuppressed", "name": "Unsuppressed"},
+                    {"id": "unsuppressed_iac", "name": "Unsuppressed with IAC"},
+                    {"id": "baseline_cd4", "name": "Had a Baseline CD4"},
+                    {"id": "on_ctx", "name": "On CTX"},
+                    {"id": "retained", "name": "Retained"}
+                ],
+                "clients": 10,
+                "scoring": {
+                    "red": "<60",
+                    "yellow": "60-79",
+                    "light_green": "80-89",
+                    "dark_green": ">=90"
+                }
+            },
+            "patient_tracking": {
+                "name": "Patient Tracking HIV+ Pregnant Women",
+                "type": "conditional_questions",
+                "standard": "Each ART facility has a standard procedure for identifying and tracking HIV positive pregnant women on ART who have defaulted on their appointments. The system contains the following core elements: defined staff roles/responsibilities, procedures for patient identification and tracking, and standardized documentation that includes updating of relevant facility indicators.",
+                "questions": [
+                    {
+                        "id": "pt_q1",
+                        "text": "Are there standard procedures for identifying and tracking HIV+ pregnant women who have defaulted on their ART appointments? Review entries in the appointment book from one month ago.",
+                        "note": "Which interventions does the facility use to minimize missed appointments? See evidence of outlined interventions",
+                        "scoring": {"no": "red", "yes": "next"}
+                    },
+                    {
+                        "id": "pt_q2",
+                        "text": "Is ART patient tracking documentation complete and does it show evidence of defaulted ART patients brought back into care? Review entries in previous month in the missed appointment register",
+                        "depends_on": "pt_q1",
+                        "scoring": {"no": "yellow", "yes": "next"}
+                    },
+                    {
+                        "id": "pt_q3",
+                        "text": "Are tracking results used to update site indicators (e.g., Lost-to-Follow-Up [LTFU] rates)?",
+                        "depends_on": "pt_q2",
+                        "scoring": {"no": "yellow", "yes": "next"}
+                    },
+                    {
+                        "id": "pt_q4",
+                        "text": "Is a written SOP available for identifying and tracking defaulters?",
+                        "depends_on": "pt_q3",
+                        "scoring": {"no": "light_green", "yes": "dark_green"}
+                    }
+                ]
+            },
+            "adherence_support": {
+                "name": "Adherence Support",
+                "type": "conditional_questions_with_percentage",
+                "standard": "Each facility that provides ART has an adherence support system that provides and documents all the following: 1) Adherence counselling prior to ARV treatment initiation, 2) Routine adherence assessments during ART, 3) Counselling interventions for patients with poor adherence.",
+                "questions": [
+                    {
+                        "id": "as_q1",
+                        "text": "Are there any adherence support procedures in place?",
+                        "scoring": {"no": "red", "yes": "next"}
+                    },
+                    {
+                        "id": "as_q2",
+                        "text": "Are all three adherence support elements (pre-ART counselling, routine adherence assessment, and intervention counselling) implemented?",
+                        "depends_on": "as_q1",
+                        "scoring": {"no": "yellow", "yes": "next"}
+                    },
+                    {
+                        "id": "as_q3",
+                        "text": "Review 10 charts of adult ART patients. What percent of reviewed charts have documentation of adherence assessment at the last clinical visit?",
+                        "type": "percentage",
+                        "depends_on": "as_q2",
+                        "scoring": {"<60": "yellow", "60-79": "light_green", ">=80": "next"}
+                    },
+                    {
+                        "id": "as_q4",
+                        "text": "Is a written procedure or algorithm available that addresses all the adherence support elements?",
+                        "depends_on": "as_q3",
+                        "scoring": {"no": "light_green", "yes": "dark_green"}
+                    }
+                ]
+            },
+            "facility_linkage": {
+                "name": "Facility Linkage to Community Care and Support Services for Adult PLHIV",
+                "type": "conditional_questions",
+                "standard": "All health facilities treating adult PLHIV document and track referrals of pre-ART and ART patients to community services.",
+                "instructions": "If patients at this facility do not have access to community services, check NA, and SKIP this section.",
+                "na_option": true,
+                "questions": [
+                    {
+                        "id": "fl_q1",
+                        "text": "Is a system in place to document referrals of PLHIV to community-based services (e.g., community health workers, community-based care, PLHIV support groups)?",
+                        "scoring": {"no": "red", "yes": "next"}
+                    },
+                    {
+                        "id": "fl_q2",
+                        "text": "Does the referral system include follow-up and documentation to determine if the patient accessed the referral services?",
+                        "depends_on": "fl_q1",
+                        "scoring": {"no": "yellow", "yes": "next"}
+                    },
+                    {
+                        "id": "fl_q3",
+                        "text": "Can the facility provide documentation showing that facility staff review the referrals logbook routinely to optimize linkages to community services?",
+                        "depends_on": "fl_q2",
+                        "scoring": {"no": "light_green", "yes": "dark_green"}
+                    }
+                ]
+            },
+            "sti_screening": {
+                "name": "STI Screening and Management in HIV Clinics Serving General Population",
+                "type": "conditional_questions_with_percentage",
+                "instructions": "Review 10 ART charts",
+                "questions": [
+                    {
+                        "id": "sti_q1",
+                        "text": "Are all PLHIV routinely offered syndromic screening for STIs [e.g., vaginal, or urethral discharge, genital ulcer disease, or (for women) lower abdominal pain] at the initial consultation and then at every clinical assessment thereafter?",
+                        "scoring": {"no": "red", "yes": "next"}
+                    },
+                    {
+                        "id": "sti_q2",
+                        "text": "Do clients with STI signs or symptoms have access to STI treatment either onsite or through referral?",
+                        "depends_on": "sti_q1",
+                        "scoring": {"no": "yellow", "yes": "next"}
+                    },
+                    {
+                        "id": "sti_q3",
+                        "text": "What percent of reviewed charts have documentation of syndromic screening for STIs [e.g., vaginal or ureteral discharge, genital ulcer disease, or (for women) lower abdominal pain] at the last clinical assessment?",
+                        "type": "percentage",
+                        "depends_on": "sti_q2",
+                        "scoring": {"<70": "yellow", ">=70": "next"},
+                        "note": "Review 10 adult charts."
+                    },
+                    {
+                        "id": "sti_q4",
+                        "text": "Are there written procedures or algorithms for routinely offering partner notification services, including STI screening and treatment?",
+                        "depends_on": "sti_q3",
+                        "scoring": {"no": "light_green", "yes": "dark_green"}
+                    }
+                ]
+            },
+            "early_infant_diagnosis": {
+                "name": "Early Infant Diagnosis [HEI]",
+                "type": "dual_path_questions",
+                "standard": "All HIV-exposed infants (HEIs) receive DNA PCR or other virologic testing for early infant diagnosis, with a documented final HIV status at the end of breastfeeding and documented return of HIV results to caregivers.",
+                "instructions": "If the answer to Q1 is NO, Skip to Q5",
+                "path1": {
+                    "name": "Facility has DBS collection",
+                    "questions": [
+                        {
+                            "id": "eid_q1",
+                            "text": "Is there routine collection of dried blood spots (DBS) at this facility for PCR testing for HEIs?",
+                            "is_branch": true,
+                            "scoring": {"no": "skip_to_path2", "yes": "next"}
+                        },
+                        {
+                            "id": "eid_q2",
+                            "text": "Is there a system in place for tracking HEIs through the end of breastfeeding and documenting final HIV status?",
+                            "depends_on": "eid_q1",
+                            "scoring": {"no": "red", "yes": "next"}
+                        },
+                        {
+                            "id": "eid_q3",
+                            "text": "Is there a system for documenting return of HIV results to a caregiver?",
+                            "depends_on": "eid_q2",
+                            "scoring": {"no": "yellow", "yes": "next"}
+                        },
+                        {
+                            "id": "eid_q4",
+                            "text": "How many HEIs do not have documentation that the results of PCR testing were provided to a caregiver?",
+                            "type": "numeric",
+                            "note": "Review register entries of 10 HEIs born 3 or more months prior to the visit",
+                            "depends_on": "eid_q3",
+                            "scoring": {
+                                ">=3": "red",
+                                "2": "yellow",
+                                "1": "light_green",
+                                "0": "dark_green"
+                            },
+                            "stop_note": "All infants with documentation= Dark Green STOP. Q5-7 are only scored if the answer to Q1 is NO."
+                        }
+                    ]
+                },
+                "path2": {
+                    "name": "Facility refers to DBS collection",
+                    "questions": [
+                        {
+                            "id": "eid_q5",
+                            "text": "Does the facility have a system for tracking the linkage of HIV-exposed infants to DBS collection services?",
+                            "scoring": {"no": "red", "yes": "next"}
+                        },
+                        {
+                            "id": "eid_q6",
+                            "text": "Does the referral system include follow-up and documentation to determine if the patient accessed the DBS collection service?",
+                            "depends_on": "eid_q5",
+                            "scoring": {"no": "yellow", "yes": "next"}
+                        },
+                        {
+                            "id": "eid_q7",
+                            "text": "Can the facility provide documentation showing that facility staff review the referrals logbook routinely to optimize linkages to DBS collection?",
+                            "depends_on": "eid_q6",
+                            "scoring": {"no": "light_green", "yes": "dark_green"}
+                        }
+                    ]
+                }
+            },
+            "ctx_hei": {
+                "name": "CTX for HIV-Exposed Infants [HEI]",
+                "type": "numeric_conditional_questions",
+                "standard": "All HEIs initiate CTX by 8 weeks of age.",
+                "instructions": "Review registers or charts for 10 HEI's born 3-12 months prior to SIMS visit. Use the SAME HEIs as above in EID section.",
+                "questions": [
+                    {
+                        "id": "ctx_q1",
+                        "text": "How many HEIs do not have documented receipt of CTX by 8 weeks of age?",
+                        "type": "numeric",
+                        "note": "Review register or charts for 10 HEIs born 3-12 months prior to the visit.",
+                        "scoring": {
+                            ">=3": "red",
+                            "2": "yellow",
+                            "1": "light_green",
+                            "0": "next"
+                        },
+                        "continue_note": "If All infants have documentation, then Q2"
+                    },
+                    {
+                        "id": "ctx_q2",
+                        "text": "Is a written procedure or algorithm for provision of CTX to HEIs available?",
+                        "depends_on": "ctx_q1",
+                        "scoring": {"no": "light_green", "yes": "dark_green"}
+                    }
+                ]
+            },
+            "tracking_hei": {
+                "name": "Tracking HIV-Exposed Infants [HEI]",
+                "type": "conditional_questions",
+                "standard": "Each facility caring for HIV-exposed infants (HEIs) has a standard procedure for identifying and tracking HIV-exposed infants through the documentation of final HIV status at the end of breastfeeding period. It contains the following core elements: defined staff roles/responsibilities, procedures for patient identification and tracking, and standardized documentation that includes updating of relevant facility indicators.",
+                "questions": [
+                    {
+                        "id": "thei_q1",
+                        "text": "Are there standard procedures for identifying and tracking HIV-exposed infants through the end of breastfeeding and documenting final HIV status?",
+                        "scoring": {"no": "red", "yes": "next"}
+                    },
+                    {
+                        "id": "thei_q2",
+                        "text": "Is patient tracking documentation complete and does it show evidence of defaulted patients brought back into care?",
+                        "depends_on": "thei_q1",
+                        "scoring": {"no": "yellow", "yes": "next"}
+                    },
+                    {
+                        "id": "thei_q3",
+                        "text": "Are results used to update facility indicators (e.g., Lost to Follow-up [LTFU] rates)?",
+                        "depends_on": "thei_q2",
+                        "scoring": {"no": "yellow", "yes": "next"}
+                    },
+                    {
+                        "id": "thei_q4",
+                        "text": "Is there a mother-infant appointment book or register for mother baby pairs (i.e., HIV-positive mothers and their HIV-exposed infants) used as part of the defaulter tracking program?",
+                        "depends_on": "thei_q3",
+                        "scoring": {"no": "light_green", "yes": "next"}
+                    },
+                    {
+                        "id": "thei_q5",
+                        "text": "Is a written SOP for identifying and tracking defaulters available?",
+                        "depends_on": "thei_q4",
+                        "scoring": {"no": "light_green", "yes": "dark_green"}
+                    }
+                ]
+            },
+            "enrolment_eid_art": {
+                "name": "Enrolment of HIV-Infected Infants identified through Early Infant Diagnosis (EID) Services into ART Services",
+                "type": "mixed_conditional_numeric",
+                "standard": "All HIV-infected infants are enrolled into ART services.",
+                "questions": [
+                    {
+                        "id": "eea_q1",
+                        "text": "Is there a system in place for documenting enrolment into ART services of HIV-infected infants identified through EID services?",
+                        "scoring": {"no": "red", "yes": "next"}
+                    },
+                    {
+                        "id": "eea_q2",
+                        "text": "Does the HIV-exposed infant/EID register document linkage to treatment (such as by including date of enrolment, ART number, or ART regimen)?",
+                        "depends_on": "eea_q1",
+                        "scoring": {"no": "yellow", "yes": "next"}
+                    },
+                    {
+                        "id": "eea_q3",
+                        "text": "How many HIV-infected infants do not have documentation of linkage into ART services?",
+                        "type": "numeric",
+                        "note": "Review register entries of last 10 HIV-infected infants (up to one year prior to the visit).",
+                        "depends_on": "eea_q2",
+                        "scoring": {
+                            ">=3": "red",
+                            "2": "yellow",
+                            "1": "light_green",
+                            "0": "dark_green"
+                        }
+                    }
+                ]
+            },
+            "hei_eid_registers": {
+                "name": "HIV Exposed Infant/Early Infant Diagnosis Registers",
+                "type": "register_checklist",
+                "standard": "Each facility retains accurate, complete, and updated patient registers that are regularly reviewed.",
+                "questions": [
+                    {
+                        "id": "heir_q1",
+                        "text": "Do HEI/EID registers exist and are they in use?",
+                        "scoring": {"no": "red", "yes": "next"}
+                    },
+                    {
+                        "id": "heir_q2",
+                        "text": "Do the HEI/EID patient registers meet all the following criteria? Tick all that apply:",
+                        "type": "checklist",
+                        "note": "Review the last 10 pages of register.",
+                        "depends_on": "heir_q1",
+                        "items": [
+                            {"id": "heir_q2_1", "text": "National or IP standard versions in use?"},
+                            {"id": "heir_q2_2", "text": "Entries are legible and 90% of every field complete?"},
+                            {"id": "heir_q2_3", "text": "Updated daily/weekly (per guidelines)?"}
+                        ],
+                        "scoring": {"any_no": "red", "all_yes": "next"}
+                    },
+                    {
+                        "id": "heir_q3",
+                        "text": "Do the HEI/EID patient registers meet all the following criteria? Tick all that apply:",
+                        "type": "checklist",
+                        "depends_on": "heir_q2",
+                        "items": [
+                            {"id": "heir_q3_1", "text": "Regularly reviewed?"},
+                            {"id": "heir_q3_2", "text": "Used for routine facility reporting?"},
+                            {"id": "heir_q3_3", "text": "When in use, placed so that patient confidentiality is maintained?"},
+                            {"id": "heir_q3_4", "text": "Stored (when not in use) in a secure location?"}
+                        ],
+                        "scoring": {"any_no": "yellow", "all_yes": "next"}
+                    },
+                    {
+                        "id": "heir_q4",
+                        "text": "Are HEI/EID patient registers used to inform clinic processes?",
+                        "depends_on": "heir_q3",
+                        "scoring": {"no": "light_green", "yes": "dark_green"}
+                    }
                 ]
             }
         };
@@ -662,9 +1175,20 @@
         // Initialize the assessment sections
         function initializeSections() {
             const container = document.getElementById('assessmentSections');
+            if (!container) {
+                console.error('assessmentSections container not found!');
+                return;
+            }
             let html = '';
 
             for (const [sectionKey, sectionData] of Object.entries(sections)) {
+                // Defensive check: ensure sectionData exists and has required properties
+                if (!sectionData || !sectionData.name || !sectionData.type) {
+                    console.error(`Invalid section data for key: ${sectionKey}`, sectionData);
+                    continue; // Skip this section
+                }
+                
+                try {
                 html += `
                     <div class="section-card">
                         <div class="section-header" onclick="toggleSection('${sectionKey}')">
@@ -674,32 +1198,873 @@
                         <div class="section-content" id="section-${sectionKey}">
                 `;
 
-                sectionData.indicators.forEach(indicator => {
-                    totalPossibleScore += indicator.max_score;
+                // CHECK 1: Register Checklist with "registers" array (e.g., ANC/Maternity/PNC Registers)
+                // This type uses a table format with Y/N for Available, Standard versions, and 90% complete
+                if (sectionData.type === 'register_checklist' && sectionData.registers) {
+                    // Add instructions
+                    if (sectionData.instructions) {
+                        html += `<div class="section-instructions" style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                            <strong>Instructions:</strong> ${sectionData.instructions}
+                        </div>`;
+                    }
+
+                    // Add scoring criteria
                     html += `
-                        <div class="indicator-row">
-                            <div class="indicator-name">${indicator.name}</div>
-                            <div class="score-selector">
-                                ${[1, 2, 3, 4, 5].map(score => 
-                                    `<button class="score-btn" id="score-${indicator.id}-${score}" 
-                                            onclick="setScore('${indicator.id}', ${score}, ${indicator.max_score})">${score}</button>`
-                                ).join('')}
-                            </div>
-                            <textarea class="comment-input" 
-                                   id="comment-${indicator.id}" 
-                                   placeholder="Comments (required) *"
-                                   required
-                                   rows="3"
-                                   onchange="setComment('${indicator.id}', this.value)"
-                                   oninput="setComment('${indicator.id}', this.value)"></textarea>
+                        <div class="scoring-criteria" style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                            <strong>Scoring:</strong><br>
+                            <span style="color: #dc3545;">● Red (0-1 pt)</span> = 0 or 1 out of 3 criteria met<br>
+                            <span style="color: #ffc107;">● Yellow (2 pts)</span> = 2 out of 3 criteria met<br>
+                            <span style="color: #28a745;">● Green (3 pts)</span> = All 3 criteria met
                         </div>
                     `;
-                });
+
+                    // Create register checklist table
+                    html += `
+                        <div style="overflow-x: auto;">
+                            <table class="register-table" style="width: 100%; border-collapse: collapse; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                <thead>
+                                    <tr style="background: #667eea; color: white;">
+                                        <th style="padding: 12px; text-align: left; border: 1px solid #ddd;">Register</th>
+                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Available</th>
+                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Standard versions</th>
+                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">90% complete</th>
+                                        <th style="padding: 12px; text-align: center; border: 1px solid #ddd;">Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    sectionData.registers.forEach((register, index) => {
+                        totalPossibleScore += 3; // Each register can score max 3 points (green)
+                        html += `
+                            <tr style="border-bottom: 1px solid #ddd; ${index % 2 === 0 ? 'background: #f8f9fa;' : ''}">
+                                <td style="padding: 12px; border: 1px solid #ddd;">${index + 1}) ${register.name}</td>
+                                <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">
+                                    <label style="margin-right: 10px; cursor: pointer;">
+                                        <input type="radio" name="${register.id}_available" value="Y" onchange="updateRegisterScore('${register.id}', '${sectionKey}')"> Y
+                                    </label>
+                                    <label style="cursor: pointer;">
+                                        <input type="radio" name="${register.id}_available" value="N" onchange="updateRegisterScore('${register.id}', '${sectionKey}')"> N
+                                    </label>
+                                </td>
+                                <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">
+                                    <label style="margin-right: 10px; cursor: pointer;">
+                                        <input type="radio" name="${register.id}_standard" value="Y" onchange="updateRegisterScore('${register.id}', '${sectionKey}')"> Y
+                                    </label>
+                                    <label style="cursor: pointer;">
+                                        <input type="radio" name="${register.id}_standard" value="N" onchange="updateRegisterScore('${register.id}', '${sectionKey}')"> N
+                                    </label>
+                                </td>
+                                <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">
+                                    <label style="margin-right: 10px; cursor: pointer;">
+                                        <input type="radio" name="${register.id}_complete" value="Y" onchange="updateRegisterScore('${register.id}', '${sectionKey}')"> Y
+                                    </label>
+                                    <label style="cursor: pointer;">
+                                        <input type="radio" name="${register.id}_complete" value="N" onchange="updateRegisterScore('${register.id}', '${sectionKey}')"> N
+                                    </label>
+                                </td>
+                                <td style="padding: 12px; text-align: center; border: 1px solid #ddd;">
+                                    <span id="score-${register.id}" class="register-score-badge" style="display: inline-block; padding: 4px 12px; border-radius: 4px; font-weight: 600;">-</span>
+                                </td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Section Comments:</label>
+                            <textarea id="comment-${sectionKey}" 
+                                   placeholder="Additional comments for this section..."
+                                   rows="3"
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                   onchange="setComment('${sectionKey}', this.value)"></textarea>
+                        </div>
+                    `;
+                } else if (sectionData.type === 'conditional_questions') {
+                    // Add standard description
+                    if (sectionData.standard) {
+                        html += `<div class="section-standard" style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                            <strong>STANDARD:</strong> ${sectionData.standard}
+                        </div>`;
+                    }
+
+                    // Add instructions and NA option if available
+                    if (sectionData.instructions || sectionData.na_option) {
+                        html += `<div class="section-instructions" style="background: #fff9e6; padding: 12px; border-radius: 4px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-size: 14px; font-style: italic;">
+                                ${sectionData.instructions ? `<strong>Instructions:</strong> ${sectionData.instructions}` : ''}
+                            </div>
+                            ${sectionData.na_option ? `
+                                <div style="display: flex; align-items: center;">
+                                    <label style="cursor: pointer; font-weight: 600;">
+                                        <input type="checkbox" id="na-${sectionKey}" onchange="handleNAOption('${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> NA
+                                    </label>
+                                </div>
+                            ` : ''}
+                        </div>`;
+                    }
+
+                    // Add scoring guide
+                    html += `
+                        <div class="scoring-criteria" style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                            <strong>Scoring:</strong><br>
+                            <span style="color: #dc3545;">● Red</span> = Critical issue (Q1 or Q2 = No)<br>
+                            <span style="color: #ffc107;">● Yellow</span> = Needs improvement (Q3 = No)<br>
+                            <span style="color: #90EE90;">● Light Green</span> = Good (Q4 = No)<br>
+                            <span style="color: #28a745;">● Dark Green</span> = Excellent (All Yes)
+                        </div>
+                    `;
+
+                    // Add a container for the questions (so we can hide/show with NA checkbox)
+                    html += `<div id="questions-container-${sectionKey}">`;
+
+                    // Add conditional questions
+                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+                    sectionData.questions.forEach((question, index) => {
+                        const isFirst = index === 0;
+                        const displayStyle = isFirst ? 'block' : 'none';
+                        
+                        html += `
+                            <div class="conditional-question" id="cq-${question.id}" style="display: ${displayStyle}; background: ${isFirst ? '#f8f9fa' : 'white'}; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                    <strong>Q${index + 1}:</strong> ${question.text}
+                                </div>
+                                <div class="response-options" style="display: flex; gap: 15px;">
+                                    <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                        <input type="radio" name="${question.id}" value="yes" onchange="handleConditionalQuestion('${question.id}', 'yes', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> Yes
+                                    </label>
+                                    <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                        <input type="radio" name="${question.id}" value="no" onchange="handleConditionalQuestion('${question.id}', 'no', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> No
+                                    </label>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    // Close questions container div
+                    html += `</div>`;
+
+                    // Section score display
+                    html += `
+                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                            <strong>Section Score:</strong> <span id="score-badge-${sectionKey}" style="display: inline-block; padding: 6px 12px; border-radius: 4px; margin-left: 10px; font-weight: 600;">Not assessed</span>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Section Comments:</label>
+                            <textarea id="comment-${sectionKey}" 
+                                   placeholder="Additional comments for this section..."
+                                   rows="3"
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                   onchange="setComment('${sectionKey}', this.value)"></textarea>
+                        </div>
+                    `;
+                } else if (sectionData.type === 'conditional_questions_with_percentage') {
+                    // Add standard description
+                    if (sectionData.standard) {
+                        html += `<div class="section-standard" style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                            <strong>STANDARD:</strong> ${sectionData.standard}
+                        </div>`;
+                    }
+
+                    // Add instructions if available
+                    if (sectionData.instructions) {
+                        html += `<div class="section-instructions" style="background: #fff9e6; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px; font-style: italic;">
+                            <strong>Instructions:</strong> ${sectionData.instructions}
+                        </div>`;
+                    }
+
+                    // Add scoring guide - make it dynamic based on the section
+                    const percentageQuestion = sectionData.questions.find(q => q.type === 'percentage');
+                    const threshold = percentageQuestion ? (percentageQuestion.scoring['<70'] ? 70 : 60) : 60;
+                    
+                    if (threshold === 70) {
+                        html += `
+                            <div class="scoring-criteria" style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                                <strong>Scoring:</strong><br>
+                                <span style="color: #dc3545;">● Red</span> = Q1 = No<br>
+                                <span style="color: #ffc107;">● Yellow</span> = Q2 = No or Q3 < 70%<br>
+                                <span style="color: #90EE90;">● Light Green</span> = Q3 ≥ 70% and Q4 = No<br>
+                                <span style="color: #28a745;">● Dark Green</span> = Q3 ≥ 70% and Q4 = Yes
+                            </div>
+                        `;
+                    } else {
+                        html += `
+                            <div class="scoring-criteria" style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                                <strong>Scoring:</strong><br>
+                                <span style="color: #dc3545;">● Red</span> = Q1 = No<br>
+                                <span style="color: #ffc107;">● Yellow</span> = Q2 = No or Q3 < 60%<br>
+                                <span style="color: #90EE90;">● Light Green</span> = Q3 60-79% or Q4 = No<br>
+                                <span style="color: #28a745;">● Dark Green</span> = All Yes and Q3 ≥ 80%
+                            </div>
+                        `;
+                    }
+
+                    // Add conditional questions
+                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+                    sectionData.questions.forEach((question, index) => {
+                        const isFirst = index === 0;
+                        const displayStyle = isFirst ? 'block' : 'none';
+                        
+                        // Check if this is a percentage input question
+                        if (question.type === 'percentage') {
+                            html += `
+                                <div class="conditional-question" id="cq-${question.id}" style="display: ${displayStyle}; background: white; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                    ${question.note ? `<div style="font-style: italic; color: #666; margin-bottom: 8px;">${question.note}</div>` : ''}
+                                    <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                        <strong>Q${index + 1}:</strong> ${question.text}
+                                    </div>
+                                    <div class="response-options">
+                                        <input type="number" id="${question.id}" name="${question.id}" min="0" max="100" step="0.1" 
+                                               style="padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; width: 150px;"
+                                               onchange="handlePercentageQuestion('${question.id}', this.value, '${sectionKey}')"
+                                               placeholder="Enter %"> <span style="font-size: 16px; margin-left: 5px;">%</span>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Regular Yes/No question
+                            html += `
+                                <div class="conditional-question" id="cq-${question.id}" style="display: ${displayStyle}; background: ${isFirst ? '#f8f9fa' : 'white'}; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                    <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                        <strong>Q${index + 1}:</strong> ${question.text}
+                                    </div>
+                                    ${question.note ? `<div style="font-style: italic; color: #666; margin-bottom: 12px;">${question.note}</div>` : ''}
+                                    <div class="response-options" style="display: flex; gap: 15px;">
+                                        <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="yes" onchange="handleConditionalWithPercentage('${question.id}', 'yes', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> Yes
+                                        </label>
+                                        <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="no" onchange="handleConditionalWithPercentage('${question.id}', 'no', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> No
+                                        </label>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    // Section score display
+                    html += `
+                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                            <strong>Section Score:</strong> <span id="score-badge-${sectionKey}" style="display: inline-block; padding: 6px 12px; border-radius: 4px; margin-left: 10px; font-weight: 600;">Not assessed</span>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Section Comments:</label>
+                            <textarea id="comment-${sectionKey}" 
+                                   placeholder="Additional comments for this section..."
+                                   rows="3"
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                   onchange="setComment('${sectionKey}', this.value)"></textarea>
+                        </div>
+                    `;
+                } else if (sectionData.type === 'dual_path_questions') {
+                    // Dual path questions section (e.g., Early Infant Diagnosis)
+                    if (sectionData.standard) {
+                        html += `<div class="section-standard" style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                            <strong>STANDARD:</strong> ${sectionData.standard}
+                        </div>`;
+                    }
+
+                    if (sectionData.instructions) {
+                        html += `<div class="section-instructions" style="background: #fff9e6; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px; font-style: italic;">
+                            <strong>Instructions:</strong> ${sectionData.instructions}
+                        </div>`;
+                    }
+
+                    // Add scoring guide
+                    html += `
+                        <div class="scoring-criteria" style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                            <strong>Scoring:</strong><br>
+                            <span style="color: #dc3545;">● Red</span> = Critical issues<br>
+                            <span style="color: #ffc107;">● Yellow</span> = Needs improvement<br>
+                            <span style="color: #90EE90;">● Light Green</span> = Good<br>
+                            <span style="color: #28a745;">● Dark Green</span> = Excellent
+                        </div>
+                    `;
+
+                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+
+                    // Render Path 1 questions
+                    sectionData.path1.questions.forEach((question, index) => {
+                        const isFirst = index === 0;
+                        const displayStyle = isFirst ? 'block' : 'none';
+                        
+                        if (question.type === 'numeric') {
+                            // Numeric input question
+                            html += `
+                                <div class="conditional-question" id="cq-${question.id}" style="display: ${displayStyle}; background: white; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                    ${question.note ? `<div style="font-style: italic; color: #666; margin-bottom: 8px;">${question.note}</div>` : ''}
+                                    <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                        <strong>Q${index + 1}:</strong> ${question.text}
+                                    </div>
+                                    <div class="response-options">
+                                        <input type="number" id="${question.id}" name="${question.id}" min="0" max="10" step="1" 
+                                               style="padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; width: 150px;"
+                                               onchange="handleDualPathNumericQuestion('${question.id}', this.value, '${sectionKey}')"
+                                               placeholder="Enter number">
+                                    </div>
+                                    ${question.stop_note ? `<div style="font-style: italic; color: #666; margin-top: 8px; font-size: 14px;">${question.stop_note}</div>` : ''}
+                                </div>
+                            `;
+                        } else {
+                            // Regular Yes/No question
+                            html += `
+                                <div class="conditional-question" id="cq-${question.id}" style="display: ${displayStyle}; background: ${isFirst ? '#f8f9fa' : 'white'}; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                    ${question.note ? `<div style="font-style: italic; color: #666; margin-bottom: 8px;">${question.note}</div>` : ''}
+                                    <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                        <strong>Q${index + 1}:</strong> ${question.text}
+                                    </div>
+                                    <div class="response-options" style="display: flex; gap: 15px;">
+                                        <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="yes" onchange="handleDualPathQuestion('${question.id}', 'yes', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> Yes
+                                        </label>
+                                        <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="no" onchange="handleDualPathQuestion('${question.id}', 'no', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> No
+                                        </label>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    // Render Path 2 questions (hidden by default)
+                    sectionData.path2.questions.forEach((question, index) => {
+                        const questionNumber = 5 + index; // Q5, Q6, Q7
+                        
+                        html += `
+                            <div class="conditional-question path2-question" id="cq-${question.id}" style="display: none; background: white; padding: 15px; margin-bottom: 15px; border-left: 4px solid #e67e22; border-radius: 4px;">
+                                ${question.note ? `<div style="font-style: italic; color: #666; margin-bottom: 8px;">${question.note}</div>` : ''}
+                                <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                    <strong>Q${questionNumber}:</strong> ${question.text}
+                                </div>
+                                <div class="response-options" style="display: flex; gap: 15px;">
+                                    <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                        <input type="radio" name="${question.id}" value="yes" onchange="handleDualPathQuestion('${question.id}', 'yes', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> Yes
+                                    </label>
+                                    <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                        <input type="radio" name="${question.id}" value="no" onchange="handleDualPathQuestion('${question.id}', 'no', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> No
+                                    </label>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    // Section score display
+                    html += `
+                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                            <strong>Section Score:</strong> <span id="score-badge-${sectionKey}" style="display: inline-block; padding: 6px 12px; border-radius: 4px; margin-left: 10px; font-weight: 600;">Not assessed</span>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Section Comments:</label>
+                            <textarea id="comment-${sectionKey}" 
+                                   placeholder="Additional comments for this section..."
+                                   rows="3"
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                   onchange="setComment('${sectionKey}', this.value)"></textarea>
+                        </div>
+                    `;
+                } else if (sectionData.type === 'numeric_conditional_questions') {
+                    // Numeric conditional questions section (e.g., CTX for HEI)
+                    if (sectionData.standard) {
+                        html += `<div class="section-standard" style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                            <strong>STANDARD:</strong> ${sectionData.standard}
+                        </div>`;
+                    }
+
+                    if (sectionData.instructions) {
+                        html += `<div class="section-instructions" style="background: #fff9e6; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px; font-style: italic;">
+                            <strong>Instructions:</strong> ${sectionData.instructions}
+                        </div>`;
+                    }
+
+                    // Add scoring guide
+                    html += `
+                        <div class="scoring-criteria" style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                            <strong>Scoring:</strong><br>
+                            <span style="color: #dc3545;">● Red</span> = Critical issues<br>
+                            <span style="color: #ffc107;">● Yellow</span> = Needs improvement<br>
+                            <span style="color: #90EE90;">● Light Green</span> = Good<br>
+                            <span style="color: #28a745;">● Dark Green</span> = Excellent
+                        </div>
+                    `;
+
+                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+
+                    // Render questions
+                    sectionData.questions.forEach((question, index) => {
+                        const isFirst = index === 0;
+                        const displayStyle = isFirst ? 'block' : 'none';
+                        
+                        if (question.type === 'numeric') {
+                            // Numeric input question
+                            html += `
+                                <div class="conditional-question" id="cq-${question.id}" style="display: ${displayStyle}; background: white; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                    ${question.note ? `<div style="font-style: italic; color: #666; margin-bottom: 8px;">${question.note}</div>` : ''}
+                                    <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                        <strong>Q${index + 1}:</strong> ${question.text}
+                                    </div>
+                                    <div class="response-options">
+                                        <input type="number" id="${question.id}" name="${question.id}" min="0" max="10" step="1" 
+                                               style="padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; width: 150px;"
+                                               onchange="handleNumericConditionalQuestion('${question.id}', this.value, '${sectionKey}')"
+                                               placeholder="Enter number">
+                                    </div>
+                                    ${question.continue_note ? `<div style="font-style: italic; color: #666; margin-top: 8px; font-size: 14px;">${question.continue_note}</div>` : ''}
+                                </div>
+                            `;
+                        } else {
+                            // Regular Yes/No question
+                            html += `
+                                <div class="conditional-question" id="cq-${question.id}" style="display: ${displayStyle}; background: white; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                    ${question.note ? `<div style="font-style: italic; color: #666; margin-bottom: 8px;">${question.note}</div>` : ''}
+                                    <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                        <strong>Q${index + 1}:</strong> ${question.text}
+                                    </div>
+                                    <div class="response-options" style="display: flex; gap: 15px;">
+                                        <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="yes" onchange="handleNumericConditionalYesNo('${question.id}', 'yes', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> Yes
+                                        </label>
+                                        <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="no" onchange="handleNumericConditionalYesNo('${question.id}', 'no', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> No
+                                        </label>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    // Section score display
+                    html += `
+                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                            <strong>Section Score:</strong> <span id="score-badge-${sectionKey}" style="display: inline-block; padding: 6px 12px; border-radius: 4px; margin-left: 10px; font-weight: 600;">Not assessed</span>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Section Comments:</label>
+                            <textarea id="comment-${sectionKey}" 
+                                   placeholder="Additional comments for this section..."
+                                   rows="3"
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                   onchange="setComment('${sectionKey}', this.value)"></textarea>
+                        </div>
+                    `;
+                } else if (sectionData.type === 'mixed_conditional_numeric') {
+                    // Mixed conditional numeric section (e.g., Enrolment EID ART)
+                    if (sectionData.standard) {
+                        html += `<div class="section-standard" style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                            <strong>STANDARD:</strong> ${sectionData.standard}
+                        </div>`;
+                    }
+
+                    // Add scoring guide
+                    html += `
+                        <div class="scoring-criteria" style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                            <strong>Scoring:</strong><br>
+                            <span style="color: #dc3545;">● Red</span> = Critical issues<br>
+                            <span style="color: #ffc107;">● Yellow</span> = Needs improvement<br>
+                            <span style="color: #90EE90;">● Light Green</span> = Good<br>
+                            <span style="color: #28a745;">● Dark Green</span> = Excellent
+                        </div>
+                    `;
+
+                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+
+                    // Render questions
+                    sectionData.questions.forEach((question, index) => {
+                        const isFirst = index === 0;
+                        const displayStyle = isFirst ? 'block' : 'none';
+                        
+                        if (question.type === 'numeric') {
+                            // Numeric input question
+                            html += `
+                                <div class="conditional-question" id="cq-${question.id}" style="display: ${displayStyle}; background: white; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                    ${question.note ? `<div style="font-style: italic; color: #666; margin-bottom: 8px;">${question.note}</div>` : ''}
+                                    <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                        <strong>Q${index + 1}:</strong> ${question.text}
+                                    </div>
+                                    <div class="response-options">
+                                        <input type="number" id="${question.id}" name="${question.id}" min="0" max="10" step="1" 
+                                               style="padding: 10px; border: 2px solid #ddd; border-radius: 6px; font-size: 16px; width: 150px;"
+                                               onchange="handleMixedConditionalNumeric('${question.id}', this.value, '${sectionKey}')"
+                                               placeholder="Enter number">
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Regular Yes/No question
+                            html += `
+                                <div class="conditional-question" id="cq-${question.id}" style="display: ${displayStyle}; background: white; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                    ${question.note ? `<div style="font-style: italic; color: #666; margin-bottom: 8px;">${question.note}</div>` : ''}
+                                    <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                        <strong>Q${index + 1}:</strong> ${question.text}
+                                    </div>
+                                    <div class="response-options" style="display: flex; gap: 15px;">
+                                        <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="yes" onchange="handleMixedConditionalYesNo('${question.id}', 'yes', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> Yes
+                                        </label>
+                                        <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="no" onchange="handleMixedConditionalYesNo('${question.id}', 'no', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> No
+                                        </label>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    // Section score display
+                    html += `
+                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                            <strong>Section Score:</strong> <span id="score-badge-${sectionKey}" style="display: inline-block; padding: 6px 12px; border-radius: 4px; margin-left: 10px; font-weight: 600;">Not assessed</span>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Section Comments:</label>
+                            <textarea id="comment-${sectionKey}" 
+                                   placeholder="Additional comments for this section..."
+                                   rows="3"
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                   onchange="setComment('${sectionKey}', this.value)"></textarea>
+                        </div>
+                    `;
+                } else if (sectionData.type === 'register_checklist' && sectionData.questions) {
+                    // CHECK 2: Register Checklist with "questions" array (e.g., HEI/EID Registers)
+                    // This type uses conditional questions with Yes/No responses and checklist items
+                    if (sectionData.standard) {
+                        html += `<div class="section-standard" style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                            <strong>STANDARD:</strong> ${sectionData.standard}
+                        </div>`;
+                    }
+
+                    // Add scoring guide
+                    html += `
+                        <div class="scoring-criteria" style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                            <strong>Scoring:</strong><br>
+                            <span style="color: #dc3545;">● Red</span> = Critical issues<br>
+                            <span style="color: #ffc107;">● Yellow</span> = Needs improvement<br>
+                            <span style="color: #90EE90;">● Light Green</span> = Good<br>
+                            <span style="color: #28a745;">● Dark Green</span> = Excellent
+                        </div>
+                    `;
+
+                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+
+                    // Render questions
+                    sectionData.questions.forEach((question, index) => {
+                        const isFirst = index === 0;
+                        const displayStyle = isFirst ? 'block' : 'none';
+                        
+                        if (question.type === 'checklist') {
+                            // Checklist question
+                            html += `
+                                <div class="conditional-question" id="cq-${question.id}" style="display: ${displayStyle}; background: white; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                    ${question.note ? `<div style="font-style: italic; color: #666; margin-bottom: 8px;">${question.note}</div>` : ''}
+                                    <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                        <strong>Q${index + 1}:</strong> ${question.text}
+                                    </div>
+                                    <div class="checklist-items" style="margin-left: 20px;">
+                            `;
+                            
+                            question.items.forEach((item, itemIndex) => {
+                                html += `
+                                    <div style="margin-bottom: 8px;">
+                                        <label style="display: flex; align-items: center; cursor: pointer;">
+                                            <input type="checkbox" id="${item.id}" name="${item.id}" 
+                                                   onchange="handleRegisterChecklist('${question.id}', '${sectionKey}')"
+                                                   style="margin-right: 10px; cursor: pointer; width: 18px; height: 18px;">
+                                            <span style="font-size: 15px;">${itemIndex + 1}) ${item.text}</span>
+                                        </label>
+                                    </div>
+                                `;
+                            });
+                            
+                            html += `
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            // Regular Yes/No question
+                            html += `
+                                <div class="conditional-question" id="cq-${question.id}" style="display: ${displayStyle}; background: white; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                    ${question.note ? `<div style="font-style: italic; color: #666; margin-bottom: 8px;">${question.note}</div>` : ''}
+                                    <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50;">
+                                        <strong>Q${index + 1}:</strong> ${question.text}
+                                    </div>
+                                    <div class="response-options" style="display: flex; gap: 15px;">
+                                        <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="yes" onchange="handleRegisterChecklistYesNo('${question.id}', 'yes', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> Yes
+                                        </label>
+                                        <label style="display: flex; align-items: center; padding: 10px 20px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                            <input type="radio" name="${question.id}" value="no" onchange="handleRegisterChecklistYesNo('${question.id}', 'no', '${sectionKey}')" style="margin-right: 8px; cursor: pointer;"> No
+                                        </label>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    // Section score display
+                    html += `
+                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                            <strong>Section Score:</strong> <span id="score-badge-${sectionKey}" style="display: inline-block; padding: 6px 12px; border-radius: 4px; margin-left: 10px; font-weight: 600;">Not assessed</span>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Section Comments:</label>
+                            <textarea id="comment-${sectionKey}" 
+                                   placeholder="Additional comments for this section..."
+                                   rows="3"
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                   onchange="setComment('${sectionKey}', this.value)"></textarea>
+                        </div>
+                    `;
+                } else if (sectionData.type === 'testing_data_entry') {
+                    // Testing data entry section with mixed question types
+                    if (sectionData.standard) {
+                        html += `<div class="section-standard" style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-bottom: 15px; font-size: 14px;">
+                            <strong>${sectionData.standard}</strong>
+                        </div>`;
+                    }
+
+                    // Add scoring guide
+                    html += `
+                        <div class="scoring-criteria" style="background: #fff3cd; padding: 12px; border-radius: 4px; margin-bottom: 15px;">
+                            <strong>Scoring for percentages:</strong><br>
+                            <span style="color: #28a745;">● Green</span> = ≥90%<br>
+                            <span style="color: #ffc107;">● Yellow</span> = 70-89.9%<br>
+                            <span style="color: #dc3545;">● Red</span> = <70%
+                        </div>
+                    `;
+
+                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+                    
+                    sectionData.questions.forEach((question, qIndex) => {
+                        const isFirst = qIndex === 0;
+                        const displayStyle = (question.depends_on) ? 'none' : 'block';
+                        
+                        html += `
+                            <div class="te-question" id="te-q-${question.id}" style="display: ${displayStyle}; background: #f8f9fa; padding: 15px; margin-bottom: 15px; border-left: 4px solid #3498db; border-radius: 4px;">
+                                <div class="question-text" style="font-size: 16px; margin-bottom: 12px; color: #2c3e50; font-weight: 600;">
+                                    Q${qIndex + 1}: ${question.text}
+                                </div>
+                        `;
+
+                        if (question.type === 'checklist') {
+                            // Render checklist items
+                            let handlerFunction;
+                            if (sectionKey === 'triple_elimination_treatment') {
+                                handlerFunction = 'handleTripleEliminationTreatment';
+                            } else if (sectionKey === 'art_pmtct') {
+                                handlerFunction = 'handleArtPmtct';
+                            } else {
+                                handlerFunction = 'handleTestingDataEntry';
+                            }
+                            html += `<div style="margin-left: 20px;">`;
+                            question.items.forEach(item => {
+                                html += `
+                                    <div style="margin-bottom: 10px;">
+                                        <strong>${item.name}</strong>
+                                        <div class="response-options" style="display: flex; gap: 15px; margin-top: 5px;">
+                                            <label style="display: flex; align-items: center; padding: 8px 16px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                                <input type="radio" name="${item.id}" value="yes" onchange="${handlerFunction}('${sectionKey}', '${question.id}', '${item.id}', 'yes')" style="margin-right: 8px; cursor: pointer;"> Yes
+                                            </label>
+                                            <label style="display: flex; align-items: center; padding: 8px 16px; background: white; border: 2px solid #ddd; border-radius: 6px; cursor: pointer;">
+                                                <input type="radio" name="${item.id}" value="no" onchange="${handlerFunction}('${sectionKey}', '${question.id}', '${item.id}', 'no')" style="margin-right: 8px; cursor: pointer;"> No
+                                            </label>
+                                        </div>
+                                    </div>
+                                `;
+                            });
+                            html += `</div>`;
+                            if (question.scoring) {
+                                html += `<div style="margin-top: 10px; padding: 8px; background: #fff3cd; border-radius: 4px; font-size: 13px;">
+                                    <strong>Scoring:</strong> ${question.scoring}
+                                </div>`;
+                            }
+                        } else if (question.type === 'data_entry') {
+                            // Render data entry fields
+                            const calcFunction = (sectionKey === 'triple_elimination_treatment') ? 'calculateTreatmentPercentages' : 'calculateTestingPercentages';
+                            html += `<div style="margin-left: 20px;">`;
+                            question.fields.forEach(field => {
+                                if (field.type === 'section_label') {
+                                    html += `<div style="margin-top: 20px; margin-bottom: 10px; font-weight: 600; font-size: 15px; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 5px;">${field.label}</div>`;
+                                } else if (field.type === 'number') {
+                                    html += `
+                                        <div style="margin-bottom: 12px;">
+                                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">${field.label}</label>
+                                            <input type="number" id="${field.id}" 
+                                                   min="0"
+                                                   style="width: 100px; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-size: 16px;"
+                                                   onchange="${calcFunction}('${sectionKey}')"
+                                                   oninput="if(this.value < 0) this.value = 0;"
+                                                   placeholder="0">
+                                        </div>
+                                    `;
+                                } else if (field.type === 'calculated') {
+                                    const noteHtml = field.note ? `<span style="font-size: 12px; color: #666; margin-left: 10px;">(${field.note})</span>` : '';
+                                    html += `
+                                        <div style="margin-bottom: 12px;">
+                                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">${field.label}${noteHtml}</label>
+                                            <input type="text" id="${field.id}" 
+                                                   readonly
+                                                   style="width: 100px; padding: 10px; border: 2px solid #ddd; border-radius: 4px; background: #f0f0f0; color: #333; font-weight: 600; font-size: 16px;"
+                                                   placeholder="-">
+                                        </div>
+                                    `;
+                                }
+                            });
+                            html += `</div>`;
+                        }
+
+                        html += `</div>`;
+                    });
+
+                    // Section score display
+                    html += `
+                        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                            <strong>Section Score:</strong> <span id="score-badge-${sectionKey}" style="display: inline-block; padding: 6px 12px; border-radius: 4px; margin-left: 10px; font-weight: 600;">Not assessed</span>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Section Comments:</label>
+                            <textarea id="comment-${sectionKey}" 
+                                   placeholder="Additional comments for this section..."
+                                   rows="3"
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                   onchange="setComment('${sectionKey}', this.value)"></textarea>
+                        </div>
+                    `;
+                } else if (sectionData.type === 'quality_matrix') {
+                    // Quality matrix section - chart review
+                    totalPossibleScore += 4; // Max score for this section (Dark Green = 4)
+                    
+                    if (sectionData.instructions) {
+                        sectionData.instructions.forEach(instruction => {
+                            html += `<div style="background: #e8f4f8; padding: 12px; border-radius: 4px; margin-bottom: 10px; font-size: 14px;">
+                                ${instruction}
+                            </div>`;
+                        });
+                    }
+                    
+                    // Create matrix table
+                    html += `
+                        <div style="overflow-x: auto; margin: 20px 0;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                <thead>
+                                    <tr style="background: #3498db; color: white;">
+                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: left; min-width: 200px;">Service</th>`;
+                    
+                    // Client columns 1-10
+                    for (let i = 1; i <= sectionData.clients; i++) {
+                        html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center; min-width: 60px;">${i}</th>`;
+                    }
+                    
+                    html += `<th style="padding: 10px; border: 1px solid #ddd; text-align: center; min-width: 70px;">%</th>
+                                        <th style="padding: 10px; border: 1px solid #ddd; text-align: center; min-width: 100px;">Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+                    
+                    // Service rows
+                    sectionData.services.forEach((service, rowIndex) => {
+                        html += `<tr style="background: ${rowIndex % 2 === 0 ? '#f8f9fa' : 'white'};">
+                            <td style="padding: 10px; border: 1px solid #ddd; font-weight: 500;">${service.name}</td>`;
+                        
+                        // Client cells
+                        for (let clientNum = 1; clientNum <= sectionData.clients; clientNum++) {
+                            const cellId = `qp_${service.id}_c${clientNum}`;
+                            html += `<td style="padding: 5px; border: 1px solid #ddd; text-align: center;">
+                                <select id="${cellId}" onchange="calculateQualityMatrix('${sectionKey}')" 
+                                        style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 3px; text-align: center;">
+                                    <option value="">-</option>
+                                    <option value="Y">Y</option>
+                                    <option value="N">N</option>
+                                    <option value="NA">NA</option>
+                                </select>
+                            </td>`;
+                        }
+                        
+                        // Percentage column
+                        html += `<td style="padding: 5px; border: 1px solid #ddd; text-align: center;">
+                            <span id="qp_${service.id}_pct" style="font-weight: 600;">-</span>
+                        </td>`;
+                        
+                        // Score column
+                        html += `<td style="padding: 5px; border: 1px solid #ddd; text-align: center;">
+                            <span id="qp_${service.id}_score" style="display: inline-block; padding: 4px 8px; border-radius: 3px; font-weight: 600;">-</span>
+                        </td>`;
+                        
+                        html += `</tr>`;
+                    });
+                    
+                    html += `</tbody>
+                            </table>
+                        </div>`;
+                    
+                    // Overall section score display
+                    html += `
+                        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 4px;">
+                            <strong>Overall Section Score (Average):</strong> <span id="score-badge-${sectionKey}" style="display: inline-block; padding: 6px 12px; border-radius: 4px; margin-left: 10px; font-weight: 600;">Not assessed</span>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label style="font-weight: 600; display: block; margin-bottom: 8px;">Section Comments:</label>
+                            <textarea id="comment-${sectionKey}" 
+                                   placeholder="Additional comments for this section..."
+                                   rows="3"
+                                   style="width: 100%; padding: 10px; border: 2px solid #ddd; border-radius: 4px; font-family: inherit;"
+                                   onchange="setComment('${sectionKey}', this.value)"></textarea>
+                        </div>
+                    `;
+                } else if (sectionData.type === 'register_checklist') {
+                    // ERROR: register_checklist type without proper data structure
+                    console.error(`Register checklist section '${sectionKey}' missing both 'registers' and 'questions' arrays!`, sectionData);
+                    html += `
+                        <div style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px; margin: 10px 0; border-radius: 8px;">
+                            <strong style="color: #856404;">⚠ Configuration Error</strong>
+                            <p style="margin: 5px 0 0 0;">This section needs either a 'registers' or 'questions' array.</p>
+                        </div>
+                    `;
+                } else {
+                    // Standard indicator-based section
+                    if (!sectionData.indicators || !Array.isArray(sectionData.indicators)) {
+                        console.error(`Section '${sectionKey}' missing indicators array!`, sectionData);
+                        throw new Error('Missing indicators array');
+                    }
+                    sectionData.indicators.forEach(indicator => {
+                        totalPossibleScore += indicator.max_score;
+                        html += `
+                            <div class="indicator-row">
+                                <div class="indicator-name">${indicator.name}</div>
+                                <div class="score-selector">
+                                    ${[1, 2, 3, 4, 5].map(score => 
+                                        `<button class="score-btn" id="score-${indicator.id}-${score}" 
+                                                onclick="setScore('${indicator.id}', ${score}, ${indicator.max_score})">${score}</button>`
+                                    ).join('')}
+                                </div>
+                                <textarea class="comment-input" 
+                                       id="comment-${indicator.id}" 
+                                       placeholder="Comments (required) *"
+                                       required
+                                       rows="3"
+                                       onchange="setComment('${indicator.id}', this.value)"
+                                       oninput="setComment('${indicator.id}', this.value)"></textarea>
+                            </div>
+                        `;
+                    });
+                }
 
                 html += `
                         </div>
                     </div>
                 `;
+                } catch (error) {
+                    console.error(`Error rendering section ${sectionKey}:`, error);
+                    console.error('Section data:', sectionData);
+                    // Add an error placeholder for this section
+                    html += `
+                        <div style="background: #fee; border: 2px solid #c00; padding: 15px; margin: 10px 0; border-radius: 8px;">
+                            <strong style="color: #c00;">⚠ Error loading section: ${sectionData.name || sectionKey}</strong>
+                            <p style="margin: 5px 0 0 0; font-size: 14px;">Please contact support. Error: ${error.message}</p>
+                        </div>
+                    `;
+                }
             }
 
             container.innerHTML = html;
@@ -713,6 +2078,1410 @@
             } else {
                 content.style.display = 'none';
             }
+        }
+
+        function updateRegisterScore(registerId, sectionKey) {
+            // Get the values for all three criteria
+            const available = document.querySelector(`input[name="${registerId}_available"]:checked`);
+            const standard = document.querySelector(`input[name="${registerId}_standard"]:checked`);
+            const complete = document.querySelector(`input[name="${registerId}_complete"]:checked`);
+            
+            // Count how many "Y" values are selected
+            let yesCount = 0;
+            if (available && available.value === 'Y') yesCount++;
+            if (standard && standard.value === 'Y') yesCount++;
+            if (complete && complete.value === 'Y') yesCount++;
+            
+            // Only calculate score if all three criteria have been answered
+            if (available && standard && complete) {
+                let score = 0;
+                let scoreColor = '';
+                let scoreText = '';
+                
+                // Assign score based on how many criteria are met
+                if (yesCount === 0 || yesCount === 1) {
+                    score = (yesCount === 0) ? 0 : 1;
+                    scoreColor = '#dc3545'; // Red
+                    scoreText = `Red (${yesCount}/3)`;
+                } else if (yesCount === 2) {
+                    score = 2;
+                    scoreColor = '#ffc107'; // Yellow
+                    scoreText = 'Yellow (2/3)';
+                } else if (yesCount === 3) {
+                    score = 3;
+                    scoreColor = '#28a745'; // Green
+                    scoreText = 'Green (3/3)';
+                }
+                
+                // Store the score
+                scores[registerId] = score;
+                
+                // Update the visual indicator
+                const scoreBadge = document.getElementById(`score-${registerId}`);
+                if (scoreBadge) {
+                    scoreBadge.textContent = scoreText;
+                    scoreBadge.style.backgroundColor = scoreColor;
+                    scoreBadge.style.color = 'white';
+                }
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleConditionalQuestion(questionId, answer, sectionKey) {
+            const sectionData = sections[sectionKey];
+            const questions = sectionData.questions;
+            const currentIndex = questions.findIndex(q => q.id === questionId);
+            const currentQuestion = questions[currentIndex];
+            
+            // Store the response
+            scores[questionId] = answer;
+            
+            if (answer === 'no') {
+                // Hide all subsequent questions
+                for (let i = currentIndex + 1; i < questions.length; i++) {
+                    const nextQ = questions[i];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'none';
+                    
+                    // Clear responses for hidden questions
+                    const radios = document.querySelectorAll(`input[name="${nextQ.id}"]`);
+                    radios.forEach(r => r.checked = false);
+                    delete scores[nextQ.id];
+                }
+                
+                // Calculate score based on where we stopped
+                let score = 0;
+                let scoreColor = '';
+                let scoreText = '';
+                let scoringRule = currentQuestion.scoring.no;
+                
+                if (scoringRule === 'red') {
+                    score = 1;
+                    scoreColor = '#dc3545';
+                    scoreText = 'Red';
+                } else if (scoringRule === 'yellow') {
+                    score = 2;
+                    scoreColor = '#ffc107';
+                    scoreText = 'Yellow';
+                } else if (scoringRule === 'light_green') {
+                    score = 3;
+                    scoreColor = '#90EE90';
+                    scoreText = 'Light Green';
+                }
+                
+                // Store section score
+                scores[sectionKey] = score;
+                
+                // Update section badge
+                const badge = document.getElementById(`score-badge-${sectionKey}`);
+                if (badge) {
+                    badge.textContent = scoreText;
+                    badge.style.backgroundColor = scoreColor;
+                    badge.style.color = (scoreText === 'Light Green') ? '#000' : 'white';
+                }
+                
+            } else if (answer === 'yes') {
+                // Check if there's a next question
+                if (currentIndex < questions.length - 1) {
+                    const nextQ = questions[currentIndex + 1];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'block';
+                } else {
+                    // This was the last question and answered yes = Dark Green
+                    scores[sectionKey] = 4;
+                    const badge = document.getElementById(`score-badge-${sectionKey}`);
+                    if (badge) {
+                        badge.textContent = 'Dark Green';
+                        badge.style.backgroundColor = '#28a745';
+                        badge.style.color = 'white';
+                    }
+                }
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleConditionalWithPercentage(questionId, answer, sectionKey) {
+            const sectionData = sections[sectionKey];
+            const questions = sectionData.questions;
+            const currentIndex = questions.findIndex(q => q.id === questionId);
+            const currentQuestion = questions[currentIndex];
+            
+            // Store the response
+            scores[questionId] = answer;
+            
+            if (answer === 'no') {
+                // Hide all subsequent questions
+                for (let i = currentIndex + 1; i < questions.length; i++) {
+                    const nextQ = questions[i];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'none';
+                    
+                    // Clear responses for hidden questions
+                    if (nextQ.type === 'percentage') {
+                        const input = document.getElementById(nextQ.id);
+                        if (input) input.value = '';
+                    } else {
+                        const radios = document.querySelectorAll(`input[name="${nextQ.id}"]`);
+                        radios.forEach(r => r.checked = false);
+                    }
+                    delete scores[nextQ.id];
+                }
+                
+                // Calculate score based on where we stopped
+                let score = 0;
+                let scoreColor = '';
+                let scoreText = '';
+                let scoringRule = currentQuestion.scoring.no;
+                
+                if (scoringRule === 'red') {
+                    score = 1;
+                    scoreColor = '#dc3545';
+                    scoreText = 'Red';
+                } else if (scoringRule === 'yellow') {
+                    score = 2;
+                    scoreColor = '#ffc107';
+                    scoreText = 'Yellow';
+                } else if (scoringRule === 'light_green') {
+                    score = 3;
+                    scoreColor = '#90EE90';
+                    scoreText = 'Light Green';
+                }
+                
+                // Store section score
+                scores[sectionKey] = score;
+                
+                // Update section badge
+                const badge = document.getElementById(`score-badge-${sectionKey}`);
+                if (badge) {
+                    badge.textContent = scoreText;
+                    badge.style.backgroundColor = scoreColor;
+                    badge.style.color = (scoreText === 'Light Green') ? '#000' : 'white';
+                }
+                
+            } else if (answer === 'yes') {
+                // Check if there's a next question
+                if (currentIndex < questions.length - 1) {
+                    const nextQ = questions[currentIndex + 1];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'block';
+                } else {
+                    // This was the last question and answered yes = Dark Green
+                    scores[sectionKey] = 4;
+                    const badge = document.getElementById(`score-badge-${sectionKey}`);
+                    if (badge) {
+                        badge.textContent = 'Dark Green';
+                        badge.style.backgroundColor = '#28a745';
+                        badge.style.color = 'white';
+                    }
+                }
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handlePercentageQuestion(questionId, value, sectionKey) {
+            const sectionData = sections[sectionKey];
+            const questions = sectionData.questions;
+            const currentIndex = questions.findIndex(q => q.id === questionId);
+            const currentQuestion = questions[currentIndex];
+            
+            // Store the percentage value
+            scores[questionId] = parseFloat(value);
+            
+            // Determine score based on percentage
+            const percentage = parseFloat(value);
+            let score = 0;
+            let scoreColor = '';
+            let scoreText = '';
+            let canProceed = false;
+            
+            // Check scoring configuration to determine thresholds
+            // Default is 60-80 range, but some sections use 70% threshold
+            const hasSeventyThreshold = currentQuestion.scoring && currentQuestion.scoring['<70'];
+            
+            if (hasSeventyThreshold) {
+                // For STI screening: <70% = Yellow, >=70% = proceed
+                if (percentage < 70) {
+                    score = 2;
+                    scoreColor = '#ffc107';
+                    scoreText = 'Yellow';
+                    canProceed = false;
+                } else {
+                    canProceed = true;
+                    // Don't set final score yet - proceed to next question
+                }
+            } else {
+                // For adherence support: <60% = Yellow, 60-79% = Light Green, >=80% = proceed
+                if (percentage < 60) {
+                    score = 2;
+                    scoreColor = '#ffc107';
+                    scoreText = 'Yellow';
+                    canProceed = false;
+                } else if (percentage >= 60 && percentage < 80) {
+                    score = 3;
+                    scoreColor = '#90EE90';
+                    scoreText = 'Light Green';
+                    canProceed = false;
+                } else if (percentage >= 80) {
+                    canProceed = true;
+                    // Don't set final score yet - proceed to next question
+                }
+            }
+            
+            if (!canProceed) {
+                // Hide all subsequent questions
+                for (let i = currentIndex + 1; i < questions.length; i++) {
+                    const nextQ = questions[i];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'none';
+                    
+                    // Clear responses
+                    if (nextQ.type === 'percentage') {
+                        const input = document.getElementById(nextQ.id);
+                        if (input) input.value = '';
+                    } else {
+                        const radios = document.querySelectorAll(`input[name="${nextQ.id}"]`);
+                        radios.forEach(r => r.checked = false);
+                    }
+                    delete scores[nextQ.id];
+                }
+                
+                // Store section score
+                scores[sectionKey] = score;
+                
+                // Update section badge
+                const badge = document.getElementById(`score-badge-${sectionKey}`);
+                if (badge) {
+                    badge.textContent = scoreText;
+                    badge.style.backgroundColor = scoreColor;
+                    badge.style.color = (scoreText === 'Light Green') ? '#000' : 'white';
+                }
+            } else {
+                // Proceed to next question
+                if (currentIndex < questions.length - 1) {
+                    const nextQ = questions[currentIndex + 1];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'block';
+                }
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleDualPathQuestion(questionId, answer, sectionKey) {
+            const sectionData = sections[sectionKey];
+            
+            // Store the response
+            scores[questionId] = answer;
+            
+            // Check if this is the branch question (Q1)
+            if (questionId === 'eid_q1') {
+                if (answer === 'no') {
+                    // Hide all path1 questions except Q1
+                    sectionData.path1.questions.forEach((q, index) => {
+                        if (index > 0) {
+                            const div = document.getElementById(`cq-${q.id}`);
+                            if (div) div.style.display = 'none';
+                            
+                            // Clear responses
+                            if (q.type === 'numeric') {
+                                const input = document.getElementById(q.id);
+                                if (input) input.value = '';
+                            } else {
+                                const radios = document.querySelectorAll(`input[name="${q.id}"]`);
+                                radios.forEach(r => r.checked = false);
+                            }
+                            delete scores[q.id];
+                        }
+                    });
+                    
+                    // Show path2 questions (Q5)
+                    const firstPath2Q = sectionData.path2.questions[0];
+                    const firstPath2Div = document.getElementById(`cq-${firstPath2Q.id}`);
+                    if (firstPath2Div) firstPath2Div.style.display = 'block';
+                    
+                } else if (answer === 'yes') {
+                    // Hide all path2 questions
+                    sectionData.path2.questions.forEach(q => {
+                        const div = document.getElementById(`cq-${q.id}`);
+                        if (div) div.style.display = 'none';
+                        
+                        // Clear responses
+                        const radios = document.querySelectorAll(`input[name="${q.id}"]`);
+                        radios.forEach(r => r.checked = false);
+                        delete scores[q.id];
+                    });
+                    
+                    // Show next question in path1 (Q2)
+                    const nextQ = sectionData.path1.questions[1];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'block';
+                }
+            } else {
+                // Handle other questions normally
+                // Determine which path we're on
+                const isPath2 = questionId.startsWith('eid_q5') || questionId.startsWith('eid_q6') || questionId.startsWith('eid_q7');
+                const questions = isPath2 ? sectionData.path2.questions : sectionData.path1.questions;
+                const currentIndex = questions.findIndex(q => q.id === questionId);
+                const currentQuestion = questions[currentIndex];
+                
+                if (answer === 'no') {
+                    // Hide all subsequent questions
+                    for (let i = currentIndex + 1; i < questions.length; i++) {
+                        const nextQ = questions[i];
+                        const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                        if (nextDiv) nextDiv.style.display = 'none';
+                        
+                        // Clear responses
+                        if (nextQ.type === 'numeric') {
+                            const input = document.getElementById(nextQ.id);
+                            if (input) input.value = '';
+                        } else {
+                            const radios = document.querySelectorAll(`input[name="${nextQ.id}"]`);
+                            radios.forEach(r => r.checked = false);
+                        }
+                        delete scores[nextQ.id];
+                    }
+                    
+                    // Calculate score based on where we stopped
+                    let score = 0;
+                    let scoreColor = '';
+                    let scoreText = '';
+                    let scoringRule = currentQuestion.scoring.no;
+                    
+                    if (scoringRule === 'red') {
+                        score = 1;
+                        scoreColor = '#dc3545';
+                        scoreText = 'Red';
+                    } else if (scoringRule === 'yellow') {
+                        score = 2;
+                        scoreColor = '#ffc107';
+                        scoreText = 'Yellow';
+                    } else if (scoringRule === 'light_green') {
+                        score = 3;
+                        scoreColor = '#90EE90';
+                        scoreText = 'Light Green';
+                    }
+                    
+                    // Store section score
+                    scores[sectionKey] = score;
+                    
+                    // Update section badge
+                    const badge = document.getElementById(`score-badge-${sectionKey}`);
+                    if (badge) {
+                        badge.textContent = scoreText;
+                        badge.style.backgroundColor = scoreColor;
+                        badge.style.color = (scoreText === 'Light Green') ? '#000' : 'white';
+                    }
+                    
+                } else if (answer === 'yes') {
+                    // Show next question
+                    if (currentIndex < questions.length - 1) {
+                        const nextQ = questions[currentIndex + 1];
+                        const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                        if (nextDiv) nextDiv.style.display = 'block';
+                    } else {
+                        // This was the last question and answered yes = Dark Green
+                        scores[sectionKey] = 4;
+                        const badge = document.getElementById(`score-badge-${sectionKey}`);
+                        if (badge) {
+                            badge.textContent = 'Dark Green';
+                            badge.style.backgroundColor = '#28a745';
+                            badge.style.color = 'white';
+                        }
+                    }
+                }
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleDualPathNumericQuestion(questionId, value, sectionKey) {
+            const sectionData = sections[sectionKey];
+            const question = sectionData.path1.questions.find(q => q.id === questionId);
+            
+            // Store the numeric value
+            scores[questionId] = parseInt(value);
+            
+            // Determine score based on count
+            const count = parseInt(value);
+            let score = 0;
+            let scoreColor = '';
+            let scoreText = '';
+            
+            if (count >= 3) {
+                score = 1;
+                scoreColor = '#dc3545';
+                scoreText = 'Red';
+            } else if (count === 2) {
+                score = 2;
+                scoreColor = '#ffc107';
+                scoreText = 'Yellow';
+            } else if (count === 1) {
+                score = 3;
+                scoreColor = '#90EE90';
+                scoreText = 'Light Green';
+            } else if (count === 0) {
+                score = 4;
+                scoreColor = '#28a745';
+                scoreText = 'Dark Green';
+            }
+            
+            // Store section score
+            scores[sectionKey] = score;
+            
+            // Update section badge
+            const badge = document.getElementById(`score-badge-${sectionKey}`);
+            if (badge) {
+                badge.textContent = scoreText;
+                badge.style.backgroundColor = scoreColor;
+                badge.style.color = (scoreText === 'Light Green') ? '#000' : 'white';
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleNumericConditionalQuestion(questionId, value, sectionKey) {
+            const sectionData = sections[sectionKey];
+            const questions = sectionData.questions;
+            const currentQuestion = questions.find(q => q.id === questionId);
+            
+            // Store the numeric value
+            scores[questionId] = parseInt(value);
+            
+            // Determine score based on count
+            const count = parseInt(value);
+            let score = 0;
+            let scoreColor = '';
+            let scoreText = '';
+            let canProceed = false;
+            
+            if (count >= 3) {
+                score = 1;
+                scoreColor = '#dc3545';
+                scoreText = 'Red';
+            } else if (count === 2) {
+                score = 2;
+                scoreColor = '#ffc107';
+                scoreText = 'Yellow';
+            } else if (count === 1) {
+                score = 3;
+                scoreColor = '#90EE90';
+                scoreText = 'Light Green';
+            } else if (count === 0) {
+                // Score 0 means proceed to next question
+                canProceed = true;
+            }
+            
+            if (!canProceed) {
+                // Hide any subsequent questions
+                const currentIndex = questions.findIndex(q => q.id === questionId);
+                for (let i = currentIndex + 1; i < questions.length; i++) {
+                    const nextQ = questions[i];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'none';
+                    
+                    // Clear responses
+                    const radios = document.querySelectorAll(`input[name="${nextQ.id}"]`);
+                    radios.forEach(r => r.checked = false);
+                    delete scores[nextQ.id];
+                }
+                
+                // Store section score
+                scores[sectionKey] = score;
+                
+                // Update section badge
+                const badge = document.getElementById(`score-badge-${sectionKey}`);
+                if (badge) {
+                    badge.textContent = scoreText;
+                    badge.style.backgroundColor = scoreColor;
+                    badge.style.color = (scoreText === 'Light Green') ? '#000' : 'white';
+                }
+            } else {
+                // Show next question
+                const currentIndex = questions.findIndex(q => q.id === questionId);
+                if (currentIndex < questions.length - 1) {
+                    const nextQ = questions[currentIndex + 1];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'block';
+                }
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleNumericConditionalYesNo(questionId, answer, sectionKey) {
+            const sectionData = sections[sectionKey];
+            const questions = sectionData.questions;
+            const currentQuestion = questions.find(q => q.id === questionId);
+            
+            // Store the response
+            scores[questionId] = answer;
+            
+            // Determine score based on answer
+            let score = 0;
+            let scoreColor = '';
+            let scoreText = '';
+            
+            const scoringRule = currentQuestion.scoring[answer];
+            
+            if (scoringRule === 'light_green') {
+                score = 3;
+                scoreColor = '#90EE90';
+                scoreText = 'Light Green';
+            } else if (scoringRule === 'dark_green') {
+                score = 4;
+                scoreColor = '#28a745';
+                scoreText = 'Dark Green';
+            }
+            
+            // Store section score
+            scores[sectionKey] = score;
+            
+            // Update section badge
+            const badge = document.getElementById(`score-badge-${sectionKey}`);
+            if (badge) {
+                badge.textContent = scoreText;
+                badge.style.backgroundColor = scoreColor;
+                badge.style.color = (scoreText === 'Light Green') ? '#000' : 'white';
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleMixedConditionalYesNo(questionId, answer, sectionKey) {
+            const sectionData = sections[sectionKey];
+            const questions = sectionData.questions;
+            const currentIndex = questions.findIndex(q => q.id === questionId);
+            const currentQuestion = questions[currentIndex];
+            
+            // Store the response
+            scores[questionId] = answer;
+            
+            if (answer === 'no') {
+                // Hide all subsequent questions
+                for (let i = currentIndex + 1; i < questions.length; i++) {
+                    const nextQ = questions[i];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'none';
+                    
+                    // Clear responses
+                    if (nextQ.type === 'numeric') {
+                        const input = document.getElementById(nextQ.id);
+                        if (input) input.value = '';
+                    } else {
+                        const radios = document.querySelectorAll(`input[name="${nextQ.id}"]`);
+                        radios.forEach(r => r.checked = false);
+                    }
+                    delete scores[nextQ.id];
+                }
+                
+                // Calculate score based on where we stopped
+                let score = 0;
+                let scoreColor = '';
+                let scoreText = '';
+                const scoringRule = currentQuestion.scoring.no;
+                
+                if (scoringRule === 'red') {
+                    score = 1;
+                    scoreColor = '#dc3545';
+                    scoreText = 'Red';
+                } else if (scoringRule === 'yellow') {
+                    score = 2;
+                    scoreColor = '#ffc107';
+                    scoreText = 'Yellow';
+                }
+                
+                // Store section score
+                scores[sectionKey] = score;
+                
+                // Update section badge
+                const badge = document.getElementById(`score-badge-${sectionKey}`);
+                if (badge) {
+                    badge.textContent = scoreText;
+                    badge.style.backgroundColor = scoreColor;
+                    badge.style.color = 'white';
+                }
+            } else if (answer === 'yes') {
+                // Show next question
+                if (currentIndex < questions.length - 1) {
+                    const nextQ = questions[currentIndex + 1];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'block';
+                }
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleMixedConditionalNumeric(questionId, value, sectionKey) {
+            const sectionData = sections[sectionKey];
+            const question = sectionData.questions.find(q => q.id === questionId);
+            
+            // Store the numeric value
+            scores[questionId] = parseInt(value);
+            
+            // Determine final score based on count
+            const count = parseInt(value);
+            let score = 0;
+            let scoreColor = '';
+            let scoreText = '';
+            
+            if (count >= 3) {
+                score = 1;
+                scoreColor = '#dc3545';
+                scoreText = 'Red';
+            } else if (count === 2) {
+                score = 2;
+                scoreColor = '#ffc107';
+                scoreText = 'Yellow';
+            } else if (count === 1) {
+                score = 3;
+                scoreColor = '#90EE90';
+                scoreText = 'Light Green';
+            } else if (count === 0) {
+                score = 4;
+                scoreColor = '#28a745';
+                scoreText = 'Dark Green';
+            }
+            
+            // Store section score
+            scores[sectionKey] = score;
+            
+            // Update section badge
+            const badge = document.getElementById(`score-badge-${sectionKey}`);
+            if (badge) {
+                badge.textContent = scoreText;
+                badge.style.backgroundColor = scoreColor;
+                badge.style.color = (scoreText === 'Light Green') ? '#000' : 'white';
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleRegisterChecklistYesNo(questionId, answer, sectionKey) {
+            const sectionData = sections[sectionKey];
+            const questions = sectionData.questions;
+            const currentIndex = questions.findIndex(q => q.id === questionId);
+            const currentQuestion = questions[currentIndex];
+            
+            // Store the response
+            scores[questionId] = answer;
+            
+            if (answer === 'no') {
+                // Hide all subsequent questions
+                for (let i = currentIndex + 1; i < questions.length; i++) {
+                    const nextQ = questions[i];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'none';
+                    
+                    // Clear responses
+                    if (nextQ.type === 'checklist') {
+                        nextQ.items.forEach(item => {
+                            const checkbox = document.getElementById(item.id);
+                            if (checkbox) checkbox.checked = false;
+                            delete scores[item.id];
+                        });
+                    } else {
+                        const radios = document.querySelectorAll(`input[name="${nextQ.id}"]`);
+                        radios.forEach(r => r.checked = false);
+                    }
+                    delete scores[nextQ.id];
+                }
+                
+                // Calculate score based on where we stopped
+                let score = 0;
+                let scoreColor = '';
+                let scoreText = '';
+                const scoringRule = currentQuestion.scoring.no;
+                
+                if (scoringRule === 'red') {
+                    score = 1;
+                    scoreColor = '#dc3545';
+                    scoreText = 'Red';
+                } else if (scoringRule === 'light_green') {
+                    score = 3;
+                    scoreColor = '#90EE90';
+                    scoreText = 'Light Green';
+                }
+                
+                // Store section score
+                scores[sectionKey] = score;
+                
+                // Update section badge
+                const badge = document.getElementById(`score-badge-${sectionKey}`);
+                if (badge) {
+                    badge.textContent = scoreText;
+                    badge.style.backgroundColor = scoreColor;
+                    badge.style.color = (scoreText === 'Light Green') ? '#000' : 'white';
+                }
+            } else if (answer === 'yes') {
+                // Check if this is the last question
+                if (currentIndex === questions.length - 1) {
+                    // Last question answered yes = Dark Green
+                    scores[sectionKey] = 4;
+                    const badge = document.getElementById(`score-badge-${sectionKey}`);
+                    if (badge) {
+                        badge.textContent = 'Dark Green';
+                        badge.style.backgroundColor = '#28a745';
+                        badge.style.color = 'white';
+                    }
+                } else {
+                    // Show next question
+                    const nextQ = questions[currentIndex + 1];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'block';
+                }
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleRegisterChecklist(questionId, sectionKey) {
+            const sectionData = sections[sectionKey];
+            const questions = sectionData.questions;
+            const currentIndex = questions.findIndex(q => q.id === questionId);
+            const currentQuestion = questions[currentIndex];
+            
+            // Check how many items are checked
+            const items = currentQuestion.items;
+            let allChecked = true;
+            
+            items.forEach(item => {
+                const checkbox = document.getElementById(item.id);
+                if (checkbox) {
+                    scores[item.id] = checkbox.checked ? 'yes' : 'no';
+                    if (!checkbox.checked) {
+                        allChecked = false;
+                    }
+                }
+            });
+            
+            // Store checklist state
+            scores[questionId] = allChecked ? 'all_yes' : 'any_no';
+            
+            if (!allChecked) {
+                // Hide all subsequent questions
+                for (let i = currentIndex + 1; i < questions.length; i++) {
+                    const nextQ = questions[i];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'none';
+                    
+                    // Clear responses
+                    if (nextQ.type === 'checklist') {
+                        nextQ.items.forEach(item => {
+                            const checkbox = document.getElementById(item.id);
+                            if (checkbox) checkbox.checked = false;
+                            delete scores[item.id];
+                        });
+                    } else {
+                        const radios = document.querySelectorAll(`input[name="${nextQ.id}"]`);
+                        radios.forEach(r => r.checked = false);
+                    }
+                    delete scores[nextQ.id];
+                }
+                
+                // Calculate score based on scoring rule
+                let score = 0;
+                let scoreColor = '';
+                let scoreText = '';
+                const scoringRule = currentQuestion.scoring.any_no;
+                
+                if (scoringRule === 'red') {
+                    score = 1;
+                    scoreColor = '#dc3545';
+                    scoreText = 'Red';
+                } else if (scoringRule === 'yellow') {
+                    score = 2;
+                    scoreColor = '#ffc107';
+                    scoreText = 'Yellow';
+                }
+                
+                // Store section score
+                scores[sectionKey] = score;
+                
+                // Update section badge
+                const badge = document.getElementById(`score-badge-${sectionKey}`);
+                if (badge) {
+                    badge.textContent = scoreText;
+                    badge.style.backgroundColor = scoreColor;
+                    badge.style.color = 'white';
+                }
+            } else {
+                // All items checked - show next question
+                if (currentIndex < questions.length - 1) {
+                    const nextQ = questions[currentIndex + 1];
+                    const nextDiv = document.getElementById(`cq-${nextQ.id}`);
+                    if (nextDiv) nextDiv.style.display = 'block';
+                }
+            }
+            
+            // Update section and overall scores
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function handleTestingDataEntry(sectionKey, questionId, itemId, answer) {
+            const sectionData = sections[sectionKey];
+            const question = sectionData.questions.find(q => q.id === questionId);
+            
+            scores[itemId] = answer;
+            
+            if (questionId === 'te_q1') {
+                // Check Q1 responses - show sections as soon as any service is "Yes"
+                const hiv = document.querySelector('input[name="te_q1_hiv"]:checked')?.value;
+                const syphilis = document.querySelector('input[name="te_q1_syphilis"]:checked')?.value;
+                const hepb = document.querySelector('input[name="te_q1_hepb"]:checked')?.value;
+                
+                // Check if any service is offered (Yes)
+                const anyYes = (hiv === 'yes') || (syphilis === 'yes') || (hepb === 'yes');
+                
+                // Check if all answered items are No
+                const allAnswered = hiv && syphilis && hepb;
+                const allNo = (hiv === 'no') && (syphilis === 'no') && (hepb === 'no');
+                
+                if (allAnswered && allNo) {
+                    // All services are No = Red
+                    scores[sectionKey] = 1;
+                    const badge = document.getElementById(`score-badge-${sectionKey}`);
+                    if (badge) {
+                        badge.textContent = 'Red';
+                        badge.style.backgroundColor = '#dc3545';
+                        badge.style.color = 'white';
+                    }
+                    // Hide Q2 and Q3
+                    const q2Div = document.getElementById('te-q-te_q2');
+                    const q3Div = document.getElementById('te-q-te_q3');
+                    if (q2Div) q2Div.style.display = 'none';
+                    if (q3Div) q3Div.style.display = 'none';
+                } else if (anyYes) {
+                    // At least one service is Yes - show Q2
+                    const q2Div = document.getElementById('te-q-te_q2');
+                    if (q2Div) q2Div.style.display = 'block';
+                    
+                    // Show Q3 if HIV testing is Yes (Q3 is specifically about HIV re-testing)
+                    const q3Div = document.getElementById('te-q-te_q3');
+                    if (q3Div) {
+                        q3Div.style.display = (hiv === 'yes') ? 'block' : 'none';
+                    }
+                }
+            } else if (questionId === 'te_q3') {
+                // Q3 responses affect the final score calculation
+                // Trigger recalculation of the entire section score
+                calculateTestingPercentages(sectionKey);
+                return; // calculateTestingPercentages already calls updateSectionScore and updateSummary
+            }
+            
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function calculateTestingPercentages(sectionKey) {
+            const sectionData = sections[sectionKey];
+            const q2 = sectionData.questions.find(q => q.id === 'te_q2');
+            
+            if (!q2 || !q2.fields) return;
+            
+            let lowestPercentageScore = 4; // Start with highest (Dark Green)
+            
+            // Calculate each percentage based on the formula
+            q2.fields.forEach(field => {
+                if (field.type === 'calculated') {
+                    const formula = field.formula;
+                    
+                    // Extract variable names from formula
+                    // Formula format: (numerator/denominator)*100
+                    const match = formula.match(/\((\w+)\/(\w+)\)\*100/);
+                    
+                    if (match) {
+                        const numeratorId = match[1];
+                        const denominatorId = match[2];
+                        
+                        const numeratorElem = document.getElementById(numeratorId);
+                        const denominatorElem = document.getElementById(denominatorId);
+                        
+                        if (numeratorElem && denominatorElem) {
+                            const numerator = parseFloat(numeratorElem.value) || 0;
+                            const denominator = parseFloat(denominatorElem.value) || 0;
+                            
+                            if (denominator > 0) {
+                                const percentage = (numerator / denominator) * 100;
+                                const resultElem = document.getElementById(field.id);
+                                if (resultElem) {
+                                    resultElem.value = percentage.toFixed(1) + '%';
+                                    
+                                    // Determine color and score for this percentage
+                                    let percentageScore;
+                                    let bgColor;
+                                    let textColor;
+                                    if (percentage >= 90) {
+                                        bgColor = '#28a745'; // Green background
+                                        textColor = 'white';
+                                        percentageScore = 4;
+                                    } else if (percentage >= 70) {
+                                        bgColor = '#ffc107'; // Yellow background
+                                        textColor = '#000';
+                                        percentageScore = 3;
+                                    } else {
+                                        bgColor = '#dc3545'; // Red background
+                                        textColor = 'white';
+                                        percentageScore = 1;
+                                    }
+                                    
+                                    // Style the entire input box with colored background
+                                    resultElem.style.backgroundColor = bgColor;
+                                    resultElem.style.color = textColor;
+                                    resultElem.style.fontWeight = '700';
+                                    resultElem.style.border = `3px solid ${bgColor}`;
+                                    resultElem.style.textAlign = 'center';
+                                    
+                                    // Track the lowest percentage score
+                                    if (percentageScore < lowestPercentageScore) {
+                                        lowestPercentageScore = percentageScore;
+                                    }
+                                }
+                            } else {
+                                const resultElem = document.getElementById(field.id);
+                                if (resultElem) {
+                                    resultElem.value = '';
+                                    // Clear styling when no data
+                                    resultElem.style.backgroundColor = '#f0f0f0';
+                                    resultElem.style.color = '#333';
+                                    resultElem.style.border = '2px solid #ddd';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Check if Q3 has been answered and adjust score accordingly
+            const anc = document.querySelector('input[name="te_q3_anc"]:checked')?.value;
+            const maternity = document.querySelector('input[name="te_q3_maternity"]:checked')?.value;
+            const pnc = document.querySelector('input[name="te_q3_pnc"]:checked')?.value;
+            const male = document.querySelector('input[name="te_q3_male"]:checked')?.value;
+            const hivstks = document.querySelector('input[name="te_q3_hivstks"]:checked')?.value;
+            
+            let finalScore = lowestPercentageScore;
+            
+            if (anc && maternity && pnc && male && hivstks) {
+                // Q3 is fully answered - it determines the final outcome
+                const allYes = (anc === 'yes' && maternity === 'yes' && pnc === 'yes' && male === 'yes' && hivstks === 'yes');
+                
+                if (allYes) {
+                    // All Yes in Q3 = Dark Green (overrides percentage scores if they're lower)
+                    finalScore = 4;
+                } else {
+                    // Any No in Q3 = Light Green (overrides percentage scores)
+                    finalScore = 3;
+                }
+            }
+            
+            // Set the final score
+            scores[sectionKey] = finalScore;
+            
+            const badge = document.getElementById(`score-badge-${sectionKey}`);
+            if (badge) {
+                let scoreText, scoreColor, textColor;
+                
+                if (finalScore === 4) {
+                    scoreText = 'Dark Green';
+                    scoreColor = '#28a745';
+                    textColor = 'white';
+                } else if (finalScore === 3) {
+                    scoreText = 'Light Green';
+                    scoreColor = '#90EE90';
+                    textColor = '#000';
+                } else if (finalScore === 2) {
+                    scoreText = 'Yellow';
+                    scoreColor = '#ffc107';
+                    textColor = '#000';
+                } else {
+                    scoreText = 'Red';
+                    scoreColor = '#dc3545';
+                    textColor = 'white';
+                }
+                
+                badge.textContent = scoreText;
+                badge.style.backgroundColor = scoreColor;
+                badge.style.color = textColor;
+            }
+            
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        // Handler for Triple Elimination Treatment section
+        function handleTripleEliminationTreatment(sectionKey, questionId, itemId, answer) {
+            scores[itemId] = answer;
+            
+            if (questionId === 'tet_q1') {
+                // Check Q1 responses
+                const hiv = document.querySelector('input[name="tet_q1_hiv"]:checked')?.value;
+                const syphilis = document.querySelector('input[name="tet_q1_syphilis"]:checked')?.value;
+                const hepb = document.querySelector('input[name="tet_q1_hepb"]:checked')?.value;
+                
+                // Check if all answered
+                const allAnswered = hiv && syphilis && hepb;
+                
+                // Check if any is "No"
+                const anyNo = (hiv === 'no') || (syphilis === 'no') || (hepb === 'no');
+                
+                if (allAnswered) {
+                    if (anyNo) {
+                        // Any No = Red
+                        scores[sectionKey] = 1;
+                        const badge = document.getElementById(`score-badge-${sectionKey}`);
+                        if (badge) {
+                            badge.textContent = 'Red';
+                            badge.style.backgroundColor = '#dc3545';
+                            badge.style.color = 'white';
+                        }
+                        // Hide Q2
+                        const q2Div = document.getElementById('te-q-tet_q2');
+                        if (q2Div) q2Div.style.display = 'none';
+                    } else {
+                        // All Yes - show Q2
+                        const q2Div = document.getElementById('te-q-tet_q2');
+                        if (q2Div) q2Div.style.display = 'block';
+                        // Calculate percentages for Q2
+                        calculateTreatmentPercentages(sectionKey);
+                    }
+                }
+            }
+            
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        // Handler for ART in PMTCT Facilities section
+        function handleArtPmtct(sectionKey, questionId, itemId, answer) {
+            scores[itemId] = answer;
+            
+            if (questionId === 'art_pmtct_q1') {
+                // Check all responses
+                const sti = document.querySelector('input[name="art_pmtct_q1_sti"]:checked')?.value;
+                const fp = document.querySelector('input[name="art_pmtct_q1_fp"]:checked')?.value;
+                const vl = document.querySelector('input[name="art_pmtct_q1_vl"]:checked')?.value;
+                const iac = document.querySelector('input[name="art_pmtct_q1_iac"]:checked')?.value;
+                const cd4 = document.querySelector('input[name="art_pmtct_q1_cd4"]:checked')?.value;
+                const ctx = document.querySelector('input[name="art_pmtct_q1_ctx"]:checked')?.value;
+                
+                // Check if all answered
+                const allAnswered = sti && fp && vl && iac && cd4 && ctx;
+                
+                if (allAnswered) {
+                    // Check if any is "No"
+                    const anyNo = (sti === 'no') || (fp === 'no') || (vl === 'no') || (iac === 'no') || (cd4 === 'no') || (ctx === 'no');
+                    
+                    let finalScore, scoreText, scoreColor, textColor;
+                    
+                    if (anyNo) {
+                        // Any No = Red
+                        finalScore = 1;
+                        scoreText = 'Red';
+                        scoreColor = '#dc3545';
+                        textColor = 'white';
+                    } else {
+                        // All Yes = Dark Green
+                        finalScore = 4;
+                        scoreText = 'Dark Green';
+                        scoreColor = '#28a745';
+                        textColor = 'white';
+                    }
+                    
+                    scores[sectionKey] = finalScore;
+                    
+                    const badge = document.getElementById(`score-badge-${sectionKey}`);
+                    if (badge) {
+                        badge.textContent = scoreText;
+                        badge.style.backgroundColor = scoreColor;
+                        badge.style.color = textColor;
+                    }
+                }
+            }
+            
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function calculateTreatmentPercentages(sectionKey) {
+            // Get input values
+            const hiv_positive = parseFloat(document.getElementById('tet_hiv_positive')?.value) || 0;
+            const art_initiated = parseFloat(document.getElementById('tet_art_initiated')?.value) || 0;
+            const syphilis_positive = parseFloat(document.getElementById('tet_syphilis_positive')?.value) || 0;
+            const syphilis_treated = parseFloat(document.getElementById('tet_syphilis_treated')?.value) || 0;
+            const hepb_vl_high = parseFloat(document.getElementById('tet_hepb_vl_high')?.value) || 0;
+            const hepb_art_initiated = parseFloat(document.getElementById('tet_hepb_art_initiated')?.value) || 0;
+            
+            // Calculate individual percentages
+            let artPct = 0, syphilisPct = 0, hepbPct = 0;
+            
+            // Calculate % On ART
+            if (hiv_positive > 0) {
+                artPct = (art_initiated / hiv_positive) * 100;
+                const elem = document.getElementById('tet_art_pct');
+                if (elem) {
+                    elem.value = artPct.toFixed(1) + '%';
+                    colorizePercentageField(elem, artPct);
+                }
+            } else {
+                // Clear if no denominator
+                const elem = document.getElementById('tet_art_pct');
+                if (elem) {
+                    elem.value = '-';
+                    elem.style.backgroundColor = '#f0f0f0';
+                    elem.style.color = '#333';
+                    elem.style.border = '2px solid #ddd';
+                }
+            }
+            
+            // Calculate % Treated for Syphilis
+            if (syphilis_positive > 0) {
+                syphilisPct = (syphilis_treated / syphilis_positive) * 100;
+                const elem = document.getElementById('tet_syphilis_treated_pct');
+                if (elem) {
+                    elem.value = syphilisPct.toFixed(1) + '%';
+                    colorizePercentageField(elem, syphilisPct);
+                }
+            } else {
+                const elem = document.getElementById('tet_syphilis_treated_pct');
+                if (elem) {
+                    elem.value = '-';
+                    elem.style.backgroundColor = '#f0f0f0';
+                    elem.style.color = '#333';
+                    elem.style.border = '2px solid #ddd';
+                }
+            }
+            
+            // Calculate % on ART for Hep. B Prophylaxis
+            if (hepb_vl_high > 0) {
+                hepbPct = (hepb_art_initiated / hepb_vl_high) * 100;
+                const elem = document.getElementById('tet_hepb_art_pct');
+                if (elem) {
+                    elem.value = hepbPct.toFixed(1) + '%';
+                    colorizePercentageField(elem, hepbPct);
+                }
+            } else {
+                const elem = document.getElementById('tet_hepb_art_pct');
+                if (elem) {
+                    elem.value = '-';
+                    elem.style.backgroundColor = '#f0f0f0';
+                    elem.style.color = '#333';
+                    elem.style.border = '2px solid #ddd';
+                }
+            }
+            
+            // Calculate average percentage
+            const avgPct = (artPct + syphilisPct + hepbPct) / 3;
+            const avgElem = document.getElementById('tet_average_pct');
+            if (avgElem) {
+                avgElem.value = avgPct.toFixed(1) + '%';
+                colorizePercentageField(avgElem, avgPct);
+            }
+            
+            // Determine section score based on average percentage
+            let finalScore = 1;
+            let scoreText = 'Red';
+            let scoreColor = '#dc3545';
+            let textColor = 'white';
+            
+            if (avgPct >= 90) {
+                finalScore = 4;
+                scoreText = 'Dark Green';
+                scoreColor = '#28a745';
+            } else if (avgPct >= 80) {
+                finalScore = 3;
+                scoreText = 'Light Green';
+                scoreColor = '#90EE90';
+                textColor = '#000';
+            } else if (avgPct >= 60) {
+                finalScore = 2;
+                scoreText = 'Yellow';
+                scoreColor = '#ffc107';
+                textColor = '#000';
+            }
+            
+            // Update section score
+            scores[sectionKey] = finalScore;
+            
+            const badge = document.getElementById(`score-badge-${sectionKey}`);
+            if (badge) {
+                badge.textContent = scoreText;
+                badge.style.backgroundColor = scoreColor;
+                badge.style.color = textColor;
+            }
+            
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
+        function colorizePercentageField(elem, percentage) {
+            let bgColor, textColor;
+            
+            if (percentage >= 90) {
+                bgColor = '#28a745'; // Dark Green
+                textColor = 'white';
+            } else if (percentage >= 80) {
+                bgColor = '#90EE90'; // Light Green
+                textColor = '#000';
+            } else if (percentage >= 60) {
+                bgColor = '#ffc107'; // Yellow
+                textColor = '#000';
+            } else {
+                bgColor = '#dc3545'; // Red
+                textColor = 'white';
+            }
+            
+            elem.style.backgroundColor = bgColor;
+            elem.style.color = textColor;
+            elem.style.fontWeight = '700';
+            elem.style.border = `3px solid ${bgColor}`;
+            elem.style.textAlign = 'center';
+        }
+
+        function calculateQualityMatrix(sectionKey) {
+            const sectionData = sections[sectionKey];
+            if (!sectionData || sectionData.type !== 'quality_matrix') return;
+            
+            let totalScore = 0;
+            let validServices = 0;
+            
+            // Calculate percentage for each service row
+            sectionData.services.forEach(service => {
+                let yesCount = 0;
+                let eligible = 0; // Total excluding NAs
+                
+                // Count Y and eligible (not NA) for this service across all clients
+                for (let clientNum = 1; clientNum <= sectionData.clients; clientNum++) {
+                    const cellId = `qp_${service.id}_c${clientNum}`;
+                    const value = document.getElementById(cellId)?.value;
+                    
+                    if (value === 'Y') {
+                        yesCount++;
+                        eligible++;
+                    } else if (value === 'N') {
+                        eligible++;
+                    }
+                    // NA and empty are not counted in eligible
+                }
+                
+                // Calculate percentage
+                let percentage = 0;
+                if (eligible > 0) {
+                    percentage = (yesCount / eligible) * 100;
+                    validServices++; // Only count services that have eligible responses
+                }
+                
+                // Update percentage display
+                const pctElem = document.getElementById(`qp_${service.id}_pct`);
+                if (pctElem) {
+                    if (eligible > 0) {
+                        pctElem.textContent = percentage.toFixed(1) + '%';
+                    } else {
+                        pctElem.textContent = '-';
+                    }
+                }
+                
+                // Determine and display row score
+                const scoreElem = document.getElementById(`qp_${service.id}_score`);
+                if (scoreElem && eligible > 0) {
+                    let scoreValue, scoreText, bgColor, textColor;
+                    
+                    if (percentage >= 90) {
+                        scoreValue = 4;
+                        scoreText = 'Dark Green';
+                        bgColor = '#28a745';
+                        textColor = 'white';
+                    } else if (percentage >= 80) {
+                        scoreValue = 3;
+                        scoreText = 'Light Green';
+                        bgColor = '#90EE90';
+                        textColor = '#000';
+                    } else if (percentage >= 60) {
+                        scoreValue = 2;
+                        scoreText = 'Yellow';
+                        bgColor = '#ffc107';
+                        textColor = '#000';
+                    } else {
+                        scoreValue = 1;
+                        scoreText = 'Red';
+                        bgColor = '#dc3545';
+                        textColor = 'white';
+                    }
+                    
+                    scoreElem.textContent = scoreText;
+                    scoreElem.style.backgroundColor = bgColor;
+                    scoreElem.style.color = textColor;
+                    
+                    totalScore += scoreValue;
+                } else if (scoreElem) {
+                    scoreElem.textContent = '-';
+                    scoreElem.style.backgroundColor = 'transparent';
+                    scoreElem.style.color = '#000';
+                }
+            });
+            
+            // Calculate overall section score (average of all service scores)
+            if (validServices > 0) {
+                const avgScore = totalScore / validServices;
+                const finalScore = Math.round(avgScore); // Round to nearest integer
+                
+                let scoreText, bgColor, textColor;
+                if (finalScore === 4) {
+                    scoreText = 'Dark Green';
+                    bgColor = '#28a745';
+                    textColor = 'white';
+                } else if (finalScore === 3) {
+                    scoreText = 'Light Green';
+                    bgColor = '#90EE90';
+                    textColor = '#000';
+                } else if (finalScore === 2) {
+                    scoreText = 'Yellow';
+                    bgColor = '#ffc107';
+                    textColor = '#000';
+                } else {
+                    scoreText = 'Red';
+                    bgColor = '#dc3545';
+                    textColor = 'white';
+                }
+                
+                const badge = document.getElementById(`score-badge-${sectionKey}`);
+                if (badge) {
+                    badge.textContent = scoreText;
+                    badge.style.backgroundColor = bgColor;
+                    badge.style.color = textColor;
+                }
+                
+                scores[sectionKey] = finalScore;
+            }
+            
+            updateSectionScore(sectionKey);
+            updateSummary();
         }
 
         function setScore(indicatorId, score, maxScore) {
@@ -755,12 +3524,69 @@
             }
         }
 
+        function handleNAOption(sectionKey) {
+            const naCheckbox = document.getElementById(`na-${sectionKey}`);
+            const questionsContainer = document.getElementById(`questions-container-${sectionKey}`);
+            const scoreBadge = document.getElementById(`score-badge-${sectionKey}`);
+            const sectionData = sections[sectionKey];
+            
+            if (naCheckbox.checked) {
+                // Hide questions container
+                if (questionsContainer) {
+                    questionsContainer.style.display = 'none';
+                }
+                
+                // Clear all question responses
+                sectionData.questions.forEach(question => {
+                    const radios = document.querySelectorAll(`input[name="${question.id}"]`);
+                    radios.forEach(r => r.checked = false);
+                    delete scores[question.id];
+                });
+                
+                // Mark section as NA
+                scores[sectionKey] = 'NA';
+                
+                // Update badge
+                if (scoreBadge) {
+                    scoreBadge.textContent = 'N/A';
+                    scoreBadge.style.backgroundColor = '#6c757d';
+                    scoreBadge.style.color = 'white';
+                }
+                
+                // Add comment noting NA
+                comments[sectionKey] = 'Not Applicable - No community services access';
+            } else {
+                // Show questions container
+                if (questionsContainer) {
+                    questionsContainer.style.display = 'block';
+                }
+                
+                // Clear NA status
+                delete scores[sectionKey];
+                delete comments[sectionKey];
+                
+                // Reset badge
+                if (scoreBadge) {
+                    scoreBadge.textContent = 'Not assessed';
+                    scoreBadge.style.backgroundColor = '#f8f9fa';
+                    scoreBadge.style.color = '#000';
+                }
+            }
+            
+            // Update summary
+            updateSectionScore(sectionKey);
+            updateSummary();
+        }
+
         function updateSummary() {
             let totalScore = 0;
             let indicatorsAssessed = 0;
 
             // Calculate total score
             for (const [indicatorId, score] of Object.entries(scores)) {
+                // Skip NA scores
+                if (score === 'NA') continue;
+                
                 if (score >= 1 && scores[indicatorId] !== undefined) {
                     totalScore += score;
                     indicatorsAssessed++;
@@ -772,12 +3598,41 @@
                 let sectionScore = 0;
                 let sectionMax = 0;
 
-                sectionData.indicators.forEach(indicator => {
-                    sectionMax += indicator.max_score;
-                    if (scores[indicator.id]) {
-                        sectionScore += scores[indicator.id];
+                if (sectionData.type === 'register_checklist') {
+                    // For register sections, each register has max score of 3
+                    sectionData.registers.forEach(register => {
+                        sectionMax += 3;
+                        if (scores[register.id]) {
+                            sectionScore += scores[register.id];
+                        }
+                    });
+                } else if (sectionData.type === 'conditional_questions') {
+                    // For conditional questions
+                    sectionMax = 4;
+                    if (scores[sectionKey]) {
+                        sectionScore = scores[sectionKey];
                     }
-                });
+                } else if (sectionData.type === 'testing_data_entry') {
+                    // For testing data entry sections
+                    sectionMax = 4;
+                    if (scores[sectionKey]) {
+                        sectionScore = scores[sectionKey];
+                    }
+                } else if (sectionData.type === 'quality_matrix') {
+                    // For quality matrix sections
+                    sectionMax = 4;
+                    if (scores[sectionKey]) {
+                        sectionScore = scores[sectionKey];
+                    }
+                } else {
+                    // For standard indicator-based sections
+                    sectionData.indicators.forEach(indicator => {
+                        sectionMax += indicator.max_score;
+                        if (scores[indicator.id]) {
+                            sectionScore += scores[indicator.id];
+                        }
+                    });
+                }
 
                 document.getElementById(`section-score-${sectionKey}`).textContent = 
                     `${sectionScore} / ${sectionMax}`;
@@ -793,6 +3648,58 @@
             document.getElementById('percentage').textContent = percentage + '%';
         }
 
+        function updateSectionScore(sectionKey) {
+            // This function is called to update individual section scores
+            const sectionData = sections[sectionKey];
+            
+            // Check if section is marked as NA
+            if (scores[sectionKey] === 'NA') {
+                return; // Don't update score display for NA sections
+            }
+            
+            let sectionScore = 0;
+            let sectionMax = 0;
+
+            if (sectionData.type === 'register_checklist') {
+                // For register sections
+                sectionData.registers.forEach(register => {
+                    sectionMax += 3;
+                    if (scores[register.id]) {
+                        sectionScore += scores[register.id];
+                    }
+                });
+            } else if (sectionData.type === 'conditional_questions') {
+                // For conditional questions, score is already stored as section score
+                sectionMax = 4; // Max is Dark Green
+                if (scores[sectionKey] && scores[sectionKey] !== 'NA') {
+                    sectionScore = scores[sectionKey];
+                }
+            } else if (sectionData.type === 'testing_data_entry') {
+                // For testing data entry sections, score is already stored as section score
+                sectionMax = 4; // Max is Dark Green
+                if (scores[sectionKey]) {
+                    sectionScore = scores[sectionKey];
+                }
+            } else if (sectionData.type === 'quality_matrix') {
+                // For quality matrix sections, score is already stored as section score
+                sectionMax = 4; // Max is Dark Green
+                if (scores[sectionKey]) {
+                    sectionScore = scores[sectionKey];
+                }
+            } else {
+                // For standard indicator-based sections
+                sectionData.indicators.forEach(indicator => {
+                    sectionMax += indicator.max_score;
+                    if (scores[indicator.id]) {
+                        sectionScore += scores[indicator.id];
+                    }
+                });
+            }
+
+            document.getElementById(`section-score-${sectionKey}`).textContent = 
+                `${sectionScore} / ${sectionMax}`;
+        }
+
         function validateFacilityInfo() {
             const required = ['facilityName', 'district', 'facilityLevel', 'ownership', 'assessorName', 'assessmentDate'];
             for (const field of required) {
@@ -806,6 +3713,27 @@
         }
 
         function getAssessmentData() {
+            // Collect register responses for sections that use register checklists
+            const registerResponses = {};
+            for (const [sectionKey, sectionData] of Object.entries(sections)) {
+                if (sectionData.type === 'register_checklist') {
+                    registerResponses[sectionKey] = {};
+                    sectionData.registers.forEach(register => {
+                        const available = document.querySelector(`input[name="${register.id}_available"]:checked`);
+                        const standard = document.querySelector(`input[name="${register.id}_standard"]:checked`);
+                        const complete = document.querySelector(`input[name="${register.id}_complete"]:checked`);
+                        
+                        registerResponses[sectionKey][register.id] = {
+                            name: register.name,
+                            available: available ? available.value : null,
+                            standard: standard ? standard.value : null,
+                            complete: complete ? complete.value : null,
+                            score: scores[register.id] || 0
+                        };
+                    });
+                }
+            }
+
             return {
                 facilityName: document.getElementById('facilityName').value,
                 district: document.getElementById('district').value,
@@ -816,6 +3744,7 @@
                 campaignDay: document.getElementById('campaignDay').value ? parseInt(document.getElementById('campaignDay').value) : null,
                 scores: scores,
                 comments: comments,
+                registerResponses: registerResponses,
                 recommendations: {} // Can be enhanced with AI-generated recommendations
             };
         }
@@ -928,6 +3857,113 @@
                     if (commentField) commentField.value = '';
                 }
                 
+                // Clear register selections
+                for (const [sectionKey, sectionData] of Object.entries(sections)) {
+                    if (sectionData.type === 'register_checklist') {
+                        sectionData.registers.forEach(register => {
+                            // Clear radio buttons
+                            const availableRadios = document.querySelectorAll(`input[name="${register.id}_available"]`);
+                            const standardRadios = document.querySelectorAll(`input[name="${register.id}_standard"]`);
+                            const completeRadios = document.querySelectorAll(`input[name="${register.id}_complete"]`);
+                            
+                            availableRadios.forEach(radio => radio.checked = false);
+                            standardRadios.forEach(radio => radio.checked = false);
+                            completeRadios.forEach(radio => radio.checked = false);
+                            
+                            // Reset score badge
+                            const scoreBadge = document.getElementById(`score-${register.id}`);
+                            if (scoreBadge) {
+                                scoreBadge.textContent = '-';
+                                scoreBadge.style.backgroundColor = '';
+                                scoreBadge.style.color = '';
+                            }
+                            
+                            // Clear from scores object
+                            delete scores[register.id];
+                        });
+                        
+                        // Clear section comment
+                        const sectionComment = document.getElementById(`comment-${sectionKey}`);
+                        if (sectionComment) sectionComment.value = '';
+                    } else if (sectionData.type === 'conditional_questions') {
+                        // Clear conditional questions
+                        sectionData.questions.forEach((question, index) => {
+                            // Clear radio buttons
+                            const radios = document.querySelectorAll(`input[name="${question.id}"]`);
+                            radios.forEach(radio => radio.checked = false);
+                            
+                            // Hide all questions except the first
+                            const questionDiv = document.getElementById(`cq-${question.id}`);
+                            if (questionDiv) {
+                                questionDiv.style.display = (index === 0) ? 'block' : 'none';
+                            }
+                            
+                            // Clear from scores
+                            delete scores[question.id];
+                        });
+                        
+                        // Clear section score
+                        delete scores[sectionKey];
+                        
+                        // Reset score badge
+                        const badge = document.getElementById(`score-badge-${sectionKey}`);
+                        if (badge) {
+                            badge.textContent = 'Not assessed';
+                            badge.style.backgroundColor = '';
+                            badge.style.color = '';
+                        }
+                        
+                        // Clear section comment
+                        const sectionComment = document.getElementById(`comment-${sectionKey}`);
+                        if (sectionComment) sectionComment.value = '';
+                    } else if (sectionData.type === 'testing_data_entry') {
+                        // Clear testing data entry questions
+                        sectionData.questions.forEach((question, qIndex) => {
+                            if (question.type === 'checklist') {
+                                // Clear checklist items
+                                question.items.forEach(item => {
+                                    const radios = document.querySelectorAll(`input[name="${item.id}"]`);
+                                    radios.forEach(radio => radio.checked = false);
+                                    delete scores[item.id];
+                                });
+                            } else if (question.type === 'data_entry') {
+                                // Clear data entry fields
+                                question.fields.forEach(field => {
+                                    const inputElem = document.getElementById(field.id);
+                                    if (inputElem) {
+                                        inputElem.value = '';
+                                        if (field.type === 'calculated') {
+                                            inputElem.style.color = '';
+                                            inputElem.style.fontWeight = '';
+                                        }
+                                    }
+                                });
+                            }
+                            
+                            // Hide all questions except the first
+                            const questionDiv = document.getElementById(`te-q-${question.id}`);
+                            if (questionDiv) {
+                                questionDiv.style.display = (qIndex === 0) ? 'block' : 'none';
+                            }
+                        });
+                        
+                        // Clear section score
+                        delete scores[sectionKey];
+                        
+                        // Reset score badge
+                        const badge = document.getElementById(`score-badge-${sectionKey}`);
+                        if (badge) {
+                            badge.textContent = 'Not assessed';
+                            badge.style.backgroundColor = '';
+                            badge.style.color = '';
+                        }
+                        
+                        // Clear section comment
+                        const sectionComment = document.getElementById(`comment-${sectionKey}`);
+                        if (sectionComment) sectionComment.value = '';
+                    }
+                }
+                
                 updateSummary();
                 showMessage('Assessment reset successfully', 'success');
             }
@@ -965,7 +4001,112 @@
             // Set today's date (browser compatible)
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('assessmentDate').value = today;
+
+            // Initialize assessment type
+            currentAssessmentType = 'standard';
         });
+
+        // Assessment type switching
+        let currentAssessmentType = 'standard';
+        let pmtctConfig = null;
+
+        function switchAssessmentType(type) {
+            currentAssessmentType = type;
+            
+            // Update button styles
+            const standardBtn = document.getElementById('btn-standard');
+            const pmtctBtn = document.getElementById('btn-pmtct');
+            
+            if (type === 'standard') {
+                standardBtn.style.background = '#3498db';
+                standardBtn.style.color = 'white';
+                pmtctBtn.style.background = 'white';
+                pmtctBtn.style.color = '#3498db';
+                
+                // Show standard assessment
+                document.getElementById('assessmentSections').style.display = 'block';
+                document.getElementById('pmtctAssessmentSections').style.display = 'none';
+                
+                // Update submit button text
+                document.querySelector('.submit-btn').textContent = 'Submit Standard Assessment';
+            } else if (type === 'pmtct') {
+                standardBtn.style.background = 'white';
+                standardBtn.style.color = '#3498db';
+                pmtctBtn.style.background = '#3498db';
+                pmtctBtn.style.color = 'white';
+                
+                // Show PMTCT assessment
+                document.getElementById('assessmentSections').style.display = 'none';
+                document.getElementById('pmtctAssessmentSections').style.display = 'block';
+                
+                // Load PMTCT config if not already loaded
+                if (!pmtctConfig) {
+                    loadPMTCTConfig();
+                }
+                
+                // Update submit button text
+                document.querySelector('.submit-btn').textContent = 'Submit PMTCT Assessment';
+            }
+        }
+
+        // Load PMTCT configuration from server
+        function loadPMTCTConfig() {
+            fetch('/api/pmtct-config')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        pmtctConfig = data.config;
+                        renderPMTCTAssessment(pmtctConfig);
+                    } else {
+                        showMessage('Error loading PMTCT configuration: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading PMTCT config:', error);
+                    showMessage('Error loading PMTCT configuration', 'error');
+                });
+        }
+
+        // Render PMTCT Assessment
+        function renderPMTCTAssessment(config) {
+            const container = document.getElementById('pmtctAssessmentSections');
+            
+            let html = '<div class="pmtct-assessment-wrapper">';
+            html += `<h2>${config.title}</h2>`;
+            html += '<p class="assessment-intro">Comprehensive PMTCT assessment covering HIV, Syphilis, and Hepatitis B services for pregnant women and HIV-exposed infants.</p>';
+            html += '<div class="pmtct-notice" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">';
+            html += '<strong>Note:</strong> This is a comprehensive assessment tool with multiple question types including Yes/No, data entry tables, and chart reviews. Please complete all applicable sections.';
+            html += '</div>';
+            
+            // Add sections overview
+            html += '<div class="sections-overview" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">';
+            html += '<h3>Assessment Sections:</h3>';
+            html += '<ol style="margin-left: 20px; margin-top: 10px;">';
+            config.sections.forEach((section, index) => {
+                html += `<li style="margin: 5px 0;"><strong>${section.title}</strong></li>`;
+            });
+            html += '</ol>';
+            html += '</div>';
+            
+            // Note about implementation
+            html += '<div class="implementation-note" style="background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; margin: 20px 0; border-radius: 4px;">';
+            html += '<h4 style="margin-bottom: 10px;">Implementation Status</h4>';
+            html += '<p>The comprehensive PMTCT assessment framework has been configured with ' + config.sections.length + ' major sections covering:</p>';
+            html += '<ul style="margin-left: 20px; margin-top: 10px;">';
+            html += '<li>Triple Elimination (HIV, Syphilis, Hepatitis B) - Testing & Treatment</li>';
+            html += '<li>Early Infant Diagnosis and HEI Tracking</li>';
+            html += '<li>Supply Chain Reliability for PMTCT Commodities</li>';
+            html += '<li>Patient Records and Tracking Systems</li>';
+            html += '<li>Human Resources and Service Delivery Points</li>';
+            html += '</ul>';
+            html += '<p style="margin-top: 10px;"><strong>The detailed form interface is being finalized and will be fully interactive in the next update.</strong></p>';
+            html += '<p style="margin-top: 10px;">For now, you can use the Standard Hepatitis B Assessment above.</p>';
+            html += '</div>';
+            
+            html += '</div>';
+            container.innerHTML = html;
+        }
     </script>
+    <script src="{{ url_for('static', filename='js/pmtct_assessment.js') }}"></script>
 </body>
 </html>
