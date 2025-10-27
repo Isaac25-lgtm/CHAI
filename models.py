@@ -92,6 +92,7 @@ class Assessment(db.Model):
     tracking_hei_score = db.Column(db.Float)
     enrolment_eid_art_score = db.Column(db.Float)
     hei_eid_registers_score = db.Column(db.Float)
+    supply_chain_eid_score = db.Column(db.Float)
     
     def to_dict(self):
         return {
@@ -124,7 +125,8 @@ class Assessment(db.Model):
                 'ctxHei': self.ctx_hei_score,
                 'trackingHei': self.tracking_hei_score,
                 'enrolmentEidArt': self.enrolment_eid_art_score,
-                'heiEidRegisters': self.hei_eid_registers_score
+                'heiEidRegisters': self.hei_eid_registers_score,
+                'supplyChainEid': self.supply_chain_eid_score
             }
         }
     
@@ -150,7 +152,8 @@ class Assessment(db.Model):
             'ctx_hei': ['ctx_hei'],  # Section-level numeric conditional questions
             'tracking_hei': ['tracking_hei'],  # Section-level conditional questions
             'enrolment_eid_art': ['enrolment_eid_art'],  # Section-level mixed conditional numeric
-            'hei_eid_registers': ['hei_eid_registers']  # Section-level register checklist
+            'hei_eid_registers': ['hei_eid_registers'],  # Section-level register checklist
+            'supply_chain_eid': ['supply_chain_eid']  # Section-level conditional questions with NA option
         }
         
         # Max scores per indicator type
@@ -171,7 +174,8 @@ class Assessment(db.Model):
             'ctx_hei': 4,  # Numeric conditional questions: Red=1, Yellow=2, Light Green=3, Dark Green=4
             'tracking_hei': 4,  # Conditional questions: Red=1, Yellow=2, Light Green=3, Dark Green=4
             'enrolment_eid_art': 4,  # Mixed conditional numeric: Red=1, Yellow=2, Light Green=3, Dark Green=4
-            'hei_eid_registers': 4  # Register checklist: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'hei_eid_registers': 4,  # Register checklist: Red=1, Yellow=2, Light Green=3, Dark Green=4
+            'supply_chain_eid': 4  # Conditional questions with NA: Red=1, Yellow=2, Light Green=3, Dark Green=4
         }
         
         for category, indicators in categories.items():

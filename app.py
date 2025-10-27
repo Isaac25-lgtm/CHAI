@@ -539,6 +539,32 @@ TOOL_SECTIONS = {
                 "scoring": {"no": "light_green", "yes": "dark_green"}
             }
         ]
+    },
+    "supply_chain_eid": {
+        "name": "Supply Chain Reliability (Early Infant Diagnosis) [HEI]",
+        "type": "conditional_questions",
+        "standard": "Each PMTCT facility has a reliable supply of Early Infant Diagnosis (EID) dried blood spot (DBS) supplies which consist of: a collection card, alcohol swabs, gauze, lancets and latex gloves (or a DBS bundle).",
+        "instructions": "If DBS collection for EID does not occur at this facility, check NA, and SKIP this section.",
+        "na_option": True,
+        "questions": [
+            {
+                "id": "sceid_q1",
+                "text": "Has a stock-out of EID supplies in the past 3 months resulted in an interruption of HIV testing for infants?",
+                "scoring": {"yes": "red", "no": "next"}
+            },
+            {
+                "id": "sceid_q2",
+                "text": "Has there been a stock-out or low stock status of EID kits supplies in the past 3 months that required placement of an emergency order?",
+                "depends_on": "sceid_q1",
+                "scoring": {"yes": "yellow", "no": "next"}
+            },
+            {
+                "id": "sceid_q3",
+                "text": "Are EID supplies distributed to testing points at this facility as standardized bundles to ensure that all components are consistently available?",
+                "depends_on": "sceid_q2",
+                "scoring": {"no": "light_green", "yes": "dark_green"}
+            }
+        ]
     }
 }
 
