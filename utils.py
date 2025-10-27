@@ -776,6 +776,39 @@ class ExcelGenerator:
             section_cell.alignment = Alignment(horizontal='left', vertical='center')
             row += 1
             
+            # For section downloads, collect ALL keys that belong to this section
+            if is_section_download:
+                # Get the section key (e.g., "patient_records")
+                section_key = sections_with_data[0]
+                
+                # Collect all score keys that belong to this section
+                all_section_keys = set()
+                for key in scores.keys():
+                    # Include keys that match the section key or start with it
+                    if key == section_key or key.startswith(section_key + '_'):
+                        all_section_keys.add(key)
+                    # Also check if key matches any defined indicator ID
+                    for ind in indicators:
+                        if key == ind['id'] or key.startswith(ind['id'] + '_'):
+                            all_section_keys.add(key)
+                
+                # Build a complete list of indicators including undefined ones
+                all_indicators = list(indicators)  # Start with defined indicators
+                
+                # Add undefined indicators (keys that have data but aren't in the indicators list)
+                defined_ids = {ind['id'] for ind in indicators}
+                for key in all_section_keys:
+                    if key not in defined_ids:
+                        # Create a generic indicator entry for this key
+                        indicator_name = key.replace('_', ' ').title()
+                        all_indicators.append({
+                            "id": key,
+                            "name": indicator_name,
+                            "max_score": 0
+                        })
+                
+                indicators = all_indicators
+            
             # Add indicators
             for indicator in indicators:
                 indicator_id = indicator['id']
