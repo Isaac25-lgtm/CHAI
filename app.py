@@ -15,7 +15,7 @@ from functools import wraps
 from config import Config
 from logger import setup_logger, log_api_call, log_security_event
 from validators import DataValidator, ValidationError
-from utils import ExcelGenerator, EmailService, FileManager
+from utils import ExcelGenerator, WordGenerator, EmailService, FileManager
 from models import db, init_database, User, Participant, Assessment, log_activity
 from admin_routes import admin_bp
 
@@ -1362,6 +1362,51 @@ def download_assessment():
         return jsonify({'success': False, 'message': str(e)}), 400
     except Exception as e:
         logger.error(f"Error in download_assessment: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+    finally:
+        if filepath and os.path.exists(filepath):
+            FileManager.cleanup_temp_file(filepath)
+
+@app.route('/download-assessment-word', methods=['POST'])
+@csrf.exempt  # Temporarily exempt for AJAX calls
+@api_logger
+@login_required
+@validate_json
+@rate_limit(max_requests=20, window=3600)
+def download_assessment_word():
+    """Download assessment Word document"""
+    filepath = None
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'success': False, 'message': 'No assessment data'}), 400
+        
+        # Validate assessment data
+        is_valid, errors = DataValidator.validate_assessment_data(data)
+        if not is_valid:
+            return jsonify({
+                'success': False,
+                'message': 'Validation errors found',
+                'errors': errors
+            }), 400
+        
+        # Add section definitions to data for accurate question text in reports
+        data['section_definitions'] = TOOL_SECTIONS
+        
+        filepath, filename = WordGenerator.create_assessment_word(data)
+        
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+    except ValidationError as e:
+        logger.warning(f"Validation error in download_assessment_word: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error in download_assessment_word: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': 'Internal server error'}), 500
     finally:
         if filepath and os.path.exists(filepath):

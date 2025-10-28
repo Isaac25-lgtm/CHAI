@@ -561,7 +561,8 @@
 
             <div class="action-buttons">
                 <button onclick="saveAssessment()" class="btn-success">Submit & Email Report</button>
-                <button onclick="downloadReport()" class="btn-primary">Download Report</button>
+                <button onclick="downloadReport('excel')" class="btn-primary">📊 Download Excel</button>
+                <button onclick="downloadReport('word')" class="btn-primary">📄 Download Word</button>
                 <button onclick="resetAssessment()" class="btn-warning">Reset Assessment</button>
             </div>
 
@@ -1525,8 +1526,11 @@
                         <div class="section-header" onclick="toggleSection('${sectionKey}')">
                             <h3>${sectionData.name}</h3>
                             <div style="display: flex; align-items: center; gap: 10px;">
-                                <button class="btn-download-section" onclick="event.stopPropagation(); downloadSectionReport('${sectionKey}')" title="Download this section only">
-                                    📥 Download Section
+                                <button class="btn-download-section" onclick="event.stopPropagation(); downloadSectionReport('${sectionKey}', 'excel')" title="Download section as Excel">
+                                    📊 Excel
+                                </button>
+                                <button class="btn-download-section" onclick="event.stopPropagation(); downloadSectionReport('${sectionKey}', 'word')" title="Download section as Word">
+                                    📄 Word
                                 </button>
                             <div class="section-score" id="section-score-${sectionKey}">0 / 0</div>
                             </div>
@@ -4711,7 +4715,7 @@
             });
         }
 
-        function downloadReport(forceDownload = false) {
+        function downloadReport(format = 'excel', forceDownload = false) {
             if (!validateFacilityInfo()) return;
 
             // List of all scored sections that should be completed
@@ -4788,10 +4792,15 @@
 
             // Proceed with download (complete or partial)
             const data = getAssessmentData();
+            
+            // Determine endpoint and file extension based on format
+            const endpoint = format === 'word' ? '/download-assessment-word' : '/download-assessment';
+            const fileExtension = format === 'word' ? '.docx' : '.xlsx';
+            const formatName = format === 'word' ? 'Word' : 'Excel';
 
-            showMessage('⏳ Generating your comprehensive assessment report with color coding...', 'info');
+            showMessage(`⏳ Generating your comprehensive ${formatName} assessment report with color coding...`, 'info');
 
-            fetchWithTimeout('/download-assessment', {
+            fetchWithTimeout(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -4804,17 +4813,17 @@
                 const a = document.createElement('a');
                 a.href = url;
                 const completionStatus = incompleteSections.length === 0 ? 'Complete' : 'Partial';
-                a.download = `PMTCT_Assessment_${completionStatus}_${document.getElementById('facilityName').value.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                a.download = `PMTCT_Assessment_${completionStatus}_${document.getElementById('facilityName').value.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}${fileExtension}`;
                 a.click();
-                showMessage(`✅ ${completionStatus} assessment report downloaded successfully! Check your Downloads folder.`, 'success');
+                showMessage(`✅ ${completionStatus} ${formatName} assessment report downloaded successfully! Check your Downloads folder.`, 'success');
             })
             .catch(error => {
-                showMessage('❌ Error downloading report: ' + error.message, 'error');
+                showMessage(`❌ Error downloading ${formatName} report: ` + error.message, 'error');
             });
         }
 
-        function downloadSectionReport(sectionKey) {
-            console.log('Download Section clicked for:', sectionKey);
+        function downloadSectionReport(sectionKey, format = 'excel') {
+            console.log('Download Section clicked for:', sectionKey, 'Format:', format);
             
             if (!validateFacilityInfo()) return;
 
@@ -4929,9 +4938,14 @@
                 return;
             }
 
-            showMessage(`⏳ Generating report for section: ${sectionData.name}...`, 'info');
+            // Determine endpoint and file extension based on format
+            const endpoint = format === 'word' ? '/download-assessment-word' : '/download-assessment';
+            const fileExtension = format === 'word' ? '.docx' : '.xlsx';
+            const formatName = format === 'word' ? 'Word' : 'Excel';
+            
+            showMessage(`⏳ Generating ${formatName} report for section: ${sectionData.name}...`, 'info');
 
-            fetchWithTimeout('/download-assessment', {
+            fetchWithTimeout(endpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -4948,12 +4962,12 @@
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Section_${sectionKey}_${document.getElementById('facilityName').value.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+                a.download = `Section_${sectionKey}_${document.getElementById('facilityName').value.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}${fileExtension}`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 window.URL.revokeObjectURL(url);
-                showMessage(`✅ Section "${sectionData.name}" downloaded successfully!`, 'success');
+                showMessage(`✅ Section "${sectionData.name}" downloaded as ${formatName} successfully!`, 'success');
             })
             .catch(error => {
                 console.error('Download error:', error);
