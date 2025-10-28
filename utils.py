@@ -399,14 +399,22 @@ class ExcelGenerator:
                     for q in section_config['scoring_questions']:
                         question_text_map[q['id']] = q.get('text', q['id'])
             
-            # NOW get all question keys - use question_text_map keys plus any from scores
-            all_question_keys = list(question_text_map.keys())
-            # Also add any keys from scores that might not be in the map
+            # NOW get all question keys - for section downloads, include ALL scores that have mappings
+            # The question_text_map was built from the section definition, so any key in scores
+            # that has a mapping is part of this section
+            all_question_keys = []
             for key in scores.keys():
+                # Skip the section aggregate score itself
+                if key == section_key:
+                    continue
+                # If we have a text mapping for this key, it belongs to this section
+                if key in question_text_map:
+                    all_question_keys.append(key)
+            
+            # Also include any mapped keys that might not be in scores yet (for display purposes)
+            for key in question_text_map.keys():
                 if key not in all_question_keys and key != section_key:
-                    # Check if this key might belong to this section
-                    if key.startswith(section_key) or any(key.startswith(q_id) for q_id in question_text_map.keys()):
-                        all_question_keys.append(key)
+                    all_question_keys.append(key)
             
             print(f"\n{'='*60}", flush=True)
             print(f"DEBUG: Section key: {section_key}", flush=True)
@@ -426,10 +434,8 @@ class ExcelGenerator:
                 response = scores.get(question_key, '')
                 print(f"DEBUG: Processing {question_key} = '{response}' (type: {type(response)})", flush=True)
                 
-                # Don't filter out any responses - show them all!
-                if response in ['', None, 'N/A']:
-                    print(f"DEBUG: Skipping empty/NA response for {question_key}", flush=True)
-                    continue
+                # For section downloads, show ALL questions even if unanswered
+                # This ensures comprehensive reports showing full section structure
                 
                 # Get question text from map or generate from key
                 if question_key in question_text_map:
@@ -452,7 +458,13 @@ class ExcelGenerator:
                 ws.cell(row=row, column=2).border = thin_border
                 
                 # Response in column C with color coding
-                ws.cell(row=row, column=3).value = str(response)
+                # Handle unanswered questions
+                if response in ['', None, 'N/A']:
+                    display_response = "Not Answered"
+                else:
+                    display_response = str(response)
+                
+                ws.cell(row=row, column=3).value = display_response
                 ws.cell(row=row, column=3).font = Font(bold=True, size=11, color="000000")
                 ws.cell(row=row, column=3).alignment = Alignment(horizontal='center', vertical='center')
                 ws.cell(row=row, column=3).border = Border(
@@ -461,16 +473,21 @@ class ExcelGenerator:
                 )
                 
                 # Color code based on response
-                response_lower = str(response).lower()
-                if response_lower in ['yes', 'y']:
-                    ws.cell(row=row, column=3).fill = PatternFill(start_color="006400", end_color="006400", fill_type="solid")
-                    ws.cell(row=row, column=3).font = Font(bold=True, size=11, color="FFFFFF")
-                elif response_lower in ['no', 'n']:
-                    ws.cell(row=row, column=3).fill = PatternFill(start_color="DC3545", end_color="DC3545", fill_type="solid")
-                    ws.cell(row=row, column=3).font = Font(bold=True, size=11, color="FFFFFF")
+                if response in ['', None, 'N/A']:
+                    # Gray for unanswered questions
+                    ws.cell(row=row, column=3).fill = PatternFill(start_color="D3D3D3", end_color="D3D3D3", fill_type="solid")
+                    ws.cell(row=row, column=3).font = Font(bold=True, size=11, color="666666", italic=True)
                 else:
-                    # For numeric or percentage values, use light blue
-                    ws.cell(row=row, column=3).fill = PatternFill(start_color="E8F4F8", end_color="E8F4F8", fill_type="solid")
+                    response_lower = str(response).lower()
+                    if response_lower in ['yes', 'y']:
+                        ws.cell(row=row, column=3).fill = PatternFill(start_color="006400", end_color="006400", fill_type="solid")
+                        ws.cell(row=row, column=3).font = Font(bold=True, size=11, color="FFFFFF")
+                    elif response_lower in ['no', 'n']:
+                        ws.cell(row=row, column=3).fill = PatternFill(start_color="DC3545", end_color="DC3545", fill_type="solid")
+                        ws.cell(row=row, column=3).font = Font(bold=True, size=11, color="FFFFFF")
+                    else:
+                        # For numeric or percentage values, use light blue
+                        ws.cell(row=row, column=3).fill = PatternFill(start_color="E8F4F8", end_color="E8F4F8", fill_type="solid")
                 
                 questions_shown += 1
                 row += 1
@@ -1453,18 +1470,27 @@ class WordGenerator:
                         question_text_map[q['id']] = q.get('text', q['id'])
         
         # NOW get all question keys based on download type
-        # Use question_text_map keys as the base, then add any from scores that match
-        all_question_keys = list(question_text_map.keys())
-        
-        # For section downloads, also check scores for additional keys
         if is_section_download:
+            # For section downloads, include ALL scores that have mappings from the section definition
+            # The question_text_map was built from the section definition, so any key in scores
+            # that has a mapping is part of this section
+            all_question_keys = []
+            section_key = sections_with_data[0]
             for key in scores.keys():
+                # Skip the section aggregate score itself
+                if key == section_key:
+                    continue
+                # If we have a text mapping for this key, it belongs to this section
+                if key in question_text_map:
+                    all_question_keys.append(key)
+            
+            # Also include any mapped keys that might not be in scores yet (for completeness)
+            for key in question_text_map.keys():
                 if key not in all_question_keys and key != section_key:
-                    # Check if this key might belong to this section
-                    if any(key.startswith(q_id) for q_id in question_text_map.keys()):
-                        all_question_keys.append(key)
+                    all_question_keys.append(key)
         else:
-            # For full reports, also add any scored keys not in the map (except section scores)
+            # For full reports, use all mapped keys and scored keys
+            all_question_keys = list(question_text_map.keys())
             section_ids = ['triple_elimination_treatment', 'art_pmtct', 'quality_pmtct', 'patient_tracking',
                           'adherence_support', 'facility_linkage', 'sti_screening', 'early_infant_diagnosis',
                           'ctx_hei', 'tracking_hei', 'enrolment_eid_art', 'hei_eid_registers',
@@ -1501,8 +1527,8 @@ class WordGenerator:
                 
             response = scores.get(question_key, '')
             
-            if response in ['', None, 'N/A']:
-                continue
+            # For section downloads, show ALL questions even if unanswered
+            # This ensures comprehensive reports showing full section structure
             
             # Get question text from map or generate from key
             if question_key in question_text_map:
@@ -1514,24 +1540,36 @@ class WordGenerator:
             # Add row
             row_cells = table.add_row().cells
             row_cells[0].text = question_text
-            row_cells[1].text = str(response)
             
-            # Color code based on response
-            response_lower = str(response).lower()
-            if response_lower in ['yes', 'y']:
-                WordGenerator._set_cell_color(row_cells[1], 0, 100, 0)
+            # Handle unanswered questions
+            if response in ['', None, 'N/A']:
+                row_cells[1].text = "Not Answered"
+                # Gray for unanswered questions
+                WordGenerator._set_cell_color(row_cells[1], 211, 211, 211)
                 for paragraph in row_cells[1].paragraphs:
                     for run in paragraph.runs:
-                        run.font.color.rgb = RGBColor(255, 255, 255)
-                        run.font.bold = True
-            elif response_lower in ['no', 'n']:
-                WordGenerator._set_cell_color(row_cells[1], 220, 53, 69)
-                for paragraph in row_cells[1].paragraphs:
-                    for run in paragraph.runs:
-                        run.font.color.rgb = RGBColor(255, 255, 255)
+                        run.font.color.rgb = RGBColor(102, 102, 102)
+                        run.font.italic = True
                         run.font.bold = True
             else:
-                WordGenerator._set_cell_color(row_cells[1], 232, 244, 248)
+                row_cells[1].text = str(response)
+                
+                # Color code based on response
+                response_lower = str(response).lower()
+                if response_lower in ['yes', 'y']:
+                    WordGenerator._set_cell_color(row_cells[1], 0, 100, 0)
+                    for paragraph in row_cells[1].paragraphs:
+                        for run in paragraph.runs:
+                            run.font.color.rgb = RGBColor(255, 255, 255)
+                            run.font.bold = True
+                elif response_lower in ['no', 'n']:
+                    WordGenerator._set_cell_color(row_cells[1], 220, 53, 69)
+                    for paragraph in row_cells[1].paragraphs:
+                        for run in paragraph.runs:
+                            run.font.color.rgb = RGBColor(255, 255, 255)
+                            run.font.bold = True
+                else:
+                    WordGenerator._set_cell_color(row_cells[1], 232, 244, 248)
     
     @staticmethod
     def _create_details_section(doc: Document, assessment_data: Dict, is_section_download: bool = False):
