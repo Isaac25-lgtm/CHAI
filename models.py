@@ -37,7 +37,7 @@ class Participant(db.Model):
     mobile_number = db.Column(db.String(20), nullable=False)
     mobile_money_name = db.Column(db.String(200), nullable=False)
     registration_date = db.Column(db.Date, default=datetime.utcnow)
-    campaign_day = db.Column(db.Integer)  # 1-14 for the campaign
+    campaign_day = db.Column(db.Integer)  # 1-12 for the campaign
     submitted_by = db.Column(db.String(80))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
@@ -70,7 +70,7 @@ class Assessment(db.Model):
     assessment_date = db.Column(db.Date, nullable=False)
     scores_json = db.Column(db.Text)  # JSON string of all indicator scores
     overall_score = db.Column(db.Float)
-    campaign_day = db.Column(db.Integer)  # 1-14 for the campaign
+    campaign_day = db.Column(db.Integer)  # 1-12 for the campaign
     submitted_by = db.Column(db.String(80))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     

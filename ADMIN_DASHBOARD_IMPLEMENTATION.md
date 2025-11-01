@@ -17,7 +17,7 @@ The complete superuser admin dashboard has been successfully implemented and dep
 
 ### 2. **Admin Dashboard** (`templates/admin_dashboard.html`)
 - ✅ **Key Statistics Cards** - Real-time counters
-- ✅ **District Progress Chart** - 14-day campaign tracking with day filters
+- ✅ **District Progress Chart** - 12-day campaign tracking with day filters
 - ✅ **Indicator Performance Radar** - Six assessment categories
 - ✅ **Progress Bars** - Category-wise performance visualization
 - ✅ **Activity Feed** - Real-time activity log with auto-refresh
@@ -50,8 +50,8 @@ The complete superuser admin dashboard has been successfully implemented and dep
 - ✅ Calculate and store category scores
 
 ### 6. **Campaign Day Tracking** (Updated templates)
-- ✅ Optional campaign day selector (1-14) in registration form
-- ✅ Optional campaign day selector (1-14) in assessment form
+- ✅ Optional campaign day selector (1-12) in registration form
+- ✅ Optional campaign day selector (1-12) in assessment form
 - ✅ Filter dashboard charts by specific campaign day
 - ✅ Track daily progress across districts
 
@@ -117,7 +117,7 @@ Assessment Form → Validate → Save to DB → Generate Excel → Email → Das
 ### Interactive Charts
 1. **District Progress Chart**
    - Bar chart showing registrations and assessments per district
-   - Filter by campaign day (Day 1-14) or view total
+   - Filter by campaign day (Day 1-12) or view total
    - Real-time data from database
 
 2. **Indicator Performance Radar**
@@ -231,7 +231,7 @@ http://127.0.0.1:5000
 ✅ Activity monitoring
 ✅ Bulk data exports
 ✅ Date-range filtered reports
-✅ 14-day campaign tracking
+✅ 12-day campaign tracking
 ✅ District-wise analysis
 
 ---
@@ -296,7 +296,7 @@ http://127.0.0.1:5000
 | Superuser admin dashboard | ✅ | `/admin` route |
 | Real-time statistics | ✅ | AJAX refresh every 30s |
 | District progress charts | ✅ | Chart.js bar chart |
-| 14-day campaign tracking | ✅ | Day filters on charts |
+| 12-day campaign tracking | ✅ | Day filters on charts |
 | Indicator performance | ✅ | Radar chart with 6 categories |
 | Activity feed | ✅ | Live updates with timestamps |
 | Facility overview table | ✅ | Searchable, filterable |
@@ -366,7 +366,7 @@ The admin dashboard is now fully functional with:
 - ✅ Database integration
 - ✅ Real-time data visualization
 - ✅ Role-based access control
-- ✅ 14-day campaign tracking
+- ✅ 12-day campaign tracking
 - ✅ Comprehensive exports
 - ✅ Activity monitoring
 - ✅ Production-ready deployment
