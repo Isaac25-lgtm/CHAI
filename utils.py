@@ -2085,7 +2085,33 @@ class PDFGenerator:
                 content += f'<tr><td>{service.get("name", service["id"])}</td><td{cell_class}>{score_display}</td></tr>'
             content += '</table>'
         
-        # Type 3: Questions array
+        # Type 3: Indicators array (standard assessment sections)
+        elif 'indicators' in section_config:
+            content += '<table class="data-table">'
+            content += '<tr><th>Indicator</th><th>Score</th><th>Comments</th></tr>'
+            for indicator in section_config['indicators']:
+                ind_id = indicator['id']
+                ind_name = indicator.get('name', ind_id)
+                score = scores.get(ind_id, '')
+                comment = comments.get(ind_id, '')
+                
+                # Color code based on score (1-5 scale)
+                cell_class = ''
+                score_display = str(score) if score else 'N/A'
+                
+                if str(score) in ['5', '4']:
+                    cell_class = ' style="background-color: #006400; color: white; font-weight: bold;"'
+                elif str(score) == '1':
+                    cell_class = ' style="background-color: #DC3545; color: white; font-weight: bold;"'
+                elif str(score) == '2':
+                    cell_class = ' style="background-color: #FFC107; font-weight: bold;"'
+                elif str(score) == '3':
+                    cell_class = ' style="background-color: #90EE90; font-weight: bold;"'
+                
+                content += f'<tr><td>{ind_name}</td><td{cell_class}>{score_display}</td><td>{comment if comment else ""}</td></tr>'
+            content += '</table>'
+        
+        # Type 4: Questions array
         elif 'questions' in section_config:
             for q in section_config['questions']:
                 q_id = q['id']
