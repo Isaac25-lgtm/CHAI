@@ -4777,8 +4777,15 @@
             const fileExtension = format === 'pdf' ? '.pdf' : '.xlsx';
             const formatName = format === 'pdf' ? 'PDF' : 'Excel';
 
-            showMessage(`⏳ Generating your comprehensive ${formatName} assessment report with color coding...`, 'info');
+            console.log('🔍 Download Debug Info:');
+            console.log('  Endpoint:', endpoint);
+            console.log('  Format:', format);
+            console.log('  Data keys:', Object.keys(data));
+            console.log('  Scores count:', Object.keys(data.scores || {}).length);
 
+            showMessage(`⏳ Generating your comprehensive ${formatName} assessment report...`, 'info');
+
+            // IMPROVED ERROR HANDLING
             fetchWithTimeout(endpoint, {
                 method: 'POST',
                 headers: {
@@ -4786,33 +4793,100 @@
                 },
                 body: JSON.stringify(data)
             }, 30000)
-            .then(response => response.blob())
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                console.log('Content-Type:', response.headers.get('Content-Type'));
+                
+                // Check if response is OK
+                if (!response.ok) {
+                    // Try to parse error as JSON
+                    return response.text().then(text => {
+                        console.error('Error response body:', text);
+                        try {
+                            const errorJson = JSON.parse(text);
+                            throw new Error(errorJson.message || `Server error: ${response.status}`);
+                        } catch (e) {
+                            if (e.message && !e.message.includes('Unexpected token')) {
+                                throw e;
+                            }
+                            throw new Error(`Server error ${response.status}: ${text.substring(0, 200)}`);
+                        }
+                    });
+                }
+                
+                // Check content type
+                const contentType = response.headers.get('Content-Type') || '';
+                console.log('Content-Type received:', contentType);
+                
+                if (contentType.includes('application/json')) {
+                    // Server sent JSON (probably an error)
+                    return response.json().then(data => {
+                        console.error('JSON response received instead of file:', data);
+                        throw new Error(data.message || 'Server returned JSON instead of file');
+                    });
+                }
+                
+                // It's a file, convert to blob
+                return response.blob();
+            })
             .then(blob => {
+                console.log('Blob received, size:', blob.size, 'bytes');
+                console.log('Blob type:', blob.type);
+                
+                if (blob.size === 0) {
+                    throw new Error('Received empty file from server');
+                }
+                
+                // Create download link
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
                 const completionStatus = incompleteSections.length === 0 ? 'Complete' : 'Partial';
-                a.download = `PMTCT_Assessment_${completionStatus}_${document.getElementById('facilityName').value.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}${fileExtension}`;
+                const facilityName = document.getElementById('facilityName').value.replace(/\s+/g, '_');
+                const date = new Date().toISOString().slice(0, 10);
+                a.download = `PMTCT_Assessment_${completionStatus}_${facilityName}_${date}${fileExtension}`;
+                
+                // Trigger download
+                document.body.appendChild(a);
                 a.click();
-                showMessage(`✅ ${completionStatus} ${formatName} assessment report downloaded successfully! Check your Downloads folder.`, 'success');
+                document.body.removeChild(a);
+                
+                // Cleanup
+                setTimeout(() => window.URL.revokeObjectURL(url), 100);
+                
+                showMessage(`✅ ${completionStatus} ${formatName} assessment report downloaded successfully!`, 'success');
             })
             .catch(error => {
-                showMessage(`❌ Error downloading ${formatName} report: ` + error.message, 'error');
+                console.error('Download error:', error);
+                console.error('Error stack:', error.stack);
+                
+                let errorMessage = error.message || 'Unknown error occurred';
+                
+                // Provide helpful error messages
+                if (errorMessage.includes('timeout')) {
+                    errorMessage = 'Request timed out. The server is taking too long to respond. Please try again.';
+                } else if (errorMessage.includes('401')) {
+                    errorMessage = 'Session expired. Please refresh the page and login again.';
+                } else if (errorMessage.includes('403')) {
+                    errorMessage = 'Access denied. You may not have permission to download reports.';
+                } else if (errorMessage.includes('500')) {
+                    errorMessage = 'Server error. Please check the server logs and try again.';
+                }
+                
+                showMessage(`❌ Error downloading ${formatName} report: ${errorMessage}`, 'error');
             });
         }
 
         function downloadSectionReport(sectionKey, format = 'excel') {
-            alert(`Download button clicked! Section: ${sectionKey}, Format: ${format}`);
             console.log('=== DOWNLOAD SECTION REPORT ===');
             console.log('Section Key:', sectionKey);
             console.log('Format:', format);
-            console.log('Current scores object:', scores);
             
             if (!validateFacilityInfo()) return;
 
             const sectionData = sections[sectionKey];
             console.log('Section data:', sectionData);
-            console.log('Section type:', sectionData.type);
             
             // Gather ALL data related to this section
             const sectionExportData = {
@@ -4951,6 +5025,7 @@
             
             showMessage(`⏳ Generating ${formatName} report for section: ${sectionData.name}...`, 'info');
 
+            // IMPROVED ERROR HANDLING
             fetchWithTimeout(endpoint, {
                 method: 'POST',
                 headers: {
@@ -4959,28 +5034,75 @@
                 body: JSON.stringify(sectionExportData)
             }, 30000)
             .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Content-Type:', response.headers.get('Content-Type'));
+                
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    return response.text().then(text => {
+                        console.error('Error response:', text);
+                        try {
+                            const errorJson = JSON.parse(text);
+                            throw new Error(errorJson.message || `Server error: ${response.status}`);
+                        } catch (e) {
+                            if (e.message && !e.message.includes('Unexpected token')) {
+                                throw e;
+                            }
+                            throw new Error(`Server error ${response.status}: ${text.substring(0, 200)}`);
+                        }
+                    });
                 }
+                
+                const contentType = response.headers.get('Content-Type') || '';
+                
+                if (contentType.includes('application/json')) {
+                    return response.json().then(data => {
+                        console.error('JSON response instead of file:', data);
+                        throw new Error(data.message || 'Server returned JSON instead of file');
+                    });
+                }
+                
                 return response.blob();
             })
             .then(blob => {
+                console.log('Blob received, size:', blob.size, 'bytes');
+                
+                if (blob.size === 0) {
+                    throw new Error('Received empty file from server');
+                }
+                
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Section_${sectionKey}_${document.getElementById('facilityName').value.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}${fileExtension}`;
+                const facilityName = document.getElementById('facilityName').value.replace(/\s+/g, '_');
+                const date = new Date().toISOString().slice(0, 10);
+                a.download = `${sectionData.name.replace(/\s+/g, '_')}_${facilityName}_${date}${fileExtension}`;
+                
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-                showMessage(`✅ Section "${sectionData.name}" downloaded as ${formatName} successfully!`, 'success');
+                
+                setTimeout(() => window.URL.revokeObjectURL(url), 100);
+                
+                showMessage(`✅ ${formatName} report for "${sectionData.name}" downloaded successfully!`, 'success');
             })
             .catch(error => {
                 console.error('Download error:', error);
-                showMessage(`❌ Error downloading section: ${error.message}`, 'error');
+                
+                let errorMessage = error.message || 'Unknown error occurred';
+                
+                if (errorMessage.includes('timeout')) {
+                    errorMessage = 'Request timed out. Please try again.';
+                } else if (errorMessage.includes('401')) {
+                    errorMessage = 'Session expired. Please refresh and login again.';
+                } else if (errorMessage.includes('403')) {
+                    errorMessage = 'Access denied.';
+                } else if (errorMessage.includes('500')) {
+                    errorMessage = 'Server error. Check server logs.';
+                }
+                
+                showMessage(`❌ Error downloading ${formatName} report: ${errorMessage}`, 'error');
             });
         }
-        console.log('✅ downloadSectionReport function defined');
 
         function resetAssessment() {
             if (confirm('This will clear all assessment data. Are you sure?')) {

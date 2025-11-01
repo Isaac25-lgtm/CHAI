@@ -75,8 +75,8 @@ app.jinja_env.auto_reload = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 
 # Additional security configuration for sessions
-app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=1)  # Session expires after 1 hour
-app.permanent_session_lifetime = timedelta(hours=1)
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=24)  # Session expires after 24 hours
+app.permanent_session_lifetime = timedelta(hours=24)
 
 # Initialize database
 init_database(app)
