@@ -4893,6 +4893,20 @@
                 }
             }
 
+            // Always ensure the section key is in the scores for proper detection
+            // This is critical for backend section detection
+            if (!sectionExportData.scores[sectionKey] && scores[sectionKey]) {
+                sectionExportData.scores[sectionKey] = scores[sectionKey];
+                hasData = true;
+            }
+            
+            // Also explicitly add section key even if it's not in scores yet (for question-based sections)
+            // This helps backend detect the section properly
+            if (!sectionExportData.scores.hasOwnProperty(sectionKey) && hasData) {
+                // If we have question data, ensure section key is present (can be empty/null)
+                sectionExportData.scores[sectionKey] = scores[sectionKey] || null;
+            }
+            
             // Log collected data
             console.log('Scores collected for section:', sectionExportData.scores);
             console.log('Has data:', hasData);
