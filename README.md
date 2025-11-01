@@ -2,9 +2,13 @@
 
 A comprehensive, secure web-based platform for health program management in Uganda, featuring participant registration and facility assessment tools with automated Excel reporting and email notifications.
 
+## 📚 Documentation
 
+- **[📋 PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)** - Complete project explanation and architecture
+- **[📥 DOWNLOAD_OPTIONS_GUIDE.md](DOWNLOAD_OPTIONS_GUIDE.md)** - Detailed guide to download functionality
+- **[🚀 Quick Start](#-quick-start)** - Get started quickly (below)
 
-## 🌟 Features## 🌟 Features
+## 🌟 Features
 
 
 
