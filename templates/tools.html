@@ -408,22 +408,6 @@
     </div>
 
     <div class="container">
-        <!-- Assessment Type Selector -->
-        <div class="assessment-type-selector" style="background: white; border-radius: 15px; padding: 20px; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-            <h2 style="margin-bottom: 15px; color: #333;">Select Assessment Type</h2>
-            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                <button onclick="switchAssessmentType('standard')" id="btn-standard" style="padding: 12px 25px; font-size: 16px; font-weight: 600; border: 2px solid #3498db; background: #3498db; color: white; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
-                    Standard Hepatitis B Assessment
-                </button>
-                <button onclick="switchAssessmentType('pmtct')" id="btn-pmtct" style="padding: 12px 25px; font-size: 16px; font-weight: 600; border: 2px solid #3498db; background: white; color: #3498db; border-radius: 8px; cursor: pointer; transition: all 0.3s;">
-                    Comprehensive PMTCT Assessment
-                </button>
-            </div>
-            <p style="margin-top: 15px; color: #666; font-size: 14px;">
-                <strong>Standard:</strong> Quick Hepatitis B PMTCT assessment with 5-point scoring<br>
-                <strong>Comprehensive:</strong> Detailed PMTCT assessment covering HIV, Syphilis, and Hepatitis B with multiple question types
-            </p>
-        </div>
 
         <!-- Facility Information Section -->
         <div class="facility-info">
@@ -530,11 +514,6 @@
         <!-- Assessment Sections -->
         <div class="assessment-sections" id="assessmentSections" style="display: block;">
             <!-- Sections will be dynamically generated here -->
-        </div>
-
-        <!-- PMTCT Assessment Sections -->
-        <div id="pmtctAssessmentSections" style="display: none;">
-            <!-- PMTCT assessment will be loaded here -->
         </div>
 
         <!-- Summary Panel -->
@@ -5145,107 +5124,6 @@
             currentAssessmentType = 'standard';
         });
 
-        // Assessment type switching
-        let currentAssessmentType = 'standard';
-        let pmtctConfig = null;
-
-        function switchAssessmentType(type) {
-            currentAssessmentType = type;
-            
-            // Update button styles
-            const standardBtn = document.getElementById('btn-standard');
-            const pmtctBtn = document.getElementById('btn-pmtct');
-            
-            if (type === 'standard') {
-                standardBtn.style.background = '#3498db';
-                standardBtn.style.color = 'white';
-                pmtctBtn.style.background = 'white';
-                pmtctBtn.style.color = '#3498db';
-                
-                // Show standard assessment
-                document.getElementById('assessmentSections').style.display = 'block';
-                document.getElementById('pmtctAssessmentSections').style.display = 'none';
-                
-                // Update submit button text
-                document.querySelector('.submit-btn').textContent = 'Submit Standard Assessment';
-            } else if (type === 'pmtct') {
-                standardBtn.style.background = 'white';
-                standardBtn.style.color = '#3498db';
-                pmtctBtn.style.background = '#3498db';
-                pmtctBtn.style.color = 'white';
-                
-                // Show PMTCT assessment
-                document.getElementById('assessmentSections').style.display = 'none';
-                document.getElementById('pmtctAssessmentSections').style.display = 'block';
-                
-                // Load PMTCT config if not already loaded
-                if (!pmtctConfig) {
-                    loadPMTCTConfig();
-                }
-                
-                // Update submit button text
-                document.querySelector('.submit-btn').textContent = 'Submit PMTCT Assessment';
-            }
-        }
-
-        // Load PMTCT configuration from server
-        function loadPMTCTConfig() {
-            fetch('/api/pmtct-config')
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        pmtctConfig = data.config;
-                        renderPMTCTAssessment(pmtctConfig);
-                    } else {
-                        showMessage('Error loading PMTCT configuration: ' + data.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading PMTCT config:', error);
-                    showMessage('Error loading PMTCT configuration', 'error');
-                });
-        }
-
-        // Render PMTCT Assessment
-        function renderPMTCTAssessment(config) {
-            const container = document.getElementById('pmtctAssessmentSections');
-            
-            let html = '<div class="pmtct-assessment-wrapper">';
-            html += `<h2>${config.title}</h2>`;
-            html += '<p class="assessment-intro">Comprehensive PMTCT assessment covering HIV, Syphilis, and Hepatitis B services for pregnant women and HIV-exposed infants.</p>';
-            html += '<div class="pmtct-notice" style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px;">';
-            html += '<strong>Note:</strong> This is a comprehensive assessment tool with multiple question types including Yes/No, data entry tables, and chart reviews. Please complete all applicable sections.';
-            html += '</div>';
-            
-            // Add sections overview
-            html += '<div class="sections-overview" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;">';
-            html += '<h3>Assessment Sections:</h3>';
-            html += '<ol style="margin-left: 20px; margin-top: 10px;">';
-            config.sections.forEach((section, index) => {
-                html += `<li style="margin: 5px 0;"><strong>${section.title}</strong></li>`;
-            });
-            html += '</ol>';
-            html += '</div>';
-            
-            // Note about implementation
-            html += '<div class="implementation-note" style="background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; margin: 20px 0; border-radius: 4px;">';
-            html += '<h4 style="margin-bottom: 10px;">Implementation Status</h4>';
-            html += '<p>The comprehensive PMTCT assessment framework has been configured with ' + config.sections.length + ' major sections covering:</p>';
-            html += '<ul style="margin-left: 20px; margin-top: 10px;">';
-            html += '<li>Triple Elimination (HIV, Syphilis, Hepatitis B) - Testing & Treatment</li>';
-            html += '<li>Early Infant Diagnosis and HEI Tracking</li>';
-            html += '<li>Supply Chain Reliability for PMTCT Commodities</li>';
-            html += '<li>Patient Records and Tracking Systems</li>';
-            html += '<li>Human Resources and Service Delivery Points</li>';
-            html += '</ul>';
-            html += '<p style="margin-top: 10px;"><strong>The detailed form interface is being finalized and will be fully interactive in the next update.</strong></p>';
-            html += '<p style="margin-top: 10px;">For now, you can use the Standard Hepatitis B Assessment above.</p>';
-            html += '</div>';
-            
-            html += '</div>';
-            container.innerHTML = html;
-        }
     </script>
-    <script src="{{ url_for('static', filename='js/pmtct_assessment.js') }}"></script>
 </body>
 </html>

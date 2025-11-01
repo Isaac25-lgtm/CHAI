@@ -1457,18 +1457,6 @@ def health_check():
         'version': '2.0.0'
     })
 
-@app.route('/api/pmtct-config')
-@login_required
-@api_logger
-def get_pmtct_config():
-    """Get PMTCT assessment configuration"""
-    try:
-        from pmtct_config import PMTCT_ASSESSMENT
-        return jsonify({'success': True, 'config': PMTCT_ASSESSMENT})
-    except Exception as e:
-        logger.error(f"Error loading PMTCT config: {str(e)}", exc_info=True)
-        return jsonify({'success': False, 'message': 'Error loading PMTCT configuration'}), 500
-
 def open_browser():
     """Open browser after server starts"""
     time.sleep(1.5)
