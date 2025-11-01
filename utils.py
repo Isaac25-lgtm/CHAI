@@ -2036,7 +2036,7 @@ class PDFGenerator:
             '''
         
         # Generate content based on section type
-        # Type 1: Register Checklist
+        # Type 1: Register Checklist (with registers array)
         if section_type == 'register_checklist' and 'registers' in section_config:
             content += '<table class="data-table">'
             content += '<tr><th>Register Name</th>'
@@ -2085,33 +2085,7 @@ class PDFGenerator:
                 content += f'<tr><td>{service.get("name", service["id"])}</td><td{cell_class}>{score_display}</td></tr>'
             content += '</table>'
         
-        # Type 3: Indicators array (standard assessment sections)
-        elif 'indicators' in section_config:
-            content += '<table class="data-table">'
-            content += '<tr><th>Indicator</th><th>Score</th><th>Comments</th></tr>'
-            for indicator in section_config['indicators']:
-                ind_id = indicator['id']
-                ind_name = indicator.get('name', ind_id)
-                score = scores.get(ind_id, '')
-                comment = comments.get(ind_id, '')
-                
-                # Color code based on score (1-5 scale)
-                cell_class = ''
-                score_display = str(score) if score else 'N/A'
-                
-                if str(score) in ['5', '4']:
-                    cell_class = ' style="background-color: #006400; color: white; font-weight: bold;"'
-                elif str(score) == '1':
-                    cell_class = ' style="background-color: #DC3545; color: white; font-weight: bold;"'
-                elif str(score) == '2':
-                    cell_class = ' style="background-color: #FFC107; font-weight: bold;"'
-                elif str(score) == '3':
-                    cell_class = ' style="background-color: #90EE90; font-weight: bold;"'
-                
-                content += f'<tr><td>{ind_name}</td><td{cell_class}>{score_display}</td><td>{comment if comment else ""}</td></tr>'
-            content += '</table>'
-        
-        # Type 4: Questions array
+        # Type 3: Questions array (check before indicators, as some sections have both)
         elif 'questions' in section_config:
             for q in section_config['questions']:
                 q_id = q['id']
@@ -2172,6 +2146,49 @@ class PDFGenerator:
                     content += f'<div class="comments-box">Comment: {comments.get(q_id)}</div>'
                 
                 content += '</div>'
+        
+        # Type 4: Indicators array (standard assessment sections)
+        elif 'indicators' in section_config:
+            content += '<table class="data-table">'
+            content += '<tr><th>Indicator</th><th>Score</th><th>Comments</th></tr>'
+            for indicator in section_config['indicators']:
+                ind_id = indicator['id']
+                ind_name = indicator.get('name', ind_id)
+                score = scores.get(ind_id, '')
+                comment = comments.get(ind_id, '')
+                
+                # Color code based on score (1-5 scale)
+                cell_class = ''
+                score_display = str(score) if score else 'N/A'
+                
+                if str(score) in ['5', '4']:
+                    cell_class = ' style="background-color: #006400; color: white; font-weight: bold;"'
+                elif str(score) == '1':
+                    cell_class = ' style="background-color: #DC3545; color: white; font-weight: bold;"'
+                elif str(score) == '2':
+                    cell_class = ' style="background-color: #FFC107; font-weight: bold;"'
+                elif str(score) == '3':
+                    cell_class = ' style="background-color: #90EE90; font-weight: bold;"'
+                
+                content += f'<tr><td>{ind_name}</td><td{cell_class}>{score_display}</td><td>{comment if comment else ""}</td></tr>'
+            content += '</table>'
+        
+        # Fallback: If no content was generated, show all scores as a table
+        if not content or content.strip() == '':
+            # Display all scores from this section
+            section_scores = {k: v for k, v in scores.items() if k.startswith(section_key + '_') or k == section_key}
+            if section_scores:
+                content += '<table class="data-table">'
+                content += '<tr><th>Indicator/Question</th><th>Score</th><th>Comments</th></tr>'
+                for key, score in section_scores.items():
+                    if key == section_key:
+                        continue  # Skip section aggregate score
+                    comment = comments.get(key, '')
+                    score_display = str(score) if score else 'N/A'
+                    content += f'<tr><td>{key}</td><td>{score_display}</td><td>{comment if comment else ""}</td></tr>'
+                content += '</table>'
+            else:
+                content += '<p>No assessment data available for this section.</p>'
         
         # Add section score
         section_score = scores.get(section_key, '')
