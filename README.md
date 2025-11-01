@@ -442,6 +442,20 @@ git push origin main
 | `/submit-assessment` | Submit assessment data | POST |
 | `/download` | Download participant Excel | POST |
 | `/download-assessment` | Download assessment Excel | POST |
+| `/download-registration-pdf` | Download participant PDF | POST |
+| `/download-assessment-pdf` | Download assessment PDF | POST |
+
+## 📥 Download Options
+
+The CHAI portal provides multiple download options for both participant registration and facility assessments:
+
+- **Excel Downloads:** Editable spreadsheets for data processing and analysis
+- **PDF Downloads:** Print-ready documents for archival and sharing
+- **Automated Email:** Files automatically sent to configured recipients
+- **Manual Download:** Direct download buttons available in both modules
+
+For detailed information about all download options, file formats, and use cases, see:
+- **[📥 DOWNLOAD_OPTIONS_GUIDE.md](DOWNLOAD_OPTIONS_GUIDE.md)** - Complete guide to download functionality
 
 ## 🎨 Customization Options
 
