@@ -21,8 +21,6 @@ python-docx==1.1.0
 
 # PDF generation (HTML to PDF - pure Python, works on Windows)
 xhtml2pdf==0.2.13
-# Better PDF generation with modern CSS support for screenshot-like PDFs
-weasyprint==62.3
 
 # Environment variables
 python-dotenv==1.0.0

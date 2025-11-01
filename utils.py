@@ -1717,14 +1717,7 @@ class PDFGenerator:
             assessment_data: Dictionary containing assessment information with section HTML
         """
         try:
-            # Try to use weasyprint for better CSS rendering (screenshot-like)
-            try:
-                from weasyprint import HTML
-                use_weasyprint = True
-            except ImportError:
-                # Fall back to xhtml2pdf if weasyprint not available
-                from xhtml2pdf import pisa
-                use_weasyprint = False
+            from xhtml2pdf import pisa
             
             # Get data
             facility_name = assessment_data.get('facilityName', 'Unknown')
@@ -1769,17 +1762,20 @@ class PDFGenerator:
                 scores_dict, comments_dict, section_html
             )
             
-            # Generate PDF from HTML
-            if use_weasyprint:
-                # Use weasyprint for better CSS rendering (screenshot-like)
-                HTML(string=html_content).write_pdf(filepath)
-            else:
-                # Use xhtml2pdf as fallback
-                with open(filepath, 'wb') as pdf_file:
-                    pisa_status = pisa.CreatePDF(html_content, dest=pdf_file)
+            # Generate PDF from HTML using xhtml2pdf (reliable)
+            with open(filepath, 'wb') as pdf_file:
+                pisa_status = pisa.CreatePDF(
+                    html_content.encode('utf-8'),
+                    dest=pdf_file,
+                    encoding='utf-8'
+                )
                 
                 if pisa_status.err:
-                    raise Exception(f"PDF generation had errors: {pisa_status.err}")
+                    raise Exception(f"PDF generation had {pisa_status.err} errors")
+            
+            # Verify file was created
+            if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+                raise Exception("PDF file was not created or is empty")
             
             return filepath, filename
             
@@ -2194,14 +2190,8 @@ class PDFGenerator:
             Tuple of (filepath, filename)
         """
         try:
-            # Try to use weasyprint for better CSS rendering
-            try:
-                from weasyprint import HTML, CSS
-                use_weasyprint = True
-            except ImportError:
-                # Fall back to xhtml2pdf if weasyprint not available
-                from xhtml2pdf import pisa
-                use_weasyprint = False
+            from xhtml2pdf import pisa
+            import io
             
             # Create PDF file
             temp_dir = tempfile.gettempdir()
@@ -2211,15 +2201,20 @@ class PDFGenerator:
             # Build HTML content that matches registration screen
             html_content = PDFGenerator._build_registration_html(participants)
             
-            if use_weasyprint:
-                # Use weasyprint for better rendering
-                HTML(string=html_content).write_pdf(filepath)
-            else:
-                # Use xhtml2pdf as fallback
-                with open(filepath, 'wb') as pdf_file:
-                    pisa_status = pisa.CreatePDF(html_content, dest=pdf_file)
-                    if pisa_status.err:
-                        raise Exception(f"PDF generation had errors: {pisa_status.err}")
+            # Generate PDF using xhtml2pdf (reliable and compatible)
+            with open(filepath, 'wb') as pdf_file:
+                pisa_status = pisa.CreatePDF(
+                    html_content.encode('utf-8'),
+                    dest=pdf_file,
+                    encoding='utf-8'
+                )
+                
+                if pisa_status.err:
+                    raise Exception(f"PDF generation had {pisa_status.err} errors")
+            
+            # Verify file was created
+            if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+                raise Exception("PDF file was not created or is empty")
             
             return filepath, filename
             
@@ -2230,12 +2225,13 @@ class PDFGenerator:
     def _build_registration_html(participants: List[Dict]) -> str:
         """Build HTML for registration PDF that matches the frontend appearance"""
         
-        # Build participants table rows
+        # Build participants table rows with alternating colors
         rows_html = ''
         for idx, p in enumerate(participants, 1):
             campaign_day = f"Day {p.get('campaignDay')}" if p.get('campaignDay') else "N/A"
+            row_class = 'class="alt-row"' if idx % 2 == 0 else ''
             rows_html += f'''
-            <tr>
+            <tr {row_class}>
                 <td style="text-align: center;">{idx}</td>
                 <td>{p.get('fullName', 'N/A')}</td>
                 <td>{p.get('cadre', 'N/A')}</td>
@@ -2262,7 +2258,7 @@ class PDFGenerator:
             margin: 0.75cm;
         }}
         body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             font-size: 9pt;
             line-height: 1.4;
             color: #333;
@@ -2270,67 +2266,66 @@ class PDFGenerator:
             padding: 0;
         }}
         .header {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #667eea;
             color: white;
             padding: 15px 20px;
             margin-bottom: 15px;
-            border-radius: 6px;
             text-align: center;
         }}
         .header h1 {{
             margin: 0 0 5px 0;
             font-size: 20pt;
-            font-weight: 600;
+            font-weight: bold;
         }}
         .header p {{
             margin: 0;
             font-size: 11pt;
-            opacity: 0.95;
         }}
         .info-box {{
-            background: #f8f9fa;
+            background-color: #f8f9fa;
             border: 1px solid #dee2e6;
             padding: 10px;
             margin-bottom: 15px;
-            border-radius: 4px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
         }}
-        .info-box .count {{
+        .info-box table {{
+            width: 100%;
+            border: none;
+        }}
+        .info-box td {{
+            border: none;
+            padding: 5px;
+        }}
+        .count {{
             font-size: 14pt;
             font-weight: bold;
             color: #667eea;
         }}
-        .info-box .date {{
+        .date {{
             font-size: 9pt;
             color: #666;
+            text-align: right;
         }}
-        table {{
+        table.data-table {{
             width: 100%;
             border-collapse: collapse;
             background: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }}
-        th {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        table.data-table th {{
+            background-color: #667eea;
             color: white;
             padding: 8px 6px;
             text-align: left;
-            font-weight: 600;
+            font-weight: bold;
             font-size: 8.5pt;
             border: 1px solid #5a67d8;
         }}
-        td {{
+        table.data-table td {{
             padding: 6px;
             border: 1px solid #dee2e6;
             font-size: 8.5pt;
         }}
-        tr:nth-child(even) {{
+        .alt-row {{
             background-color: #f8f9fa;
-        }}
-        tr:hover {{
-            background-color: #e9ecef;
         }}
         .footer {{
             margin-top: 15px;
@@ -2347,20 +2342,20 @@ class PDFGenerator:
 </head>
 <body>
     <div class="header">
-        <h1>👥 Participant Registration Report</h1>
+        <h1>Participant Registration Report</h1>
         <p>CHAI - Clinton Health Access Initiative</p>
     </div>
     
     <div class="info-box">
-        <div>
-            <span class="count">Total Participants: {len(participants)}</span>
-        </div>
-        <div class="date">
-            Generated: {datetime.now().strftime("%B %d, %Y at %I:%M %p")}
-        </div>
+        <table>
+            <tr>
+                <td><span class="count">Total Participants: {len(participants)}</span></td>
+                <td class="date">Generated: {datetime.now().strftime("%B %d, %Y at %I:%M %p")}</td>
+            </tr>
+        </table>
     </div>
     
-    <table>
+    <table class="data-table">
         <thead>
             <tr>
                 <th style="width: 3%;">#</th>
@@ -2382,7 +2377,7 @@ class PDFGenerator:
     </table>
     
     <div class="footer">
-        <p><strong>CHAI Uganda</strong> | Health Worker Registration & Tracking System</p>
+        <p><strong>CHAI Uganda</strong> | Health Worker Registration and Tracking System</p>
         <p>This is an automatically generated report. For inquiries, contact the CHAI team.</p>
     </div>
 </body>
