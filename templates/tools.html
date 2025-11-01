@@ -4800,12 +4800,16 @@
         }
 
         function downloadSectionReport(sectionKey, format = 'excel') {
-            console.log('Download Section clicked for:', sectionKey, 'Format:', format);
+            console.log('=== DOWNLOAD SECTION REPORT ===');
+            console.log('Section Key:', sectionKey);
+            console.log('Format:', format);
+            console.log('Current scores object:', scores);
             
             if (!validateFacilityInfo()) return;
 
             const sectionData = sections[sectionKey];
             console.log('Section data:', sectionData);
+            console.log('Section type:', sectionData.type);
             
             // Gather ALL data related to this section
             const sectionExportData = {
@@ -4875,10 +4879,15 @@
                 if (relevantKeys.has(key) || 
                     key.startsWith(sectionKey + '_') || 
                     key.includes(sectionKey)) {
+                    console.log(`  ✓ Including key: ${key} = ${value}`);
                     sectionExportData.scores[key] = value;
                     hasData = true;
                 }
             }
+
+            console.log('Section export data scores:', sectionExportData.scores);
+            console.log('Has data:', hasData);
+            console.log('Section key in scores?', sectionKey in scores, scores[sectionKey]);
 
             // Add all comments for this section
             for (const [key, value] of Object.entries(comments)) {
@@ -4887,47 +4896,50 @@
                     key.startsWith(sectionKey + '_') || 
                     key.includes(sectionKey)) {
                     sectionExportData.comments[key] = value;
-                    if (value && value.trim() !== '') {
-                        hasData = true;
-                    }
                 }
             }
 
-            // ALWAYS include the section key for proper backend detection
-            // This is critical - even if no data, we need the section key
-            sectionExportData.scores[sectionKey] = scores[sectionKey] || null;
-            
-            // For Patient/Beneficiary Records specifically, allow download even with partial data
-            // The section key alone is enough for backend to identify and process the section
-            if (sectionKey === 'patient_records') {
-                // Always allow download for this section - backend can handle empty data
+            // Always ensure the section key is in the scores for proper detection
+            // This is critical for backend section detection
+            if (!sectionExportData.scores[sectionKey] && scores[sectionKey]) {
+                sectionExportData.scores[sectionKey] = scores[sectionKey];
                 hasData = true;
             }
             
-            // Log collected data
-            console.log('Section export data scores:', sectionExportData.scores);
-            console.log('Has data:', hasData);
-            console.log('Section key included:', sectionExportData.scores.hasOwnProperty(sectionKey));
+            // Also explicitly add section key even if it's not in scores yet (for question-based sections)
+            // This helps backend detect the section properly
+            if (!sectionExportData.scores.hasOwnProperty(sectionKey) && hasData) {
+                // If we have question data, ensure section key is present (can be empty/null)
+                sectionExportData.scores[sectionKey] = scores[sectionKey] || null;
+            }
             
-            // More lenient check - allow download if we have the section key OR any data
-            if (!hasData && !sectionExportData.scores.hasOwnProperty(sectionKey)) {
+            // Log collected data
+            console.log('Scores collected for section:', sectionExportData.scores);
+            console.log('Has data:', hasData);
+            
+            // Check if section has any data
+            if (!hasData) {
+                console.log('❌ No data found for section. Blocking download.');
+                console.log('  - Section key:', sectionKey);
+                console.log('  - Relevant keys:', Array.from(relevantKeys));
+                console.log('  - All scores:', scores);
                 showMessage(`⚠️ Section "${sectionData.name}" has no data yet. Please complete the section first.`, 'warning');
                 
                 // Scroll to the section to help user
                 const sectionElement = document.getElementById(`section-${sectionKey}`);
                 if (sectionElement) {
                     const sectionCard = sectionElement.closest('.section-card');
-                    if (sectionCard) {
-                        sectionCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        
-                        // Expand if collapsed
-                        if (sectionElement.style.display === 'none') {
-                            toggleSection(sectionKey);
-                        }
+                    sectionCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    
+                    // Expand if collapsed
+                    if (sectionElement.style.display === 'none') {
+                        toggleSection(sectionKey);
                     }
                 }
                 return;
             }
+            
+            console.log('✓ Validation passed. Proceeding with download.');
 
             // Determine endpoint and file extension based on format
             const endpoint = format === 'pdf' ? '/download-assessment-pdf' : '/download-assessment';
