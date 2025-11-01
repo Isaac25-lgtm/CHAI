@@ -548,6 +548,8 @@
     </div>
 
     <script>
+        console.log('🚀 Tools.html script loading...');
+        
         // Facilities data organized by district
         const facilitiesData = {
             'Agago District': [
@@ -4978,6 +4980,7 @@
                 showMessage(`❌ Error downloading section: ${error.message}`, 'error');
             });
         }
+        console.log('✅ downloadSectionReport function defined');
 
         function resetAssessment() {
             if (confirm('This will clear all assessment data. Are you sure?')) {
@@ -5139,7 +5142,16 @@
 
         // Initialize on load
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('📋 DOMContentLoaded event fired');
             initializeSections();
+            console.log('✅ Sections initialized');
+            
+            // Count download buttons
+            const downloadButtons = document.querySelectorAll('.btn-download-section');
+            console.log(`📊 Found ${downloadButtons.length} download buttons`);
+            
+            // Test if downloadSectionReport is accessible
+            console.log('🔍 downloadSectionReport function accessible?', typeof downloadSectionReport === 'function');
             
             // Set today's date (browser compatible)
             const today = new Date().toISOString().split('T')[0];
@@ -5147,6 +5159,7 @@
 
             // Initialize assessment type
             currentAssessmentType = 'standard';
+            console.log('🎉 Page initialization complete');
         });
 
     </script>
