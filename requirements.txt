@@ -19,6 +19,9 @@ openpyxl==3.1.2
 # Word document handling
 python-docx==1.1.0
 
+# PDF generation (HTML to PDF - pure Python, works on Windows)
+xhtml2pdf==0.2.13
+
 # Environment variables
 python-dotenv==1.0.0
 

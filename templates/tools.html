@@ -562,7 +562,7 @@
             <div class="action-buttons">
                 <button onclick="saveAssessment()" class="btn-success">Submit & Email Report</button>
                 <button onclick="downloadReport('excel')" class="btn-primary">📊 Download Excel</button>
-                <button onclick="downloadReport('word')" class="btn-primary">📄 Download Word</button>
+                <button onclick="downloadReport('pdf')" class="btn-primary">📄 Download PDF</button>
                 <button onclick="resetAssessment()" class="btn-warning">Reset Assessment</button>
             </div>
 
@@ -1529,8 +1529,8 @@
                                 <button class="btn-download-section" onclick="event.stopPropagation(); downloadSectionReport('${sectionKey}', 'excel')" title="Download section as Excel">
                                     📊 Excel
                                 </button>
-                                <button class="btn-download-section" onclick="event.stopPropagation(); downloadSectionReport('${sectionKey}', 'word')" title="Download section as Word">
-                                    📄 Word
+                                <button class="btn-download-section" onclick="event.stopPropagation(); downloadSectionReport('${sectionKey}', 'pdf')" title="Download section as PDF">
+                                    📄 PDF
                                 </button>
                             <div class="section-score" id="section-score-${sectionKey}">0 / 0</div>
                             </div>
@@ -4794,9 +4794,9 @@
             const data = getAssessmentData();
             
             // Determine endpoint and file extension based on format
-            const endpoint = format === 'word' ? '/download-assessment-word' : '/download-assessment';
-            const fileExtension = format === 'word' ? '.docx' : '.xlsx';
-            const formatName = format === 'word' ? 'Word' : 'Excel';
+            const endpoint = format === 'pdf' ? '/download-assessment-pdf' : '/download-assessment';
+            const fileExtension = format === 'pdf' ? '.pdf' : '.xlsx';
+            const formatName = format === 'pdf' ? 'PDF' : 'Excel';
 
             showMessage(`⏳ Generating your comprehensive ${formatName} assessment report with color coding...`, 'info');
 
@@ -4939,9 +4939,9 @@
             }
 
             // Determine endpoint and file extension based on format
-            const endpoint = format === 'word' ? '/download-assessment-word' : '/download-assessment';
-            const fileExtension = format === 'word' ? '.docx' : '.xlsx';
-            const formatName = format === 'word' ? 'Word' : 'Excel';
+            const endpoint = format === 'pdf' ? '/download-assessment-pdf' : '/download-assessment';
+            const fileExtension = format === 'pdf' ? '.pdf' : '.xlsx';
+            const formatName = format === 'pdf' ? 'PDF' : 'Excel';
             
             showMessage(`⏳ Generating ${formatName} report for section: ${sectionData.name}...`, 'info');
 

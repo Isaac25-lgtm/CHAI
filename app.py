@@ -15,7 +15,7 @@ from functools import wraps
 from config import Config
 from logger import setup_logger, log_api_call, log_security_event
 from validators import DataValidator, ValidationError
-from utils import ExcelGenerator, WordGenerator, EmailService, FileManager
+from utils import ExcelGenerator, WordGenerator, PDFGenerator, EmailService, FileManager
 from models import db, init_database, User, Participant, Assessment, log_activity
 from admin_routes import admin_bp
 
@@ -156,20 +156,20 @@ TOOL_SECTIONS = {
                 "text": "Q2. Review ANC1 entries for previous month, ascertain treatment initiation",
                 "type": "data_entry_table",
                 "fields": [
-                    {"id": "hiv_positive", "name": "Number with a document positive HIV status (TRRK, TRR, or TRR+)", "type": "number"},
-                    {"id": "art_initiated", "name": "Number with a documented ART initiation status", "type": "number"},
-                    {"id": "art_pct", "name": "% On ART", "type": "calculated", "formula": "(art_initiated / hiv_positive) * 100"},
-                    {"id": "syphilis_positive", "name": "Number with a documented positive Syphilis Test Result", "type": "number"},
-                    {"id": "syphilis_treated", "name": "Number with a documented positive Syphilis Test Result initiated on treatment", "type": "number"},
-                    {"id": "syphilis_treated_pct", "name": "% Treated for Syphilis", "type": "calculated", "formula": "(syphilis_treated / syphilis_positive) * 100"},
-                    {"id": "hepb_positive", "name": "Number with a documented Hepatitis B positive Test Result", "type": "number"},
-                    {"id": "hepb_vl_high", "name": "Number with a documented Hepatitis B positive Test Result with viral load more than 200,000 copies/ml", "type": "number"},
-                    {"id": "hepb_art_initiated", "name": "Number with a documented Hepatitis B positive Test Result with viral load more than 200,000 copies/ml initiated on ARVs", "type": "number"},
-                    {"id": "hepb_art_pct", "name": "% on ART for Hep. B Prophylaxis", "type": "calculated", "formula": "(hepb_art_initiated / hepb_vl_high) * 100"},
-                    {"id": "average_pct", "name": "% Average", "type": "calculated", "formula": "(art_pct + syphilis_treated_pct + hepb_art_pct) / 3"}
+                    {"id": "tet_hiv_positive", "name": "Number with a document positive HIV status (TRRK, TRR, or TRR+)", "type": "number"},
+                    {"id": "tet_art_initiated", "name": "Number with a documented ART initiation status", "type": "number"},
+                    {"id": "tet_art_pct", "name": "% On ART", "type": "calculated", "formula": "(art_initiated / hiv_positive) * 100"},
+                    {"id": "tet_syphilis_positive", "name": "Number with a documented positive Syphilis Test Result", "type": "number"},
+                    {"id": "tet_syphilis_treated", "name": "Number with a documented positive Syphilis Test Result initiated on treatment", "type": "number"},
+                    {"id": "tet_syphilis_treated_pct", "name": "% Treated for Syphilis", "type": "calculated", "formula": "(syphilis_treated / syphilis_positive) * 100"},
+                    {"id": "tet_hepb_positive", "name": "Number with a documented Hepatitis B positive Test Result", "type": "number"},
+                    {"id": "tet_hepb_vl_high", "name": "Number with a documented Hepatitis B positive Test Result with viral load more than 200,000 copies/ml", "type": "number"},
+                    {"id": "tet_hepb_art_initiated", "name": "Number with a documented Hepatitis B positive Test Result with viral load more than 200,000 copies/ml initiated on ARVs", "type": "number"},
+                    {"id": "tet_hepb_art_pct", "name": "% on ART for Hep. B Prophylaxis", "type": "calculated", "formula": "(hepb_art_initiated / hepb_vl_high) * 100"},
+                    {"id": "tet_average_pct", "name": "% Average", "type": "calculated", "formula": "(art_pct + syphilis_treated_pct + hepb_art_pct) / 3"}
                 ],
                 "scoring": {
-                    "field": "average_pct",
+                    "field": "tet_average_pct",
                     "thresholds": {
                         "red": "<60",
                         "yellow": "60-79.9",
@@ -804,6 +804,34 @@ TOOL_SECTIONS = {
             }
         ]
     },
+    "registers": {
+        "name": "ANC/Maternity/PNC Registers",
+        "type": "register_checklist",
+        "instructions": "Review the last 10 pages of each register to assess legibility and completeness. If the entry fields are at least 90% complete, score Y for Yes, and N for No if less than 90%.",
+        "question": "Do following registers exist and are they in use?",
+        "registers": [
+            {"id": "reg1", "name": "ANC registers"},
+            {"id": "reg2", "name": "Maternity Registers"},
+            {"id": "reg3", "name": "PNC Registers"},
+            {"id": "reg4", "name": "Family Planning Register"},
+            {"id": "reg5", "name": "ART Cards"},
+            {"id": "reg6", "name": "ART Register"},
+            {"id": "reg7", "name": "HEI clinical cards"},
+            {"id": "reg8", "name": "HEI Register"},
+            {"id": "reg9", "name": "SGBV register"},
+            {"id": "reg10", "name": "Appointment register"},
+            {"id": "reg11", "name": "Missed appointment register"}
+        ],
+        "columns": ["Available", "Standard versions", "90% complete"],
+        "scoring": {
+            "description": "For each register, assess if it meets all 3 criteria: Available, Standard versions, 90% complete",
+            "thresholds": {
+                "red": "1/3 - Only 1 criterion met",
+                "yellow": "2/3 - Two criteria met",
+                "green": "3/3 - All criteria met"
+            }
+        }
+    },
     "patient_records": {
         "name": "Patient/Beneficiary Records",
         "type": "conditional_questions",
@@ -1367,14 +1395,14 @@ def download_assessment():
         if filepath and os.path.exists(filepath):
             FileManager.cleanup_temp_file(filepath)
 
-@app.route('/download-assessment-word', methods=['POST'])
+@app.route('/download-assessment-pdf', methods=['POST'])
 @csrf.exempt  # Temporarily exempt for AJAX calls
 @api_logger
 @login_required
 @validate_json
 @rate_limit(max_requests=20, window=3600)
-def download_assessment_word():
-    """Download assessment Word document"""
+def download_assessment_pdf():
+    """Download assessment section as PDF snapshot"""
     filepath = None
     try:
         data = request.get_json()
@@ -1394,19 +1422,25 @@ def download_assessment_word():
         # Add section definitions to data for accurate question text in reports
         data['section_definitions'] = TOOL_SECTIONS
         
-        filepath, filename = WordGenerator.create_assessment_word(data)
+        filepath, filename = PDFGenerator.create_section_pdf(data)
+        
+        logger.info(f"PDF generated: {filename}, size: {os.path.getsize(filepath)} bytes")
+        
+        # Verify file exists and is readable
+        if not os.path.exists(filepath):
+            raise Exception("PDF file was not created")
         
         return send_file(
             filepath,
             as_attachment=True,
             download_name=filename,
-            mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            mimetype='application/pdf'
         )
     except ValidationError as e:
-        logger.warning(f"Validation error in download_assessment_word: {str(e)}")
+        logger.warning(f"Validation error in download_assessment_pdf: {str(e)}")
         return jsonify({'success': False, 'message': str(e)}), 400
     except Exception as e:
-        logger.error(f"Error in download_assessment_word: {str(e)}", exc_info=True)
+        logger.error(f"Error in download_assessment_pdf: {str(e)}", exc_info=True)
         return jsonify({'success': False, 'message': 'Internal server error'}), 500
     finally:
         if filepath and os.path.exists(filepath):
