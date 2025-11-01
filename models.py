@@ -11,7 +11,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default='user')  # 'user' or 'superuser'
+    role = db.Column(db.String(20), nullable=False, default='admin')  # role field (kept for compatibility)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     last_login = db.Column(db.DateTime)
     
@@ -247,20 +247,11 @@ def init_database(app):
             )
             db.session.add(admin_user)
         
-        if not User.query.filter_by(username='superuser').first():
-            superuser = User(
-                username='superuser',
-                password='superuser',  # In production, hash this!
-                role='superuser'
-            )
-            db.session.add(superuser)
-        
         try:
             db.session.commit()
             print("[OK] Database initialized successfully")
-            print("[INFO] Default users created:")
-            print("   - admin/admin (regular user)")
-            print("   - superuser/superuser (admin access)")
+            print("[INFO] Default user created:")
+            print("   - admin/admin (admin access)")
         except Exception as e:
             db.session.rollback()
             print(f"[WARNING] Database initialization error: {e}")

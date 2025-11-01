@@ -99,7 +99,7 @@ def export_participants():
             request.remote_addr
         )
         
-        # Generate Excel - Superusers can edit their exports
+        # Generate Excel without protection (editable for all users)
         filepath, filename = ExcelGenerator.create_participant_excel(participants_data, protect_sheet=False)
         
         return send_file(
@@ -293,14 +293,12 @@ def export_all():
     return export_analytics()
 
 
-# ============= DELETE & RESET OPERATIONS (SUPERUSER ONLY) =============
+# ============= DELETE & RESET OPERATIONS (ADMIN ONLY) =============
 
 @admin_bp.route('/delete/participant/<int:participant_id>', methods=['DELETE'])
 def delete_participant(participant_id):
     """Delete a specific participant"""
     try:
-        from app import superuser_required
-        
         participant = Participant.query.get(participant_id)
         if not participant:
             return jsonify({'success': False, 'message': 'Participant not found'}), 404
@@ -322,8 +320,6 @@ def delete_participant(participant_id):
 def delete_assessment(assessment_id):
     """Delete a specific assessment"""
     try:
-        from app import superuser_required
-        
         assessment = Assessment.query.get(assessment_id)
         if not assessment:
             return jsonify({'success': False, 'message': 'Assessment not found'}), 404
@@ -345,8 +341,6 @@ def delete_assessment(assessment_id):
 def delete_facility_data(facility_name):
     """Delete all data for a specific facility"""
     try:
-        from app import superuser_required
-        
         # Delete all participants from this facility
         participants = Participant.query.filter_by(duty_station=facility_name).all()
         for p in participants:
@@ -370,10 +364,8 @@ def delete_facility_data(facility_name):
 
 @admin_bp.route('/reset/all', methods=['POST'])
 def reset_all_data():
-    """Reset/clear all data from the database (SUPERUSER ONLY - DANGEROUS)"""
+    """Reset/clear all data from the database (ADMIN ONLY - DANGEROUS)"""
     try:
-        from app import superuser_required
-        
         # Count before deletion
         participant_count = Participant.query.count()
         assessment_count = Assessment.query.count()
@@ -399,8 +391,6 @@ def reset_all_data():
 def get_all_participants():
     """Get all participants with full details for management"""
     try:
-        from app import superuser_required
-        
         participants = Participant.query.order_by(Participant.created_at.desc()).all()
         
         result = []
@@ -427,8 +417,6 @@ def get_all_participants():
 def get_all_assessments():
     """Get all assessments with full details for management"""
     try:
-        from app import superuser_required
-        
         assessments = Assessment.query.order_by(Assessment.created_at.desc()).all()
         
         result = []

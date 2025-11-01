@@ -992,20 +992,15 @@ def login():
             
             logger.info(f"Successful login: {username} (role: {user.role})")
             
-            # Redirect based on role
-            if user.role == 'superuser':
-                return redirect(url_for('admin_dashboard'))
-            else:
-                return redirect(url_for('index'))
+            # Redirect to index page
+            return redirect(url_for('index'))
         else:
             log_security_event("Failed login attempt", f"Username: {username}", request.remote_addr)
             logger.warning(f"Failed login attempt for username: {username}")
             return render_template('login.html', error='Invalid username or password')
     
-    # If already logged in, redirect appropriately
+    # If already logged in, redirect to index
     if session.get('logged_in'):
-        if session.get('user_role') == 'superuser':
-            return redirect(url_for('admin_dashboard'))
         return redirect(url_for('index'))
     
     return render_template('login.html')
@@ -1020,30 +1015,11 @@ def logout():
     logger.info(f"User logged out: {username}")
     return redirect(url_for('login'))
 
-def superuser_required(f):
-    """Decorator to require superuser access"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        # Check session version - invalidate old sessions
-        if session.get('session_version') != Config.SESSION_VERSION:
-            session.clear()  # Clear old session
-            return redirect(url_for('login'))
-        
-        # Triple check for authentication
-        if not session.get('logged_in') or not session.get('username') or not session.get('user_role'):
-            session.clear()  # Clear any partial session data
-            return redirect(url_for('login'))
-        if session.get('user_role') != 'superuser':
-            logger.warning(f"Unauthorized admin access attempt by {session.get('username')}")
-            return jsonify({'success': False, 'message': 'Superuser access required'}), 403
-        return f(*args, **kwargs)
-    return decorated_function
-
 @app.route('/admin')
 @api_logger
-@superuser_required
+@login_required
 def admin_dashboard():
-    """Admin dashboard - superuser only"""
+    """Admin dashboard - accessible to all logged in users"""
     return render_template('admin_dashboard.html', username=session.get('username'))
 
 @app.route('/')
@@ -1059,10 +1035,6 @@ def index():
     if not session.get('logged_in') or not session.get('username') or not session.get('user_role'):
         session.clear()  # Clear any stale session data
         return redirect(url_for('login'))
-    
-    # Additional security: redirect superusers to their dashboard
-    if session.get('user_role') == 'superuser':
-        return redirect(url_for('admin_dashboard'))
     
     return render_template('index.html', username=session.get('username'))
 
@@ -1146,10 +1118,8 @@ def submit_data():
             db.session.rollback()
             logger.error(f"Database commit error: {e}")
         
-        # Generate Excel file with protection for regular users
-        user_role = session.get('user_role', 'admin')
-        protect_sheet = (user_role != 'superuser')  # Protect for regular users
-        filepath, filename = ExcelGenerator.create_participant_excel(participants, protect_sheet=protect_sheet)
+        # Generate Excel file without protection (editable for all users)
+        filepath, filename = ExcelGenerator.create_participant_excel(participants, protect_sheet=False)
         
         # Send email (optional - don't fail if email not configured)
         success, message = EmailService.send_email(filepath, filename, "registration")
@@ -1210,7 +1180,7 @@ def submit_assessment():
         if existing_assessment:
             return jsonify({
                 'success': False,
-                'message': f'⚠️ Assessment already exists for {facility_name}! Each facility can only be assessed once to prevent double reporting. If you need to update the assessment, please contact the superuser to delete the existing one first.'
+                'message': f'⚠️ Assessment already exists for {facility_name}! Each facility can only be assessed once to prevent double reporting. If you need to update the assessment, please contact the admin to delete the existing one first.'
             }), 400
         
         # Calculate overall score
@@ -1258,10 +1228,8 @@ def submit_assessment():
             db.session.rollback()
             logger.error(f"Error saving assessment: {e}")
         
-        # Generate Excel report with protection for regular users
-        user_role = session.get('user_role', 'admin')
-        protect_sheet = (user_role != 'superuser')  # Protect for regular users
-        filepath, filename = ExcelGenerator.create_assessment_excel(data, protect_sheet=protect_sheet)
+        # Generate Excel report without protection (editable for all users)
+        filepath, filename = ExcelGenerator.create_assessment_excel(data, protect_sheet=False)
         
         # Send email (optional - don't fail if email not configured)
         success, message = EmailService.send_email(filepath, filename, "assessment")
@@ -1324,11 +1292,8 @@ def download_excel():
                 'errors': validation_errors
             }), 400
         
-        # Check if user is superuser - only superusers can edit downloaded files
-        user_role = session.get('user_role', 'admin')
-        protect_sheet = (user_role != 'superuser')  # Protect for regular users
-        
-        filepath, filename = ExcelGenerator.create_participant_excel(participants, protect_sheet=protect_sheet)
+        # Generate Excel file without protection (editable for all users)
+        filepath, filename = ExcelGenerator.create_participant_excel(participants, protect_sheet=False)
         
         return send_file(
             filepath,
@@ -1421,11 +1386,8 @@ def download_assessment():
         # Add section definitions to data for accurate question text in reports
         data['section_definitions'] = TOOL_SECTIONS
         
-        # Check if user is superuser - only superusers can edit downloaded files
-        user_role = session.get('user_role', 'admin')
-        protect_sheet = (user_role != 'superuser')  # Protect for regular users
-        
-        filepath, filename = ExcelGenerator.create_assessment_excel(data, protect_sheet=protect_sheet)
+        # Generate Excel file without protection (editable for all users)
+        filepath, filename = ExcelGenerator.create_assessment_excel(data, protect_sheet=False)
         
         return send_file(
             filepath,
