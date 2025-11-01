@@ -2,9 +2,13 @@
 
 A comprehensive, secure web-based platform for health program management in Uganda, featuring participant registration and facility assessment tools with automated Excel reporting and email notifications.
 
+## 📚 Documentation
 
+- **[📋 PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)** - Complete project explanation and architecture
+- **[📥 DOWNLOAD_OPTIONS_GUIDE.md](DOWNLOAD_OPTIONS_GUIDE.md)** - Detailed guide to download functionality
+- **[🚀 Quick Start](#-quick-start)** - Get started quickly (below)
 
-## 🌟 Features## 🌟 Features
+## 🌟 Features
 
 
 
@@ -442,6 +446,20 @@ git push origin main
 | `/submit-assessment` | Submit assessment data | POST |
 | `/download` | Download participant Excel | POST |
 | `/download-assessment` | Download assessment Excel | POST |
+| `/download-registration-pdf` | Download participant PDF | POST |
+| `/download-assessment-pdf` | Download assessment PDF | POST |
+
+## 📥 Download Options
+
+The CHAI portal provides multiple download options for both participant registration and facility assessments:
+
+- **Excel Downloads:** Editable spreadsheets for data processing and analysis
+- **PDF Downloads:** Print-ready documents for archival and sharing
+- **Automated Email:** Files automatically sent to configured recipients
+- **Manual Download:** Direct download buttons available in both modules
+
+For detailed information about all download options, file formats, and use cases, see:
+- **[📥 DOWNLOAD_OPTIONS_GUIDE.md](DOWNLOAD_OPTIONS_GUIDE.md)** - Complete guide to download functionality
 
 ## 🎨 Customization Options
 
