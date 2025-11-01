@@ -457,6 +457,9 @@
                 <button onclick="downloadExcel()" class="btn btn-download">
                     📥 Download Excel
                 </button>
+                <button onclick="downloadPDF()" class="btn btn-download">
+                    📄 Download PDF
+                </button>
                 <button onclick="submitData()" class="btn btn-success" id="submitBtn">
                     ✉️ Confirm & Send to Email
                 </button>
@@ -816,6 +819,40 @@
                     showAlert('Excel file downloaded successfully!', 'success');
                 } else {
                     showAlert('Error downloading file', 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        async function downloadPDF() {
+            if (participants.length === 0) {
+                showAlert('Please add at least one participant before downloading PDF', 'error');
+                return;
+            }
+            
+            try {
+                const response = await fetchWithTimeout('/download-registration-pdf', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ participants })
+                }, 30000);
+                
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `participant_registration_${new Date().toISOString().split('T')[0]}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    document.body.removeChild(a);
+                    showAlert('📄 PDF file downloaded successfully!', 'success');
+                } else {
+                    showAlert('Error downloading PDF file', 'error');
                 }
             } catch (error) {
                 showAlert('Error: ' + error.message, 'error');

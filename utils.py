@@ -1717,7 +1717,14 @@ class PDFGenerator:
             assessment_data: Dictionary containing assessment information with section HTML
         """
         try:
-            from xhtml2pdf import pisa
+            # Try to use weasyprint for better CSS rendering (screenshot-like)
+            try:
+                from weasyprint import HTML
+                use_weasyprint = True
+            except ImportError:
+                # Fall back to xhtml2pdf if weasyprint not available
+                from xhtml2pdf import pisa
+                use_weasyprint = False
             
             # Get data
             facility_name = assessment_data.get('facilityName', 'Unknown')
@@ -1762,12 +1769,17 @@ class PDFGenerator:
                 scores_dict, comments_dict, section_html
             )
             
-            # Generate PDF from HTML using xhtml2pdf
-            with open(filepath, 'wb') as pdf_file:
-                pisa_status = pisa.CreatePDF(html_content, dest=pdf_file)
-            
-            if pisa_status.err:
-                raise Exception(f"PDF generation had errors: {pisa_status.err}")
+            # Generate PDF from HTML
+            if use_weasyprint:
+                # Use weasyprint for better CSS rendering (screenshot-like)
+                HTML(string=html_content).write_pdf(filepath)
+            else:
+                # Use xhtml2pdf as fallback
+                with open(filepath, 'wb') as pdf_file:
+                    pisa_status = pisa.CreatePDF(html_content, dest=pdf_file)
+                
+                if pisa_status.err:
+                    raise Exception(f"PDF generation had errors: {pisa_status.err}")
             
             return filepath, filename
             
@@ -2169,3 +2181,211 @@ class PDFGenerator:
             '''
         
         return content
+    
+    @staticmethod
+    @log_function_call
+    def create_registration_pdf(participants: List[Dict]) -> Tuple[str, str]:
+        """Generate PDF of participant registration (screenshot-like replica)
+        
+        Args:
+            participants: List of participant dictionaries
+            
+        Returns:
+            Tuple of (filepath, filename)
+        """
+        try:
+            # Try to use weasyprint for better CSS rendering
+            try:
+                from weasyprint import HTML, CSS
+                use_weasyprint = True
+            except ImportError:
+                # Fall back to xhtml2pdf if weasyprint not available
+                from xhtml2pdf import pisa
+                use_weasyprint = False
+            
+            # Create PDF file
+            temp_dir = tempfile.gettempdir()
+            filename = f'participant_registration_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf'
+            filepath = os.path.join(temp_dir, filename)
+            
+            # Build HTML content that matches registration screen
+            html_content = PDFGenerator._build_registration_html(participants)
+            
+            if use_weasyprint:
+                # Use weasyprint for better rendering
+                HTML(string=html_content).write_pdf(filepath)
+            else:
+                # Use xhtml2pdf as fallback
+                with open(filepath, 'wb') as pdf_file:
+                    pisa_status = pisa.CreatePDF(html_content, dest=pdf_file)
+                    if pisa_status.err:
+                        raise Exception(f"PDF generation had errors: {pisa_status.err}")
+            
+            return filepath, filename
+            
+        except Exception as e:
+            raise Exception(f"Failed to create registration PDF: {str(e)}")
+    
+    @staticmethod
+    def _build_registration_html(participants: List[Dict]) -> str:
+        """Build HTML for registration PDF that matches the frontend appearance"""
+        
+        # Build participants table rows
+        rows_html = ''
+        for idx, p in enumerate(participants, 1):
+            campaign_day = f"Day {p.get('campaignDay')}" if p.get('campaignDay') else "N/A"
+            rows_html += f'''
+            <tr>
+                <td style="text-align: center;">{idx}</td>
+                <td>{p.get('fullName', 'N/A')}</td>
+                <td>{p.get('cadre', 'N/A')}</td>
+                <td>{p.get('facilityName', 'N/A')}</td>
+                <td>{p.get('district', 'N/A')}</td>
+                <td>{p.get('mobileNumber', 'N/A')}</td>
+                <td>{p.get('registrationDate', 'N/A')}</td>
+                <td>{campaign_day}</td>
+                <td>{p.get('mobileMoneyProvider', 'N/A')}</td>
+                <td>{p.get('mobileMoneyNumber', 'N/A')}</td>
+                <td>{p.get('mobileMoneyName', 'N/A')}</td>
+            </tr>
+            '''
+        
+        html = f'''
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Participant Registration</title>
+    <style>
+        @page {{
+            size: A4 landscape;
+            margin: 0.75cm;
+        }}
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+            font-size: 9pt;
+            line-height: 1.4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }}
+        .header {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }}
+        .header h1 {{
+            margin: 0 0 5px 0;
+            font-size: 20pt;
+            font-weight: 600;
+        }}
+        .header p {{
+            margin: 0;
+            font-size: 11pt;
+            opacity: 0.95;
+        }}
+        .info-box {{
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }}
+        .info-box .count {{
+            font-size: 14pt;
+            font-weight: bold;
+            color: #667eea;
+        }}
+        .info-box .date {{
+            font-size: 9pt;
+            color: #666;
+        }}
+        table {{
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }}
+        th {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 8px 6px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 8.5pt;
+            border: 1px solid #5a67d8;
+        }}
+        td {{
+            padding: 6px;
+            border: 1px solid #dee2e6;
+            font-size: 8.5pt;
+        }}
+        tr:nth-child(even) {{
+            background-color: #f8f9fa;
+        }}
+        tr:hover {{
+            background-color: #e9ecef;
+        }}
+        .footer {{
+            margin-top: 15px;
+            padding-top: 10px;
+            border-top: 2px solid #667eea;
+            text-align: center;
+            font-size: 8pt;
+            color: #666;
+        }}
+        .footer strong {{
+            color: #667eea;
+        }}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>👥 Participant Registration Report</h1>
+        <p>CHAI - Clinton Health Access Initiative</p>
+    </div>
+    
+    <div class="info-box">
+        <div>
+            <span class="count">Total Participants: {len(participants)}</span>
+        </div>
+        <div class="date">
+            Generated: {datetime.now().strftime("%B %d, %Y at %I:%M %p")}
+        </div>
+    </div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 3%;">#</th>
+                <th style="width: 12%;">Full Name</th>
+                <th style="width: 10%;">Cadre</th>
+                <th style="width: 12%;">Facility</th>
+                <th style="width: 10%;">District</th>
+                <th style="width: 9%;">Mobile</th>
+                <th style="width: 8%;">Reg. Date</th>
+                <th style="width: 6%;">Campaign</th>
+                <th style="width: 8%;">MM Provider</th>
+                <th style="width: 9%;">MM Number</th>
+                <th style="width: 13%;">MM Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            {rows_html}
+        </tbody>
+    </table>
+    
+    <div class="footer">
+        <p><strong>CHAI Uganda</strong> | Health Worker Registration & Tracking System</p>
+        <p>This is an automatically generated report. For inquiries, contact the CHAI team.</p>
+    </div>
+</body>
+</html>
+'''
+        return html

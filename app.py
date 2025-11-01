@@ -1346,6 +1346,54 @@ def download_excel():
         if filepath and os.path.exists(filepath):
             FileManager.cleanup_temp_file(filepath)
 
+@app.route('/download-registration-pdf', methods=['POST'])
+@csrf.exempt  # Temporarily exempt for AJAX calls
+@api_logger
+@login_required
+@validate_json
+@rate_limit(max_requests=30, window=3600)
+def download_registration_pdf():
+    """Download participant registration as PDF (screenshot-like replica)"""
+    filepath = None
+    try:
+        data = request.get_json()
+        participants = data.get('participants', [])
+        
+        if not participants:
+            return jsonify({'success': False, 'message': 'No participants data'}), 400
+        
+        # Validate participants
+        validation_errors = []
+        for i, participant in enumerate(participants):
+            is_valid, errors = DataValidator.validate_participant_data(participant)
+            if not is_valid:
+                validation_errors.append(f"Participant {i+1}: {', '.join(errors)}")
+        
+        if validation_errors:
+            return jsonify({
+                'success': False,
+                'message': 'Validation errors found',
+                'errors': validation_errors
+            }), 400
+        
+        filepath, filename = PDFGenerator.create_registration_pdf(participants)
+        
+        return send_file(
+            filepath,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/pdf'
+        )
+    except ValidationError as e:
+        logger.warning(f"Validation error in download_registration_pdf: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 400
+    except Exception as e:
+        logger.error(f"Error in download_registration_pdf: {str(e)}", exc_info=True)
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+    finally:
+        if filepath and os.path.exists(filepath):
+            FileManager.cleanup_temp_file(filepath)
+
 @app.route('/download-assessment', methods=['POST'])
 @csrf.exempt  # Temporarily exempt for AJAX calls
 @api_logger
