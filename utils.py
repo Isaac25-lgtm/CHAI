@@ -79,7 +79,35 @@ class ExcelGenerator:
             section_definitions = assessment_data.get('section_definitions', {})
             # Use ALL section keys from section_definitions instead of hardcoded list
             section_ids = list(section_definitions.keys())
-            sections_with_data = [key for key in section_ids if key in scores or any(k.startswith(key + '_') for k in scores.keys())]
+            
+            # Check which sections have data - improved detection for all section types
+            sections_with_data = []
+            for section_key in section_ids:
+                # Check if section key is directly in scores
+                if section_key in scores:
+                    sections_with_data.append(section_key)
+                    continue
+                
+                # Check if any score key starts with section_key + '_'
+                if any(k.startswith(section_key + '_') for k in scores.keys()):
+                    sections_with_data.append(section_key)
+                    continue
+                
+                # For indicator-based sections, check if any indicators match
+                section_config = section_definitions.get(section_key, {})
+                if 'indicators' in section_config:
+                    indicator_ids = [ind.get('id', '') for ind in section_config['indicators'] if isinstance(ind, dict)]
+                    if any(ind_id in scores for ind_id in indicator_ids):
+                        sections_with_data.append(section_key)
+                        continue
+                
+                # For sections with questions, check if any question IDs match
+                if 'questions' in section_config:
+                    question_ids = [q.get('id', '') for q in section_config['questions'] if isinstance(q, dict)]
+                    if any(q_id in scores for q_id in question_ids):
+                        sections_with_data.append(section_key)
+                        continue
+            
             is_section_download = len(sections_with_data) == 1
             
             # Create summary dashboard
@@ -178,7 +206,34 @@ class ExcelGenerator:
         # Use ALL section keys from section_definitions instead of hardcoded list
         section_ids = list(section_definitions.keys())
         
-        sections_with_data = [key for key in section_ids if key in scores or any(k.startswith(key + '_') for k in scores.keys())]
+        # Check which sections have data - improved detection for all section types
+        sections_with_data = []
+        for section_key in section_ids:
+            # Check if section key is directly in scores
+            if section_key in scores:
+                sections_with_data.append(section_key)
+                continue
+            
+            # Check if any score key starts with section_key + '_'
+            if any(k.startswith(section_key + '_') for k in scores.keys()):
+                sections_with_data.append(section_key)
+                continue
+            
+            # For indicator-based sections, check if any indicators match
+            section_config = section_definitions.get(section_key, {})
+            if 'indicators' in section_config:
+                indicator_ids = [ind.get('id', '') for ind in section_config['indicators'] if isinstance(ind, dict)]
+                if any(ind_id in scores for ind_id in indicator_ids):
+                    sections_with_data.append(section_key)
+                    continue
+            
+            # For sections with questions, check if any question IDs match
+            if 'questions' in section_config:
+                question_ids = [q.get('id', '') for q in section_config['questions'] if isinstance(q, dict)]
+                if any(q_id in scores for q_id in question_ids):
+                    sections_with_data.append(section_key)
+                    continue
+        
         is_section_download = len(sections_with_data) == 1
         
         # Section name mapping
@@ -1732,12 +1787,33 @@ class PDFGenerator:
             scores = assessment_data.get('scores', {})
             section_definitions = assessment_data.get('section_definitions', {})
             
-            # Identify the section
+            # Identify the section - improved detection for all section types
             section_key = None
-            for key in section_definitions.keys():
-                if key in scores or any(k.startswith(key + '_') for k in scores.keys()):
-                    section_key = key
+            for section_key_candidate in section_definitions.keys():
+                # Check if section key is directly in scores
+                if section_key_candidate in scores:
+                    section_key = section_key_candidate
                     break
+                
+                # Check if any score key starts with section_key + '_'
+                if any(k.startswith(section_key_candidate + '_') for k in scores.keys()):
+                    section_key = section_key_candidate
+                    break
+                
+                # For indicator-based sections, check if any indicators match
+                section_config = section_definitions.get(section_key_candidate, {})
+                if 'indicators' in section_config:
+                    indicator_ids = [ind.get('id', '') for ind in section_config['indicators'] if isinstance(ind, dict)]
+                    if any(ind_id in scores for ind_id in indicator_ids):
+                        section_key = section_key_candidate
+                        break
+                
+                # For sections with questions, check if any question IDs match
+                if 'questions' in section_config:
+                    question_ids = [q.get('id', '') for q in section_config['questions'] if isinstance(q, dict)]
+                    if any(q_id in scores for q_id in question_ids):
+                        section_key = section_key_candidate
+                        break
             
             if not section_key:
                 raise Exception("No section found in scores")
