@@ -209,6 +209,30 @@
             color: #721c24;
         }
 
+        .instructions {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .instructions h3 {
+            color: #004085;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+
+        .instructions ol {
+            padding-left: 20px;
+            color: #004085;
+        }
+
+        .instructions li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
         .admin-link {
             text-align: center;
             margin-top: 20px;
@@ -225,11 +249,11 @@
         }
 
         .recent-submissions {
-            background: rgba(255,255,255,0.95);
+            background: #f8f9fa;
             padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 2px solid #e9ecef;
         }
 
         .recent-submissions h3 {
@@ -239,6 +263,7 @@
             align-items: center;
             gap: 10px;
             font-size: 16px;
+            font-weight: 600;
         }
 
         .recent-submissions h3::before {
@@ -247,22 +272,44 @@
         }
 
         .submission-item {
-            background: #f8f9fa;
+            background: white;
             padding: 12px;
             border-radius: 5px;
             margin-bottom: 10px;
             border-left: 4px solid #28a745;
             font-size: 14px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .submission-item .check-icon {
+            color: #28a745;
+            font-size: 20px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .submission-item .content {
+            flex: 1;
         }
 
         .submission-item strong {
             color: #333;
+            display: block;
         }
 
         .submission-item small {
             color: #666;
             display: block;
             margin-top: 5px;
+        }
+
+        .no-submissions {
+            text-align: center;
+            color: #666;
+            padding: 20px;
+            font-style: italic;
         }
 
         @media (max-width: 768px) {
@@ -290,12 +337,6 @@
         <!-- Alerts -->
         <div id="successAlert" class="alert alert-success"></div>
         <div id="errorAlert" class="alert alert-error"></div>
-
-        <!-- Recent Submissions Section (24 hour view) -->
-        <div id="recentSubmissions" class="recent-submissions" style="display: none;">
-            <h3>Your Recent Submissions (Last 24 Hours)</h3>
-            <div id="submissionsList"></div>
-        </div>
 
         <!-- Registration Form -->
         <div class="form-card">
@@ -511,9 +552,28 @@
                 </div>
 
                 <button type="submit" class="btn btn-primary">
-                    ➕ Add Participant
+                    Submit to CHAI
                 </button>
             </form>
+
+            <!-- Recent Submissions Section (24 hour view) - NOW BELOW SUBMIT BUTTON -->
+            <div id="recentSubmissions" class="recent-submissions" style="display: none;">
+                <h3>Your Recent Submissions (Last 24 Hours)</h3>
+                <div id="submissionsList"></div>
+            </div>
+
+            <!-- Instructions Section - NOW AT THE BOTTOM -->
+            <div class="instructions">
+                <h3>📌 Instructions:</h3>
+                <ol>
+                    <li>Fill in all required participant information above</li>
+                    <li>Select campaign day attendance (Day 1, Day 2, or both)</li>
+                    <li>Click "Submit to CHAI" to submit</li>
+                    <li>Repeat for all participants</li>
+                    <li>Your submissions appear in "Recent Submissions" for 24 hours</li>
+                    <li>Admin can access all data via the admin dashboard to view, filter, and download Excel files</li>
+                </ol>
+            </div>
 
             <div class="admin-link">
                 <small>Admin? <a href="/admin/login">Login here</a></small>
@@ -589,8 +649,12 @@
                     const submissionsList = document.getElementById('submissionsList');
                     submissionsList.innerHTML = submissions.map(sub => `
                         <div class="submission-item">
-                            <strong>${sub.participant_name}</strong> - ${sub.facility} (${sub.district})
-                            <small>Phone: ${sub.mobile_number} | Submitted: ${new Date(sub.submitted_at).toLocaleString()}</small>
+                            <div class="check-icon">✓</div>
+                            <div class="content">
+                                <strong>${sub.participant_name}</strong>
+                                <small>${sub.facility} (${sub.district}) | Phone: ${sub.mobile_number}</small>
+                                <small>Submitted: ${new Date(sub.submitted_at).toLocaleString()}</small>
+                            </div>
                         </div>
                     `).join('');
                     
@@ -682,7 +746,7 @@
             
             const submitBtn = e.target.querySelector('button[type="submit"]');
             submitBtn.disabled = true;
-            submitBtn.textContent = '⏳ Submitting...';
+            submitBtn.textContent = '⏳ Submitting to CHAI...';
             
             const participant = {
                 participant_name: document.getElementById('participantName').value.trim(),
@@ -716,11 +780,16 @@
                         console.error('Storage error:', storageError);
                     }
                     
-                    showAlert('✅ Participant registered successfully!', 'success');
+                    showAlert('✅ Participant registered successfully and submitted to CHAI!', 'success');
                     this.reset();
                     const today = new Date().toISOString().split('T')[0];
                     document.getElementById('registrationDate').value = today;
                     displayRecentSubmissions();
+                    
+                    // Scroll to recent submissions to show success
+                    setTimeout(() => {
+                        document.getElementById('recentSubmissions').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 500);
                 } else {
                     showAlert('❌ Error: ' + result.error, 'error');
                 }
@@ -728,7 +797,7 @@
                 showAlert('❌ Network error. Please check your connection and try again.', 'error');
             } finally {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '➕ Add Participant';
+                submitBtn.innerHTML = 'Submit to CHAI';
             }
         });
     </script>
