@@ -219,7 +219,7 @@ def download_excel():
     # Create Excel workbook
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Participant Registration"
+    ws.title = "Raw Data"
     
     # Define styles
     header_fill = PatternFill(start_color="2B5097", end_color="2B5097", fill_type="solid")
@@ -298,7 +298,163 @@ def download_excel():
     output.seek(0)
     
     # Create filename with filter info
-    filename_parts = ['participant_registrations']
+    filename_parts = ['participant_registrations_RAW']
+    if district:
+        filename_parts.append(district.replace(' ', '_'))
+    if date_from or date_to:
+        if date_from and date_to:
+            filename_parts.append(f'{date_from}_to_{date_to}')
+        elif date_from:
+            filename_parts.append(f'from_{date_from}')
+        elif date_to:
+            filename_parts.append(f'until_{date_to}')
+    filename_parts.append(datetime.now().strftime('%Y%m%d_%H%M%S'))
+    filename = '_'.join(filename_parts) + '.xlsx'
+    
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
+
+@app.route('/admin/download/analyzed')
+@login_required
+def download_analyzed():
+    # Get same filters as dashboard
+    district = request.args.get('district', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    
+    # Build query with filters
+    query = Registration.query
+    
+    if district:
+        query = query.filter(Registration.district == district)
+    
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            query = query.filter(Registration.registration_date >= date_from_obj)
+        except:
+            pass
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            query = query.filter(Registration.registration_date <= date_to_obj)
+        except:
+            pass
+    
+    registrations = query.order_by(Registration.submitted_at.desc()).all()
+    
+    # Create Excel workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Analyzed Attendance"
+    
+    # Define styles
+    header_fill = PatternFill(start_color="2B5097", end_color="2B5097", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    
+    cell_font = Font(name="Calibri", size=11)
+    cell_alignment = Alignment(vertical="center")
+    center_alignment = Alignment(horizontal="center", vertical="center")
+    
+    thin_border = Border(
+        left=Side(style='thin', color='000000'),
+        right=Side(style='thin', color='000000'),
+        top=Side(style='thin', color='000000'),
+        bottom=Side(style='thin', color='000000')
+    )
+    
+    # Headers for ANALYZED data (no Day 1/Day 2 columns, just Attendance Date)
+    headers = ['No.', "Participant's Name", 'Cadre', 'Duty Station (Facility)', 'District', 
+               'Attendance Date', 'Mobile Number Registered', 
+               'Names Registered on Mobile Money (First & Last Names)']
+    
+    ws.append(headers)
+    
+    # Style header row
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+        cell.border = thin_border
+    
+    # Set row height for header
+    ws.row_dimensions[1].height = 35
+    
+    # Add ANALYZED data - participants appear once or twice based on attendance
+    row_num = 1
+    for reg in registrations:
+        # Registration date is considered Day 2
+        registration_date = reg.registration_date
+        day1_date = registration_date - timedelta(days=1)
+        
+        # If Day 1 is checked, add a row with Day 1 date
+        if reg.day1:
+            row_num += 1
+            row = [
+                row_num - 1,
+                reg.participant_name,
+                reg.cadre,
+                reg.facility,
+                reg.district,
+                day1_date.strftime('%Y-%m-%d'),
+                reg.mobile_number,
+                reg.mm_registered_names
+            ]
+            ws.append(row)
+            
+            # Style data cells
+            for col_num, cell in enumerate(ws[row_num], start=1):
+                cell.font = cell_font
+                cell.border = thin_border
+                cell.alignment = cell_alignment
+                
+                # Center align number and date columns
+                if col_num in [1, 6]:
+                    cell.alignment = center_alignment
+        
+        # If Day 2 is checked, add a row with Day 2 date (registration date)
+        if reg.day2:
+            row_num += 1
+            row = [
+                row_num - 1,
+                reg.participant_name,
+                reg.cadre,
+                reg.facility,
+                reg.district,
+                registration_date.strftime('%Y-%m-%d'),
+                reg.mobile_number,
+                reg.mm_registered_names
+            ]
+            ws.append(row)
+            
+            # Style data cells
+            for col_num, cell in enumerate(ws[row_num], start=1):
+                cell.font = cell_font
+                cell.border = thin_border
+                cell.alignment = cell_alignment
+                
+                # Center align number and date columns
+                if col_num in [1, 6]:
+                    cell.alignment = center_alignment
+    
+    # Set column widths
+    column_widths = [6, 28, 20, 35, 20, 18, 25, 45]
+    for idx, width in enumerate(column_widths, start=1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(idx)].width = width
+    
+    # Save to bytes
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    # Create filename with filter info
+    filename_parts = ['participant_attendance_ANALYZED']
     if district:
         filename_parts.append(district.replace(' ', '_'))
     if date_from or date_to:
