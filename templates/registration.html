@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Participant Registration System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #1F4E78;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .form-card {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .form-card h2 {
+            color: #1F4E78;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+
+        .required {
+            color: #dc3545;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="tel"],
+        .form-group input[type="date"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input.error {
+            border-color: #dc3545;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 13px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 30px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background: #f8f9fa;
+        }
+
+        .checkbox-group.error {
+            border-color: #dc3545;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-item label {
+            margin: 0;
+            cursor: pointer;
+            user-select: none;
+            font-weight: normal;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .network-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .network-online {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .network-offline {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .admin-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .admin-link a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .admin-link a:hover {
+            text-decoration: underline;
+        }
+
+        .recent-submissions {
+            background: rgba(255,255,255,0.95);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .recent-submissions h3 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 16px;
+        }
+
+        .recent-submissions h3::before {
+            content: "📋";
+            font-size: 20px;
+        }
+
+        .submission-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border-left: 4px solid #28a745;
+            font-size: 14px;
+        }
+
+        .submission-item strong {
+            color: #333;
+        }
+
+        .submission-item small {
+            color: #666;
+            display: block;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .checkbox-group {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h1>📋 Participant Registration</h1>
+                <div id="networkStatus" class="network-status">
+                    <span id="statusIcon"></span>
+                    <span id="statusText"></span>
+                </div>
+            </div>
+            <p>Enter participant details for registration and mobile money enrollment</p>
+        </div>
+
+        <!-- Alerts -->
+        <div id="successAlert" class="alert alert-success"></div>
+        <div id="errorAlert" class="alert alert-error"></div>
+
+        <!-- Recent Submissions Section (24 hour view) -->
+        <div id="recentSubmissions" class="recent-submissions" style="display: none;">
+            <h3>Your Recent Submissions (Last 24 Hours)</h3>
+            <div id="submissionsList"></div>
+        </div>
+
+        <!-- Registration Form -->
+        <div class="form-card">
+            <h2>Enter Participant Information</h2>
+            
+            <form id="participantForm">
+                <div class="form-group">
+                    <label>Participant's Name <span class="required">*</span></label>
+                    <input type="text" id="participantName" placeholder="Enter full name">
+                    <span class="error-message" id="errorParticipantName">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Cadre <span class="required">*</span></label>
+                    <input type="text" id="cadre" placeholder="e.g., Nurse, Doctor, CHW">
+                    <span class="error-message" id="errorCadre">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>District <span class="required">*</span></label>
+                    <input type="text" id="district" list="districtList" placeholder="Enter district name" autocomplete="off">
+                    <datalist id="districtList">
+                        <option value="Abim District">
+                        <option value="Adjumani District">
+                        <option value="Agago District">
+                        <option value="Alebtong District">
+                        <option value="Amolatar District">
+                        <option value="Amudat District">
+                        <option value="Amuria District">
+                        <option value="Amuru District">
+                        <option value="Apac District">
+                        <option value="Arua City">
+                        <option value="Arua District">
+                        <option value="Budaka District">
+                        <option value="Bududa District">
+                        <option value="Bugiri District">
+                        <option value="Bugweri District">
+                        <option value="Buhweju District">
+                        <option value="Buikwe District">
+                        <option value="Bukedea District">
+                        <option value="Bukomansimbi District">
+                        <option value="Bukwo District">
+                        <option value="Bulambuli District">
+                        <option value="Buliisa District">
+                        <option value="Bundibugyo District">
+                        <option value="Bunyangabu District">
+                        <option value="Bushenyi District">
+                        <option value="Busia District">
+                        <option value="Butaleja District">
+                        <option value="Butambala District">
+                        <option value="Butebo District">
+                        <option value="Buvuma District">
+                        <option value="Buyende District">
+                        <option value="Dokolo District">
+                        <option value="Fort Portal City">
+                        <option value="Gomba District">
+                        <option value="Gulu City">
+                        <option value="Gulu District">
+                        <option value="Hoima City">
+                        <option value="Hoima District">
+                        <option value="Ibanda District">
+                        <option value="Iganga District">
+                        <option value="Isingiro District">
+                        <option value="Jinja City">
+                        <option value="Jinja District">
+                        <option value="Kaabong District">
+                        <option value="Kabale District">
+                        <option value="Kabarole District">
+                        <option value="Kaberamaido District">
+                        <option value="Kagadi District">
+                        <option value="Kakumiro District">
+                        <option value="Kalaki District">
+                        <option value="Kalangala District">
+                        <option value="Kaliro District">
+                        <option value="Kalungu District">
+                        <option value="Kampala District">
+                        <option value="Kamuli District">
+                        <option value="Kamwenge District">
+                        <option value="Kanungu District">
+                        <option value="Kapchorwa District">
+                        <option value="Kapelebyong District">
+                        <option value="Karenga District">
+                        <option value="Kasese District">
+                        <option value="Kassanda District">
+                        <option value="Katakwi District">
+                        <option value="Kayunga District">
+                        <option value="Kazo District">
+                        <option value="Kibaale District">
+                        <option value="Kiboga District">
+                        <option value="Kibuku District">
+                        <option value="Kikuube District">
+                        <option value="Kiruhura District">
+                        <option value="Kiryandongo District">
+                        <option value="Kisoro District">
+                        <option value="Kitagwenda District">
+                        <option value="Kitgum District">
+                        <option value="Koboko District">
+                        <option value="Kole District">
+                        <option value="Kotido District">
+                        <option value="Kumi District">
+                        <option value="Kwania District">
+                        <option value="Kween District">
+                        <option value="Kyankwanzi District">
+                        <option value="Kyegegwa District">
+                        <option value="Kyenjojo District">
+                        <option value="Kyotera District">
+                        <option value="Lamwo District">
+                        <option value="Lira City">
+                        <option value="Lira District">
+                        <option value="Luuka District">
+                        <option value="Luwero District">
+                        <option value="Lwengo District">
+                        <option value="Lyantonde District">
+                        <option value="Madi-Okollo District">
+                        <option value="Manafwa District">
+                        <option value="Maracha District">
+                        <option value="Masaka City">
+                        <option value="Masaka District">
+                        <option value="Masindi District">
+                        <option value="Mayuge District">
+                        <option value="Mbale City">
+                        <option value="Mbale District">
+                        <option value="Mbarara City">
+                        <option value="Mbarara District">
+                        <option value="Mitooma District">
+                        <option value="Mityana District">
+                        <option value="Moroto District">
+                        <option value="Moyo District">
+                        <option value="Mpigi District">
+                        <option value="Mubende District">
+                        <option value="Mukono District">
+                        <option value="Nabilatuk District">
+                        <option value="Nakapiripirit District">
+                        <option value="Nakaseke District">
+                        <option value="Nakasongola District">
+                        <option value="Namayingo District">
+                        <option value="Namisindwa District">
+                        <option value="Namutumba District">
+                        <option value="Napak District">
+                        <option value="Nebbi District">
+                        <option value="Ngora District">
+                        <option value="Ntoroko District">
+                        <option value="Ntungamo District">
+                        <option value="Nwoya District">
+                        <option value="Obongi District">
+                        <option value="Omoro District">
+                        <option value="Otuke District">
+                        <option value="Oyam District">
+                        <option value="Pader District">
+                        <option value="Pakwach District">
+                        <option value="Pallisa District">
+                        <option value="Rakai District">
+                        <option value="Rubanda District">
+                        <option value="Rubirizi District">
+                        <option value="Rukiga District">
+                        <option value="Rukungiri District">
+                        <option value="Rwampara District">
+                        <option value="Sembabule District">
+                        <option value="Serere District">
+                        <option value="Sheema District">
+                        <option value="Sironko District">
+                        <option value="Soroti City">
+                        <option value="Soroti District">
+                        <option value="Terego District">
+                        <option value="Tororo District">
+                        <option value="Wakiso District">
+                        <option value="Yumbe District">
+                        <option value="Zombo District">
+                    </datalist>
+                    <span class="error-message" id="errorDistrict">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Facility <span class="required">*</span></label>
+                    <input type="text" id="dutyStation" placeholder="Enter facility name">
+                    <span class="error-message" id="errorDutyStation">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Registration Date <span class="required">*</span></label>
+                    <input type="date" id="registrationDate">
+                    <span class="error-message" id="errorRegistrationDate">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Campaign Day Attendance <span class="required">*</span></label>
+                    <div class="checkbox-group" id="campaignDays">
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="day1" value="1">
+                            <label for="day1">Day 1</label>
+                        </div>
+                        <div class="checkbox-item">
+                            <input type="checkbox" id="day2" value="2">
+                            <label for="day2">Day 2</label>
+                        </div>
+                    </div>
+                    <span class="error-message" id="errorCampaignDays">Please select at least one campaign day</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Mobile Number Registered <span class="required">*</span></label>
+                    <div style="display: flex; align-items: center;">
+                        <span style="background: #f8f9fa; border: 1px solid #ddd; border-right: none; padding: 12px 15px; border-radius: 6px 0 0 6px; color: #666; font-weight: 500;">+256</span>
+                        <input type="tel" id="mobileNumber" placeholder="701234567" style="border-radius: 0 6px 6px 0; border-left: none; flex: 1;">
+                    </div>
+                    <span class="error-message" id="errorMobileNumber">This field is required</span>
+                </div>
+
+                <div class="form-group">
+                    <label>Names Registered on Mobile Money (First & Last Names) <span class="required">*</span></label>
+                    <input type="text" id="mobileMoneyName" placeholder="Enter first and last name">
+                    <span class="error-message" id="errorMobileMoneyName">This field is required</span>
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                    ➕ Add Participant
+                </button>
+            </form>
+
+            <div class="admin-link">
+                <small>Admin? <a href="/admin/login">Login here</a></small>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Network status monitoring
+        let networkStatus = navigator.onLine;
+
+        function updateNetworkStatus() {
+            networkStatus = navigator.onLine;
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+            const statusDiv = document.getElementById('networkStatus');
+            
+            if (networkStatus) {
+                statusDiv.className = 'network-status network-online';
+                statusIcon.textContent = '🟢';
+                statusText.textContent = 'Online';
+            } else {
+                statusDiv.className = 'network-status network-offline';
+                statusIcon.textContent = '🔴';
+                statusText.textContent = 'Offline';
+            }
+        }
+
+        window.addEventListener('online', updateNetworkStatus);
+        window.addEventListener('offline', updateNetworkStatus);
+        updateNetworkStatus();
+
+        // Set today's date as default
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('registrationDate').value = today;
+            displayRecentSubmissions();
+        });
+
+        // Display recent submissions (last 24 hours)
+        function displayRecentSubmissions() {
+            try {
+                const submissions = [];
+                const now = new Date().getTime();
+                const twentyFourHours = 24 * 60 * 60 * 1000;
+
+                // Get all keys from localStorage that start with 'submission:'
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('submission:')) {
+                        try {
+                            const value = localStorage.getItem(key);
+                            if (value) {
+                                const submission = JSON.parse(value);
+                                const submittedTime = new Date(submission.submitted_at).getTime();
+                                
+                                // Check if within 24 hours
+                                if (now - submittedTime <= twentyFourHours) {
+                                    submissions.push(submission);
+                                } else {
+                                    // Delete old submissions
+                                    localStorage.removeItem(key);
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Error processing submission:', e);
+                            localStorage.removeItem(key);
+                        }
+                    }
+                }
+
+                if (submissions.length > 0) {
+                    const submissionsList = document.getElementById('submissionsList');
+                    submissionsList.innerHTML = submissions.map(sub => `
+                        <div class="submission-item">
+                            <strong>${sub.participant_name}</strong> - ${sub.facility} (${sub.district})
+                            <small>Phone: ${sub.mobile_number} | Submitted: ${new Date(sub.submitted_at).toLocaleString()}</small>
+                        </div>
+                    `).join('');
+                    
+                    document.getElementById('recentSubmissions').style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error displaying recent submissions:', error);
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertId = type === 'success' ? 'successAlert' : 'errorAlert';
+            const alertElement = document.getElementById(alertId);
+            alertElement.innerHTML = message.replace(/\n/g, '<br>');
+            alertElement.style.display = 'block';
+            
+            setTimeout(() => {
+                alertElement.style.display = 'none';
+            }, 5000);
+        }
+
+        function validatePhoneNumber(phone) {
+            const pattern = /^7\d{8}$/;
+            const cleanPhone = phone.replace(/\s/g, '');
+            if (cleanPhone.startsWith('0')) {
+                return false;
+            }
+            return pattern.test(cleanPhone);
+        }
+
+        function validateForm() {
+            let isValid = true;
+            const fields = ['participantName', 'cadre', 'dutyStation', 'district', 'mobileNumber', 'mobileMoneyName', 'registrationDate'];
+            
+            fields.forEach(field => {
+                const input = document.getElementById(field);
+                const errorField = field.charAt(0).toUpperCase() + field.slice(1);
+                const error = document.getElementById('error' + errorField);
+                
+                if (!input.value.trim()) {
+                    input.classList.add('error');
+                    error.style.display = 'block';
+                    isValid = false;
+                } else if (field === 'mobileNumber' && !validatePhoneNumber(input.value.trim())) {
+                    input.classList.add('error');
+                    error.textContent = 'Invalid phone format. Enter 9 digits starting with 7 (e.g., 701234567). Do not start with 0.';
+                    error.style.display = 'block';
+                    isValid = false;
+                } else {
+                    input.classList.remove('error');
+                    error.style.display = 'none';
+                }
+            });
+            
+            // Validate campaign days
+            const day1 = document.getElementById('day1').checked;
+            const day2 = document.getElementById('day2').checked;
+            const campaignGroup = document.getElementById('campaignDays');
+            const campaignError = document.getElementById('errorCampaignDays');
+            
+            if (!day1 && !day2) {
+                campaignGroup.classList.add('error');
+                campaignError.style.display = 'block';
+                isValid = false;
+            } else {
+                campaignGroup.classList.remove('error');
+                campaignError.style.display = 'none';
+            }
+            
+            return isValid;
+        }
+
+        document.getElementById('mobileNumber').addEventListener('input', function(e) {
+            const value = e.target.value;
+            if (value.startsWith('0')) {
+                e.target.value = value.substring(1);
+            }
+            if (value.length > 9) {
+                e.target.value = value.substring(0, 9);
+            }
+        });
+
+        document.getElementById('participantForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!validateForm()) {
+                return;
+            }
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '⏳ Submitting...';
+            
+            const participant = {
+                participant_name: document.getElementById('participantName').value.trim(),
+                cadre: document.getElementById('cadre').value.trim(),
+                district: document.getElementById('district').value.trim(),
+                facility: document.getElementById('dutyStation').value.trim(),
+                registration_date: document.getElementById('registrationDate').value,
+                day1: document.getElementById('day1').checked,
+                day2: document.getElementById('day2').checked,
+                mobile_number: '+256' + document.getElementById('mobileNumber').value.trim(),
+                mm_registered_names: document.getElementById('mobileMoneyName').value.trim()
+            };
+            
+            try {
+                const response = await fetch('/submit', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(participant)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Store submission locally for 24 hour tracking
+                    try {
+                        const submissionKey = `submission:${Date.now()}`;
+                        localStorage.setItem(submissionKey, JSON.stringify(result.data));
+                    } catch (storageError) {
+                        console.error('Storage error:', storageError);
+                    }
+                    
+                    showAlert('✅ Participant registered successfully!', 'success');
+                    this.reset();
+                    const today = new Date().toISOString().split('T')[0];
+                    document.getElementById('registrationDate').value = today;
+                    displayRecentSubmissions();
+                } else {
+                    showAlert('❌ Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('❌ Network error. Please check your connection and try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '➕ Add Participant';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,367 @@
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime, timedelta
+import io
+from functools import wraps
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+app = Flask(__name__)
+app.config['SECRET_KEY'] = 'your-secret-key-change-this-in-production'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///campaign_data.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+
+# Admin credentials (change these!)
+ADMIN_USERNAME = 'admin'
+ADMIN_PASSWORD = 'admin123'
+
+# Database Model
+class Registration(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    participant_name = db.Column(db.String(200), nullable=False)
+    cadre = db.Column(db.String(100), nullable=False)
+    district = db.Column(db.String(100), nullable=False)
+    facility = db.Column(db.String(200), nullable=False)
+    registration_date = db.Column(db.Date, nullable=False)
+    day1 = db.Column(db.Boolean, default=False)
+    day2 = db.Column(db.Boolean, default=False)
+    mobile_number = db.Column(db.String(15), nullable=False)
+    mm_registered_names = db.Column(db.String(200), nullable=False)
+    submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'participant_name': self.participant_name,
+            'cadre': self.cadre,
+            'district': self.district,
+            'facility': self.facility,
+            'registration_date': self.registration_date.strftime('%Y-%m-%d'),
+            'day1': self.day1,
+            'day2': self.day2,
+            'mobile_number': self.mobile_number,
+            'mm_registered_names': self.mm_registered_names,
+            'submitted_at': self.submitted_at.strftime('%Y-%m-%d %H:%M:%S')
+        }
+
+# Create tables
+with app.app_context():
+    db.create_all()
+
+# Login required decorator
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'admin_logged_in' not in session:
+            flash('Please log in to access this page.', 'warning')
+            return redirect(url_for('admin_login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# Routes
+@app.route('/')
+def index():
+    return render_template('registration.html')
+
+@app.route('/submit', methods=['POST'])
+def submit_registration():
+    try:
+        data = request.get_json()
+        
+        # Parse registration date
+        reg_date = datetime.strptime(data.get('registration_date'), '%Y-%m-%d').date()
+        
+        registration = Registration(
+            participant_name=data.get('participant_name'),
+            cadre=data.get('cadre'),
+            district=data.get('district'),
+            facility=data.get('facility'),
+            registration_date=reg_date,
+            day1=data.get('day1', False),
+            day2=data.get('day2', False),
+            mobile_number=data.get('mobile_number'),
+            mm_registered_names=data.get('mm_registered_names')
+        )
+        db.session.add(registration)
+        db.session.commit()
+        
+        # Return registration data as JSON for client-side storage
+        return jsonify({
+            'success': True,
+            'data': registration.to_dict()
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
+@app.route('/admin/login', methods=['GET', 'POST'])
+def admin_login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+            session['admin_logged_in'] = True
+            flash('Login successful!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash('Invalid credentials. Please try again.', 'error')
+    
+    return render_template('admin_login.html')
+
+@app.route('/admin/logout')
+def admin_logout():
+    session.pop('admin_logged_in', None)
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('admin_login'))
+
+@app.route('/admin/dashboard')
+@login_required
+def admin_dashboard():
+    # Get filter parameters
+    search = request.args.get('search', '')
+    district = request.args.get('district', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    
+    # Build query
+    query = Registration.query
+    
+    # Apply filters
+    if search:
+        query = query.filter(
+            db.or_(
+                Registration.participant_name.ilike(f'%{search}%'),
+                Registration.mobile_number.ilike(f'%{search}%'),
+                Registration.facility.ilike(f'%{search}%')
+            )
+        )
+    
+    if district:
+        query = query.filter(Registration.district == district)
+    
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            query = query.filter(Registration.registration_date >= date_from_obj)
+        except:
+            pass
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            query = query.filter(Registration.registration_date <= date_to_obj)
+        except:
+            pass
+    
+    registrations = query.order_by(Registration.submitted_at.desc()).all()
+    
+    # Get all unique districts for filter dropdown
+    districts = db.session.query(Registration.district).distinct().order_by(Registration.district).all()
+    districts = [d[0] for d in districts]
+    
+    # Stats
+    total_count = Registration.query.count()
+    today = datetime.utcnow().date()
+    today_count = Registration.query.filter(
+        db.func.date(Registration.submitted_at) == today
+    ).count()
+    
+    # Filtered count
+    filtered_count = len(registrations)
+    
+    return render_template('admin_dashboard.html', 
+                         registrations=registrations,
+                         total_count=total_count,
+                         today_count=today_count,
+                         filtered_count=filtered_count,
+                         search=search,
+                         districts=districts,
+                         selected_district=district,
+                         date_from=date_from,
+                         date_to=date_to)
+
+@app.route('/admin/download/excel')
+@login_required
+def download_excel():
+    # Get same filters as dashboard
+    district = request.args.get('district', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    
+    # Build query with filters
+    query = Registration.query
+    
+    if district:
+        query = query.filter(Registration.district == district)
+    
+    if date_from:
+        try:
+            date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+            query = query.filter(Registration.registration_date >= date_from_obj)
+        except:
+            pass
+    
+    if date_to:
+        try:
+            date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+            query = query.filter(Registration.registration_date <= date_to_obj)
+        except:
+            pass
+    
+    registrations = query.order_by(Registration.submitted_at.desc()).all()
+    
+    # Create Excel workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Participant Registration"
+    
+    # Define styles
+    header_fill = PatternFill(start_color="2B5097", end_color="2B5097", fill_type="solid")
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    
+    cell_font = Font(name="Calibri", size=11)
+    cell_alignment = Alignment(vertical="center")
+    center_alignment = Alignment(horizontal="center", vertical="center")
+    
+    thin_border = Border(
+        left=Side(style='thin', color='000000'),
+        right=Side(style='thin', color='000000'),
+        top=Side(style='thin', color='000000'),
+        bottom=Side(style='thin', color='000000')
+    )
+    
+    # Headers
+    headers = ['No.', "Participant's Name", 'Cadre', 'Duty Station (Facility)', 'District', 
+               'Mobile Number Registered', 'Names Registered on Mobile Money (First & Last Names)',
+               'Day 1', 'Day 2', 'Registration Date']
+    
+    ws.append(headers)
+    
+    # Style header row
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+        cell.border = thin_border
+    
+    # Set row height for header
+    ws.row_dimensions[1].height = 35
+    
+    # Add data
+    for idx, reg in enumerate(registrations, start=1):
+        row = [
+            idx,
+            reg.participant_name,
+            reg.cadre,
+            reg.facility,
+            reg.district,
+            reg.mobile_number,
+            reg.mm_registered_names,
+            '✓' if reg.day1 else '✗',
+            '✓' if reg.day2 else '✗',
+            reg.registration_date.strftime('%Y-%m-%d')
+        ]
+        ws.append(row)
+        
+        # Style data cells
+        row_num = idx + 1
+        for col_num, cell in enumerate(ws[row_num], start=1):
+            cell.font = cell_font
+            cell.border = thin_border
+            cell.alignment = cell_alignment
+            
+            # Center align number column
+            if col_num == 1:
+                cell.alignment = center_alignment
+            
+            # Special styling for Day 1 and Day 2 columns
+            if col_num in [8, 9]:
+                cell.alignment = center_alignment
+                cell.font = Font(name="Calibri", size=14, bold=True, 
+                               color="008000" if cell.value == '✓' else "FF0000")
+    
+    # Set column widths
+    column_widths = [6, 28, 20, 35, 20, 25, 45, 10, 10, 18]
+    for idx, width in enumerate(column_widths, start=1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(idx)].width = width
+    
+    # Save to bytes
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    # Create filename with filter info
+    filename_parts = ['participant_registrations']
+    if district:
+        filename_parts.append(district.replace(' ', '_'))
+    if date_from or date_to:
+        if date_from and date_to:
+            filename_parts.append(f'{date_from}_to_{date_to}')
+        elif date_from:
+            filename_parts.append(f'from_{date_from}')
+        elif date_to:
+            filename_parts.append(f'until_{date_to}')
+    filename_parts.append(datetime.now().strftime('%Y%m%d_%H%M%S'))
+    filename = '_'.join(filename_parts) + '.xlsx'
+    
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
+
+@app.route('/admin/delete/<int:id>', methods=['POST'])
+@login_required
+def delete_registration(id):
+    # Preserve filters
+    search = request.args.get('search', '')
+    district = request.args.get('district', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    
+    registration = Registration.query.get_or_404(id)
+    db.session.delete(registration)
+    db.session.commit()
+    flash('Registration deleted successfully.', 'success')
+    
+    # Redirect with preserved filters
+    return redirect(url_for('admin_dashboard', 
+                           search=search, 
+                           district=district, 
+                           date_from=date_from, 
+                           date_to=date_to))
+
+@app.route('/admin/clear-all', methods=['POST'])
+@login_required
+def clear_all():
+    # Preserve filters
+    search = request.args.get('search', '')
+    district = request.args.get('district', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
+    
+    Registration.query.delete()
+    db.session.commit()
+    flash('All registrations cleared.', 'success')
+    
+    # Redirect with preserved filters
+    return redirect(url_for('admin_dashboard', 
+                           search=search, 
+                           district=district, 
+                           date_from=date_from, 
+                           date_to=date_to))
+
+@app.route('/healthz')
+def healthz():
+    return jsonify(status='ok')
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
