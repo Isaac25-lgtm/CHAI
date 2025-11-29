@@ -46,9 +46,20 @@ class Registration(db.Model):
             'submitted_at': self.submitted_at.strftime('%Y-%m-%d %H:%M:%S')
         }
 
+class Settings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), unique=True, nullable=False)
+    value = db.Column(db.String(200), nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # Create tables
 with app.app_context():
     db.create_all()
+    # Initialize default settings if they don't exist
+    if not Settings.query.filter_by(key='campaign_days').first():
+        default_settings = Settings(key='campaign_days', value='1')
+        db.session.add(default_settings)
+        db.session.commit()
 
 # Login required decorator
 def login_required(f):
@@ -63,7 +74,17 @@ def login_required(f):
 # Routes
 @app.route('/')
 def index():
-    return render_template('registration.html')
+    # Get campaign days setting
+    settings = Settings.query.filter_by(key='campaign_days').first()
+    campaign_days = int(settings.value) if settings else 1
+    return render_template('registration.html', campaign_days=campaign_days)
+
+@app.route('/api/settings/campaign-days')
+def get_campaign_days():
+    """API endpoint to get campaign days setting"""
+    settings = Settings.query.filter_by(key='campaign_days').first()
+    campaign_days = int(settings.value) if settings else 1
+    return jsonify({'campaign_days': campaign_days})
 
 @app.route('/submit', methods=['POST'])
 def submit_registration():
@@ -98,6 +119,166 @@ def submit_registration():
             'success': False,
             'error': str(e)
         }), 400
+
+@app.route('/submit/bulk', methods=['POST'])
+def submit_bulk_registration():
+    try:
+        data = request.get_json()
+        participants = data.get('participants', [])
+        
+        if not participants:
+            return jsonify({
+                'success': False,
+                'error': 'No participants provided'
+            }), 400
+        
+        facility = participants[0].get('facility') if participants else 'Unknown'
+        registrations = []
+        
+        for participant_data in participants:
+            # Parse registration date
+            reg_date = datetime.strptime(participant_data.get('registration_date'), '%Y-%m-%d').date()
+            
+            registration = Registration(
+                participant_name=participant_data.get('participant_name'),
+                cadre=participant_data.get('cadre'),
+                district=participant_data.get('district'),
+                facility=participant_data.get('facility'),
+                registration_date=reg_date,
+                day1=participant_data.get('day1', False),
+                day2=participant_data.get('day2', False),
+                mobile_number=participant_data.get('mobile_number'),
+                mm_registered_names=participant_data.get('mm_registered_names')
+            )
+            db.session.add(registration)
+            registrations.append(registration)
+        
+        db.session.commit()
+        
+        # Return all registration data
+        return jsonify({
+            'success': True,
+            'facility': facility,
+            'count': len(registrations),
+            'data': [reg.to_dict() for reg in registrations]
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 400
+
+@app.route('/download/facility/<facility_name>')
+def download_facility_data(facility_name):
+    try:
+        # Get all registrations for this facility
+        registrations = Registration.query.filter(
+            Registration.facility == facility_name
+        ).order_by(Registration.submitted_at.desc()).all()
+        
+        if not registrations:
+            return jsonify({
+                'success': False,
+                'error': 'No data found for this facility'
+            }), 404
+        
+        # Create Excel workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Facility Data"
+        
+        # Define styles
+        header_fill = PatternFill(start_color="2B5097", end_color="2B5097", fill_type="solid")
+        header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        
+        cell_font = Font(name="Calibri", size=11)
+        cell_alignment = Alignment(vertical="center")
+        center_alignment = Alignment(horizontal="center", vertical="center")
+        
+        thin_border = Border(
+            left=Side(style='thin', color='000000'),
+            right=Side(style='thin', color='000000'),
+            top=Side(style='thin', color='000000'),
+            bottom=Side(style='thin', color='000000')
+        )
+        
+        # Headers
+        headers = ['No.', "Participant's Name", 'Cadre', 'Duty Station (Facility)', 'District', 
+                   'Mobile Number Registered', 'Names Registered on Mobile Money (First & Last Names)',
+                   'Day 1', 'Day 2', 'Registration Date']
+        
+        ws.append(headers)
+        
+        # Style header row
+        for cell in ws[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+            cell.border = thin_border
+        
+        # Set row height for header
+        ws.row_dimensions[1].height = 35
+        
+        # Add data
+        for idx, reg in enumerate(registrations, start=1):
+            row = [
+                idx,
+                reg.participant_name,
+                reg.cadre,
+                reg.facility,
+                reg.district,
+                reg.mobile_number,
+                reg.mm_registered_names,
+                '✓' if reg.day1 else '✗',
+                '✓' if reg.day2 else '✗',
+                reg.registration_date.strftime('%Y-%m-%d')
+            ]
+            ws.append(row)
+            
+            # Style data cells
+            row_num = idx + 1
+            for col_num, cell in enumerate(ws[row_num], start=1):
+                cell.font = cell_font
+                cell.border = thin_border
+                cell.alignment = cell_alignment
+                
+                # Center align number column
+                if col_num == 1:
+                    cell.alignment = center_alignment
+                
+                # Special styling for Day 1 and Day 2 columns
+                if col_num in [8, 9]:
+                    cell.alignment = center_alignment
+                    cell.font = Font(name="Calibri", size=14, bold=True, 
+                                   color="008000" if cell.value == '✓' else "FF0000")
+        
+        # Set column widths
+        column_widths = [6, 28, 20, 35, 20, 25, 45, 10, 10, 18]
+        for idx, width in enumerate(column_widths, start=1):
+            ws.column_dimensions[openpyxl.utils.get_column_letter(idx)].width = width
+        
+        # Save to bytes
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Create filename
+        safe_facility_name = facility_name.replace(' ', '_').replace('/', '_')
+        filename = f'{safe_facility_name}_registrations_{datetime.now().strftime("%Y%m%d_%H%M%S")}.xlsx'
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
 
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
@@ -514,6 +695,36 @@ def clear_all():
                            district=district, 
                            date_from=date_from, 
                            date_to=date_to))
+
+@app.route('/admin/settings', methods=['GET', 'POST'])
+@login_required
+def admin_settings():
+    if request.method == 'POST':
+        campaign_days = request.form.get('campaign_days', '1')
+        try:
+            campaign_days_int = int(campaign_days)
+            if campaign_days_int < 1 or campaign_days_int > 7:
+                flash('Campaign days must be between 1 and 7', 'error')
+                return redirect(url_for('admin_settings'))
+        except ValueError:
+            flash('Invalid number of campaign days', 'error')
+            return redirect(url_for('admin_settings'))
+        
+        settings = Settings.query.filter_by(key='campaign_days').first()
+        if settings:
+            settings.value = str(campaign_days_int)
+            settings.updated_at = datetime.utcnow()
+        else:
+            settings = Settings(key='campaign_days', value=str(campaign_days_int))
+            db.session.add(settings)
+        db.session.commit()
+        flash(f'Campaign days updated to {campaign_days_int}', 'success')
+        return redirect(url_for('admin_settings'))
+    
+    # GET request - show settings page
+    settings = Settings.query.filter_by(key='campaign_days').first()
+    campaign_days = int(settings.value) if settings else 1
+    return render_template('admin_settings.html', campaign_days=campaign_days)
 
 @app.route('/healthz')
 def healthz():
