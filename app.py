@@ -59,7 +59,13 @@ with app.app_context():
     if not Settings.query.filter_by(key='campaign_days').first():
         default_settings = Settings(key='campaign_days', value='1')
         db.session.add(default_settings)
-        db.session.commit()
+    if not Settings.query.filter_by(key='activity_name').first():
+        default_settings = Settings(key='activity_name', value='EDIL Assessment')
+        db.session.add(default_settings)
+    if not Settings.query.filter_by(key='activity_dates').first():
+        default_settings = Settings(key='activity_dates', value='30th November to 7th December 2025')
+        db.session.add(default_settings)
+    db.session.commit()
 
 # Login required decorator
 def login_required(f):
@@ -74,10 +80,19 @@ def login_required(f):
 # Routes
 @app.route('/')
 def index():
-    # Get campaign days setting
-    settings = Settings.query.filter_by(key='campaign_days').first()
-    campaign_days = int(settings.value) if settings else 1
-    return render_template('registration.html', campaign_days=campaign_days)
+    # Get all settings
+    campaign_days_setting = Settings.query.filter_by(key='campaign_days').first()
+    activity_name_setting = Settings.query.filter_by(key='activity_name').first()
+    activity_dates_setting = Settings.query.filter_by(key='activity_dates').first()
+    
+    campaign_days = int(campaign_days_setting.value) if campaign_days_setting else 1
+    activity_name = activity_name_setting.value if activity_name_setting else 'EDIL Assessment'
+    activity_dates = activity_dates_setting.value if activity_dates_setting else '30th November to 7th December 2025'
+    
+    return render_template('registration.html', 
+                         campaign_days=campaign_days,
+                         activity_name=activity_name,
+                         activity_dates=activity_dates)
 
 @app.route('/api/settings/campaign-days')
 def get_campaign_days():
@@ -700,6 +715,7 @@ def clear_all():
 @login_required
 def admin_settings():
     if request.method == 'POST':
+        # Update campaign days
         campaign_days = request.form.get('campaign_days', '1')
         try:
             campaign_days_int = int(campaign_days)
@@ -710,6 +726,17 @@ def admin_settings():
             flash('Invalid number of campaign days', 'error')
             return redirect(url_for('admin_settings'))
         
+        # Update activity name
+        activity_name = request.form.get('activity_name', 'EDIL Assessment').strip()
+        if not activity_name:
+            activity_name = 'EDIL Assessment'
+        
+        # Update activity dates
+        activity_dates = request.form.get('activity_dates', '30th November to 7th December 2025').strip()
+        if not activity_dates:
+            activity_dates = '30th November to 7th December 2025'
+        
+        # Save campaign days
         settings = Settings.query.filter_by(key='campaign_days').first()
         if settings:
             settings.value = str(campaign_days_int)
@@ -717,14 +744,42 @@ def admin_settings():
         else:
             settings = Settings(key='campaign_days', value=str(campaign_days_int))
             db.session.add(settings)
+        
+        # Save activity name
+        settings = Settings.query.filter_by(key='activity_name').first()
+        if settings:
+            settings.value = activity_name
+            settings.updated_at = datetime.utcnow()
+        else:
+            settings = Settings(key='activity_name', value=activity_name)
+            db.session.add(settings)
+        
+        # Save activity dates
+        settings = Settings.query.filter_by(key='activity_dates').first()
+        if settings:
+            settings.value = activity_dates
+            settings.updated_at = datetime.utcnow()
+        else:
+            settings = Settings(key='activity_dates', value=activity_dates)
+            db.session.add(settings)
+        
         db.session.commit()
-        flash(f'Campaign days updated to {campaign_days_int}', 'success')
+        flash('Settings updated successfully!', 'success')
         return redirect(url_for('admin_settings'))
     
     # GET request - show settings page
-    settings = Settings.query.filter_by(key='campaign_days').first()
-    campaign_days = int(settings.value) if settings else 1
-    return render_template('admin_settings.html', campaign_days=campaign_days)
+    campaign_days_setting = Settings.query.filter_by(key='campaign_days').first()
+    activity_name_setting = Settings.query.filter_by(key='activity_name').first()
+    activity_dates_setting = Settings.query.filter_by(key='activity_dates').first()
+    
+    campaign_days = int(campaign_days_setting.value) if campaign_days_setting else 1
+    activity_name = activity_name_setting.value if activity_name_setting else 'EDIL Assessment'
+    activity_dates = activity_dates_setting.value if activity_dates_setting else '30th November to 7th December 2025'
+    
+    return render_template('admin_settings.html', 
+                         campaign_days=campaign_days,
+                         activity_name=activity_name,
+                         activity_dates=activity_dates)
 
 @app.route('/healthz')
 def healthz():

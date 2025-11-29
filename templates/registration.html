@@ -457,8 +457,8 @@
                 </div>
             </div>
             <div style="background: #e7f3ff; padding: 15px; border-radius: 8px; border-left: 4px solid #007bff; margin-bottom: 15px;">
-                <h2 style="color: #004085; font-size: 20px; margin: 0 0 5px 0;">EDIL Assessment</h2>
-                <p style="color: #004085; margin: 0; font-size: 16px; font-weight: 500;">30th November to 7th December 2025</p>
+                <h2 style="color: #004085; font-size: 20px; margin: 0 0 5px 0;">{{ activity_name }}</h2>
+                <p style="color: #004085; margin: 0; font-size: 16px; font-weight: 500;">{{ activity_dates }}</p>
             </div>
             <p>Enter participant details for registration and mobile money enrollment</p>
         </div>
@@ -497,6 +497,7 @@
                     <select id="dutyStation" required disabled>
                         <option value="">-- Select District First --</option>
                     </select>
+                    <input type="text" id="otherFacility" placeholder="Specify facility name" style="display: none; margin-top: 10px; width: 100%; padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px; font-size: 15px;">
                     <span class="error-message" id="errorDutyStation">This field is required</span>
                 </div>
 
@@ -698,18 +699,43 @@
             
             // Populate district dropdown
             const districtSelect = document.getElementById('district');
-            const districts = Object.keys(districtFacilities).sort();
-            districts.forEach(district => {
-                const option = document.createElement('option');
-                option.value = district;
-                option.textContent = district;
-                districtSelect.appendChild(option);
-            });
+            if (districtSelect) {
+                // Clear existing options except the first one
+                while (districtSelect.options.length > 1) {
+                    districtSelect.remove(1);
+                }
+                
+                const districts = Object.keys(districtFacilities).sort();
+                districts.forEach(district => {
+                    const option = document.createElement('option');
+                    option.value = district;
+                    option.textContent = district;
+                    districtSelect.appendChild(option);
+                });
+                
+                // Add event listener for district change
+                districtSelect.addEventListener('change', function() {
+                    updateFacilityDropdown(this.value);
+                });
+            }
             
-            // Add event listener for district change
-            districtSelect.addEventListener('change', function() {
-                updateFacilityDropdown(this.value);
-            });
+            // Handle "Other" facility selection (only add listener once)
+            const facilitySelectEl = document.getElementById('dutyStation');
+            const otherFacilityInputEl = document.getElementById('otherFacility');
+            
+            if (facilitySelectEl && !facilitySelectEl.hasAttribute('data-listener-added')) {
+                facilitySelectEl.setAttribute('data-listener-added', 'true');
+                facilitySelectEl.addEventListener('change', function() {
+                    if (this.value === 'Other') {
+                        otherFacilityInputEl.style.display = 'block';
+                        otherFacilityInputEl.required = true;
+                    } else {
+                        otherFacilityInputEl.style.display = 'none';
+                        otherFacilityInputEl.required = false;
+                        otherFacilityInputEl.value = '';
+                    }
+                });
+            }
             
             displayRecentSubmissions();
             loadPendingParticipants();
@@ -719,7 +745,10 @@
         // Update facility dropdown based on selected district
         function updateFacilityDropdown(selectedDistrict) {
             const facilitySelect = document.getElementById('dutyStation');
+            const otherFacilityInput = document.getElementById('otherFacility');
             facilitySelect.innerHTML = '<option value="">-- Select Health Facility --</option>';
+            otherFacilityInput.style.display = 'none';
+            otherFacilityInput.value = '';
             
             if (selectedDistrict && districtFacilities[selectedDistrict]) {
                 facilitySelect.disabled = false;
@@ -730,11 +759,24 @@
                     option.textContent = facility;
                     facilitySelect.appendChild(option);
                 });
+                
+                // Add "District Health office" option
+                const dhoOption = document.createElement('option');
+                dhoOption.value = 'District Health office';
+                dhoOption.textContent = 'District Health office';
+                facilitySelect.appendChild(dhoOption);
+                
+                // Add "Other" option
+                const otherOption = document.createElement('option');
+                otherOption.value = 'Other';
+                otherOption.textContent = 'Other';
+                facilitySelect.appendChild(otherOption);
             } else {
                 facilitySelect.disabled = true;
                 facilitySelect.innerHTML = '<option value="">-- Select District First --</option>';
             }
         }
+        
 
         // Load pending participants from localStorage
         function loadPendingParticipants() {
@@ -1039,6 +1081,23 @@
                 }
             });
             
+            // Validate "Other" facility input
+            const facilitySelectForValidation = document.getElementById('dutyStation');
+            const otherFacilityInputForValidation = document.getElementById('otherFacility');
+            const facilityError = document.getElementById('errorDutyStation');
+            
+            if (facilitySelectForValidation && facilitySelectForValidation.value === 'Other') {
+                if (!otherFacilityInputForValidation.value.trim()) {
+                    otherFacilityInputForValidation.classList.add('error');
+                    facilityError.textContent = 'Please specify the facility name';
+                    facilityError.style.display = 'block';
+                    isValid = false;
+                } else {
+                    otherFacilityInputForValidation.classList.remove('error');
+                    facilityError.style.display = 'none';
+                }
+            }
+            
             // Validate campaign days (dynamic based on number of days)
             const campaignGroup = document.getElementById('campaignDays');
             const campaignError = document.getElementById('errorCampaignDays');
@@ -1077,11 +1136,20 @@
             // Get all day checkboxes dynamically
             const campaignDays = document.getElementById('campaignDays');
             const dayCheckboxes = campaignDays.querySelectorAll('input[type="checkbox"]');
+            
+            // Get facility value (use "Other" input if "Other" is selected)
+            const facilitySelectForSubmit = document.getElementById('dutyStation');
+            let facilityValue = facilitySelectForSubmit.value.trim();
+            if (facilityValue === 'Other') {
+                const otherFacilityInputForSubmit = document.getElementById('otherFacility');
+                facilityValue = otherFacilityInputForSubmit.value.trim();
+            }
+            
             const participant = {
                 participant_name: document.getElementById('participantName').value.trim(),
                 cadre: document.getElementById('cadre').value.trim(),
                 district: document.getElementById('district').value.trim(),
-                facility: document.getElementById('dutyStation').value.trim(),
+                facility: facilityValue,
                 registration_date: document.getElementById('registrationDate').value,
                 mobile_number: '+256' + document.getElementById('mobileNumber').value.trim(),
                 mm_registered_names: document.getElementById('mobileMoneyName').value.trim()
@@ -1102,10 +1170,41 @@
             const district = participant.district;
             const facility = participant.facility;
             const regDate = participant.registration_date;
+            
+            // Store current district selection before reset
+            const currentDistrict = document.getElementById('district').value;
+            
             this.reset();
+            
+            // Re-populate districts after reset (in case reset cleared them)
+            const districtSelect = document.getElementById('district');
+            if (districtSelect && districtSelect.options.length <= 1) {
+                const districts = Object.keys(districtFacilities).sort();
+                districts.forEach(dist => {
+                    const option = document.createElement('option');
+                    option.value = dist;
+                    option.textContent = dist;
+                    districtSelect.appendChild(option);
+                });
+            }
+            
             document.getElementById('district').value = district;
             updateFacilityDropdown(district);
-            document.getElementById('dutyStation').value = facility;
+            
+            // Set facility - check if it's in the dropdown or needs to be set as "Other"
+            const facilitySelectForReset = document.getElementById('dutyStation');
+            const otherFacilityInputForReset = document.getElementById('otherFacility');
+            const options = Array.from(facilitySelectForReset.options).map(opt => opt.value);
+            
+            if (options.includes(facility)) {
+                facilitySelectForReset.value = facility;
+            } else if (facility) {
+                // If facility is not in the list, set as "Other" and fill the input
+                facilitySelectForReset.value = 'Other';
+                otherFacilityInputForReset.value = facility;
+                otherFacilityInputForReset.style.display = 'block';
+            }
+            
             document.getElementById('registrationDate').value = regDate;
             
             // Scroll to pending participants section

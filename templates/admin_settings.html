@@ -76,6 +76,7 @@
         }
         
         .form-group input[type="number"],
+        .form-group input[type="text"],
         .form-group select {
             width: 100%;
             padding: 12px 15px;
@@ -174,6 +175,26 @@
         <div class="settings-card">
             <h2>Campaign Configuration</h2>
             <form method="POST" action="/admin/settings">
+                <div class="form-group">
+                    <label for="activity_name">Activity Name</label>
+                    <input type="text" id="activity_name" name="activity_name" 
+                           value="{{ activity_name }}" required>
+                    <div class="info-box">
+                        <strong>ℹ️ Information:</strong><br>
+                        This is the name of the activity that will appear at the top of the registration form.
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="activity_dates">Activity Dates</label>
+                    <input type="text" id="activity_dates" name="activity_dates" 
+                           value="{{ activity_dates }}" required>
+                    <div class="info-box">
+                        <strong>ℹ️ Information:</strong><br>
+                        Enter the date range for the activity (e.g., "30th November to 7th December 2025").
+                    </div>
+                </div>
+                
                 <div class="form-group">
                     <label for="campaign_days">Number of Campaign Days</label>
                     <input type="number" id="campaign_days" name="campaign_days" 
