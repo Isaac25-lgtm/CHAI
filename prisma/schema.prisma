@@ -1,0 +1,773 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum UserRole {
+  SUPER_ADMIN
+  NATIONAL_ADMIN
+  DISTRICT_SUPERVISOR
+  FIELD_ASSESSOR
+  FINANCE_OFFICER
+  VIEWER
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum FacilityLevel {
+  HC_II
+  HC_III
+  HC_IV
+  GENERAL_HOSPITAL
+  REGIONAL_REFERRAL
+  NATIONAL_REFERRAL
+}
+
+enum OwnershipType {
+  GOVERNMENT
+  PNFP
+  PRIVATE
+}
+
+enum VisitStatus {
+  DRAFT
+  SUBMITTED
+  REVIEWED
+  ARCHIVED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  PARTIAL
+  ABSENT
+}
+
+enum TeamType {
+  CENTRAL
+  DISTRICT
+  FACILITY
+  PARTNER
+  OTHER
+}
+
+enum AssessmentStatus {
+  DRAFT
+  IN_PROGRESS
+  SUBMITTED
+  REVIEWED
+  ARCHIVED
+}
+
+enum ResponseType {
+  YES_NO
+  YES_NO_NA
+  NUMERIC
+  TEXT
+  DROPDOWN
+  MULTI_SELECT
+  SAMPLED_ROWS
+  DATE
+}
+
+enum ScoringParadigm {
+  MATURITY_LADDER
+  PERCENTAGE_BASED
+  COUNT_BASED
+  DESCRIPTIVE
+  COMPOSITE
+}
+
+enum ColorStatus {
+  RED
+  YELLOW
+  LIGHT_GREEN
+  DARK_GREEN
+  NOT_SCORED
+}
+
+enum ActionPriority {
+  CRITICAL
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ActionStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentCategory {
+  TRANSPORT
+  PER_DIEM
+  FACILITATION
+  OTHER
+}
+
+enum MobileNetwork {
+  MTN
+  AIRTEL
+  OTHER
+}
+
+enum EligibilityStatus {
+  ELIGIBLE
+  INELIGIBLE
+  PENDING_REVIEW
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  VERIFIED
+  FLAGGED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ON_HOLD
+}
+
+enum PaymentStatus {
+  DRAFT
+  SUBMITTED
+  VERIFIED
+  APPROVED
+  PAID
+  RECONCILED
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  SUBMIT
+  APPROVE
+  REJECT
+  VERIFY
+  MARK_PAID
+  RECONCILE
+  EXPORT
+  LOGIN
+  LOGOUT
+  ROLE_CHANGE
+  STATUS_CHANGE
+  UNLOCK
+  REOPEN
+}
+
+enum AuditEntity {
+  USER
+  VISIT
+  ASSESSMENT
+  RESPONSE
+  ACTION_PLAN
+  NAMES_ENTRY
+  PAYMENT
+  FACILITY
+  EXPORT
+  SYSTEM
+}
+
+enum DataQualitySeverity {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum DataQualityType {
+  MISSING_VALUE
+  IMPOSSIBLE_VALUE
+  DUPLICATE_ENTRY
+  INCOMPLETE_SECTION
+  MISSING_EVIDENCE
+  INVALID_FORMAT
+  ORPHAN_RECORD
+  ANOMALY
+}
+
+enum ExportFormat {
+  EXCEL
+  CSV
+  PDF
+  PNG
+}
+
+enum ExportType {
+  RAW_ASSESSMENT
+  ANALYZED_ASSESSMENT
+  FACILITY_SUMMARY
+  DISTRICT_SUMMARY
+  NATIONAL_SUMMARY
+  ACTION_PLAN
+  NAMES_REGISTRY
+  PAYMENT
+  DATA_QUALITY
+  AUDIT_LOG
+}
+
+// ============================================================
+// USER & AUTH
+// ============================================================
+
+model User {
+  id             String     @id @default(cuid())
+  email          String     @unique
+  name           String
+  passwordHash   String
+  role           UserRole   @default(FIELD_ASSESSOR)
+  status         UserStatus @default(ACTIVE)
+  phone          String?
+  title          String?
+  organization   String?
+
+  regionId       String?
+  region         Region?    @relation(fields: [regionId], references: [id])
+  districtId     String?
+  district       District?  @relation(fields: [districtId], references: [id])
+
+  lastLoginAt    DateTime?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  // Relations
+  createdVisits          Visit[]               @relation("VisitCreatedBy")
+  submittedAssessments   Assessment[]          @relation("AssessmentSubmittedBy")
+  assignedActions        ActionPlan[]          @relation("ActionAssignedTo")
+  createdActions         ActionPlan[]          @relation("ActionCreatedBy")
+  namesEntriesCreated    NamesRegistryEntry[]  @relation("NamesEntryCreatedBy")
+  namesEntriesVerified   NamesRegistryEntry[]  @relation("NamesEntryVerifiedBy")
+  namesEntriesApproved   NamesRegistryEntry[]  @relation("NamesEntryApprovedBy")
+  paymentRecordsApproved PaymentRecord[]       @relation("PaymentApprovedBy")
+  paymentRecordsPaid     PaymentRecord[]       @relation("PaymentPaidBy")
+  auditLogs              AuditLog[]
+  exportLogs             ExportLog[]
+  sessions               Session[]
+  visitParticipants      VisitParticipant[]    @relation("ParticipantUser")
+
+  @@index([role])
+  @@index([status])
+  @@index([districtId])
+  @@index([regionId])
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires      DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// ============================================================
+// GEOGRAPHY
+// ============================================================
+
+model Region {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  code      String?    @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  districts District[]
+  users     User[]
+
+  @@map("regions")
+}
+
+model District {
+  id        String   @id @default(cuid())
+  name      String
+  code      String?  @unique
+  regionId  String
+  region    Region   @relation(fields: [regionId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  facilities         Facility[]
+  users              User[]
+  districtAggregates DistrictAggregate[]
+
+  @@unique([name, regionId])
+  @@index([regionId])
+  @@map("districts")
+}
+
+model Facility {
+  id                  String        @id @default(cuid())
+  name                String
+  code                String?       @unique
+  level               FacilityLevel
+  ownership           OwnershipType @default(GOVERNMENT)
+  districtId          String
+  district            District      @relation(fields: [districtId], references: [id])
+  subcounty           String?
+  parish              String?
+  village             String?
+  implementingPartner String?
+  inChargeName        String?
+  inChargePhone       String?
+  inChargeEmail       String?
+  latitude            Float?
+  longitude           Float?
+  isActive            Boolean       @default(true)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  visits Visit[]
+
+  @@index([districtId])
+  @@index([level])
+  @@index([ownership])
+  @@index([isActive])
+  @@map("facilities")
+}
+
+// ============================================================
+// VISITS
+// ============================================================
+
+model Visit {
+  id                String      @id @default(cuid())
+  visitNumber       String      @unique
+  facilityId        String
+  facility          Facility    @relation(fields: [facilityId], references: [id])
+  status            VisitStatus @default(DRAFT)
+  visitDate         DateTime
+  activityName      String?
+  mentorshipCycle   String?
+  reportingPeriod   String?
+  facilityInCharge  String?
+  inChargePhone     String?
+  notes             String?
+  createdById       String
+  createdBy         User        @relation("VisitCreatedBy", fields: [createdById], references: [id])
+  submittedAt       DateTime?
+  archivedAt        DateTime?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  participants      VisitParticipant[]
+  assessments       Assessment[]
+  namesEntries      NamesRegistryEntry[]
+  actionPlans       ActionPlan[]
+  visitSummary      VisitSummary?
+
+  @@index([facilityId])
+  @@index([status])
+  @@index([visitDate])
+  @@index([createdById])
+  @@map("visits")
+}
+
+model VisitParticipant {
+  id               String           @id @default(cuid())
+  visitId          String
+  visit            Visit            @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  fullName         String
+  role             String?
+  cadre            String?
+  teamType         TeamType
+  organization     String?
+  phone            String?
+  attendanceStatus AttendanceStatus @default(PRESENT)
+  remarks          String?
+  userId           String?
+  user             User?            @relation("ParticipantUser", fields: [userId], references: [id])
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  namesEntry NamesRegistryEntry?
+
+  @@index([visitId])
+  @@index([teamType])
+  @@map("visit_participants")
+}
+
+// ============================================================
+// ASSESSMENT ENGINE
+// ============================================================
+
+model AssessmentSection {
+  id               String          @id @default(cuid())
+  sectionNumber    Int             @unique
+  title            String
+  description      String?
+  scoringParadigm  ScoringParadigm
+  isScored         Boolean         @default(true)
+  sortOrder        Int
+  isActive         Boolean         @default(true)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  questions   AssessmentQuestion[]
+  domainScores DomainScore[]
+
+  @@map("assessment_sections")
+}
+
+model AssessmentQuestion {
+  id              String       @id @default(cuid())
+  sectionId       String
+  section         AssessmentSection @relation(fields: [sectionId], references: [id])
+  questionCode    String       @unique
+  questionText    String
+  helpText        String?
+  responseType    ResponseType
+  isRequired      Boolean      @default(true)
+  requiresEvidence Boolean     @default(false)
+  options         String?      // JSON array of options for dropdown/multi-select
+  validationRules String?      // JSON validation config
+  branchCondition String?      // JSON: { questionCode, operator, value }
+  scoringWeight   Float?
+  scoringRules    String?      // JSON scoring config
+  sortOrder       Int
+  isActive        Boolean      @default(true)
+  parentQuestionId String?
+  parentQuestion   AssessmentQuestion?  @relation("QuestionBranching", fields: [parentQuestionId], references: [id])
+  childQuestions   AssessmentQuestion[] @relation("QuestionBranching")
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  responses AssessmentResponse[]
+
+  @@index([sectionId])
+  @@index([sortOrder])
+  @@map("assessment_questions")
+}
+
+model Assessment {
+  id           String           @id @default(cuid())
+  visitId      String
+  visit        Visit            @relation(fields: [visitId], references: [id])
+  status       AssessmentStatus @default(DRAFT)
+  submittedById String
+  submittedBy  User             @relation("AssessmentSubmittedBy", fields: [submittedById], references: [id])
+  startedAt    DateTime         @default(now())
+  submittedAt  DateTime?
+  reviewedAt   DateTime?
+  archivedAt   DateTime?
+  completionPct Float           @default(0)
+  notes        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  responses    AssessmentResponse[]
+  domainScores DomainScore[]
+
+  @@index([visitId])
+  @@index([status])
+  @@index([submittedById])
+  @@map("assessments")
+}
+
+model AssessmentResponse {
+  id            String   @id @default(cuid())
+  assessmentId  String
+  assessment    Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  questionId    String
+  question      AssessmentQuestion @relation(fields: [questionId], references: [id])
+  value         String?
+  numericValue  Float?
+  evidenceNotes String?
+  sampledData   String?  // JSON for sampled rows (chart audits etc)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([assessmentId, questionId])
+  @@index([assessmentId])
+  @@index([questionId])
+  @@map("assessment_responses")
+}
+
+// ============================================================
+// SCORING & DERIVED DATA
+// ============================================================
+
+model DomainScore {
+  id            String       @id @default(cuid())
+  assessmentId  String
+  assessment    Assessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  sectionId     String
+  section       AssessmentSection @relation(fields: [sectionId], references: [id])
+  rawScore      Float?
+  maxScore      Float?
+  percentage    Float?
+  colorStatus   ColorStatus  @default(NOT_SCORED)
+  criticalFlags String?      // JSON array of critical flag strings
+  details       String?      // JSON scoring breakdown
+  computedAt    DateTime     @default(now())
+
+  @@unique([assessmentId, sectionId])
+  @@index([assessmentId])
+  @@index([sectionId])
+  @@index([colorStatus])
+  @@map("domain_scores")
+}
+
+model VisitSummary {
+  id              String      @id @default(cuid())
+  visitId         String      @unique
+  visit           Visit       @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  overallStatus   ColorStatus @default(NOT_SCORED)
+  redCount        Int         @default(0)
+  yellowCount     Int         @default(0)
+  lightGreenCount Int         @default(0)
+  darkGreenCount  Int         @default(0)
+  totalScored     Int         @default(0)
+  completionPct   Float       @default(0)
+  criticalFlags   String?     // JSON array
+  topRedDomains   String?     // JSON array of section titles
+  computedAt      DateTime    @default(now())
+
+  @@index([overallStatus])
+  @@map("visit_summaries")
+}
+
+model DistrictAggregate {
+  id                   String   @id @default(cuid())
+  districtId           String
+  district             District @relation(fields: [districtId], references: [id])
+  period               String   // e.g., "2026-Q1" or "2026-03"
+  facilitiesAssessed   Int      @default(0)
+  totalVisits          Int      @default(0)
+  avgCompletionPct     Float    @default(0)
+  totalRedFindings     Int      @default(0)
+  totalYellowFindings  Int      @default(0)
+  totalGreenFindings   Int      @default(0)
+  topRedDomains        String?  // JSON
+  openActions          Int      @default(0)
+  overdueActions       Int      @default(0)
+  completedActions     Int      @default(0)
+  namesEntered         Int      @default(0)
+  paymentsPending      Int      @default(0)
+  paymentsApproved     Int      @default(0)
+  paymentsPaid         Int      @default(0)
+  computedAt           DateTime @default(now())
+
+  @@unique([districtId, period])
+  @@index([districtId])
+  @@index([period])
+  @@map("district_aggregates")
+}
+
+// ============================================================
+// ACTION PLANS
+// ============================================================
+
+model ActionPlan {
+  id             String         @id @default(cuid())
+  visitId        String
+  visit          Visit          @relation(fields: [visitId], references: [id])
+  sectionNumber  Int?
+  domainTitle    String?
+  findingColor   ColorStatus?
+  findingSummary String?
+  actionItem     String
+  priority       ActionPriority @default(MEDIUM)
+  assignedToId   String?
+  assignedTo     User?          @relation("ActionAssignedTo", fields: [assignedToId], references: [id])
+  createdById    String
+  createdBy      User           @relation("ActionCreatedBy", fields: [createdById], references: [id])
+  ownerOrg       String?
+  dueDate        DateTime?
+  status         ActionStatus   @default(OPEN)
+  progressNotes  String?
+  completedAt    DateTime?
+  evidenceUrl    String?
+  archivedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([visitId])
+  @@index([status])
+  @@index([priority])
+  @@index([assignedToId])
+  @@index([dueDate])
+  @@map("action_plans")
+}
+
+// ============================================================
+// NAMES REGISTRY & PAYMENTS
+// ============================================================
+
+model NamesRegistryEntry {
+  id                 String             @id @default(cuid())
+  visitId            String
+  visit              Visit              @relation(fields: [visitId], references: [id])
+  participantId      String?            @unique
+  participant        VisitParticipant?  @relation(fields: [participantId], references: [id])
+  fullName           String
+  role               String?
+  cadre              String?
+  teamType           TeamType
+  organization       String?
+  districtName       String?
+  facilityName       String?
+  phone              String?
+  network            MobileNetwork?
+  eligibility        EligibilityStatus  @default(PENDING_REVIEW)
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  verifiedById       String?
+  verifiedBy         User?              @relation("NamesEntryVerifiedBy", fields: [verifiedById], references: [id])
+  verifiedAt         DateTime?
+  approvalStatus     ApprovalStatus     @default(PENDING)
+  approvedById       String?
+  approvedBy         User?              @relation("NamesEntryApprovedBy", fields: [approvedById], references: [id])
+  approvedAt         DateTime?
+  notes              String?
+  isDuplicate        Boolean            @default(false)
+  duplicateOfId      String?
+  createdById        String
+  createdBy          User               @relation("NamesEntryCreatedBy", fields: [createdById], references: [id])
+  archivedAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  paymentRecord PaymentRecord?
+
+  @@index([visitId])
+  @@index([phone])
+  @@index([verificationStatus])
+  @@index([approvalStatus])
+  @@index([eligibility])
+  @@index([fullName])
+  @@map("names_registry_entries")
+}
+
+model PaymentRecord {
+  id                String          @id @default(cuid())
+  namesEntryId      String          @unique
+  namesEntry        NamesRegistryEntry @relation(fields: [namesEntryId], references: [id])
+  paymentCategory   PaymentCategory @default(TRANSPORT)
+  amount            Float?
+  currency          String          @default("UGX")
+  phone             String?
+  network           MobileNetwork?
+  status            PaymentStatus   @default(DRAFT)
+  submittedAt       DateTime?
+  verifiedAt        DateTime?
+  approvedById      String?
+  approvedBy        User?           @relation("PaymentApprovedBy", fields: [approvedById], references: [id])
+  approvedAt        DateTime?
+  paidById          String?
+  paidBy            User?           @relation("PaymentPaidBy", fields: [paidById], references: [id])
+  paidAt            DateTime?
+  transactionRef    String?
+  reconcileNote     String?
+  reconciledAt      DateTime?
+  rejectionReason   String?
+  overrideReason    String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([status])
+  @@index([approvedById])
+  @@index([network])
+  @@map("payment_records")
+}
+
+// ============================================================
+// AUDIT & GOVERNANCE
+// ============================================================
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?
+  user        User?       @relation(fields: [userId], references: [id])
+  action      AuditAction
+  entity      AuditEntity
+  entityId    String?
+  before      String?     // JSON snapshot before
+  after       String?     // JSON snapshot after
+  metadata    String?     // JSON extra context
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime    @default(now())
+
+  @@index([userId])
+  @@index([entity, entityId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model DataQualityFlag {
+  id          String              @id @default(cuid())
+  visitId     String?
+  entityType  AuditEntity
+  entityId    String?
+  flagType    DataQualityType
+  severity    DataQualitySeverity @default(MEDIUM)
+  description String
+  fieldName   String?
+  currentValue String?
+  suggestedFix String?
+  isResolved  Boolean             @default(false)
+  resolvedById String?
+  resolvedAt  DateTime?
+  resolveNote String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  @@index([visitId])
+  @@index([flagType])
+  @@index([severity])
+  @@index([isResolved])
+  @@map("data_quality_flags")
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  entityType  String
+  entityId    String
+  fileName    String
+  fileUrl     String
+  fileSize    Int?
+  mimeType    String?
+  uploadedBy  String
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@map("attachments")
+}
+
+model ExportLog {
+  id         String     @id @default(cuid())
+  userId     String
+  user       User       @relation(fields: [userId], references: [id])
+  exportType ExportType
+  format     ExportFormat
+  filters    String?    // JSON filters applied
+  fileName   String?
+  rowCount   Int?
+  createdAt  DateTime   @default(now())
+
+  @@index([userId])
+  @@index([exportType])
+  @@index([createdAt])
+  @@map("export_logs")
+}
