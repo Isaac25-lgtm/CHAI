@@ -7,17 +7,17 @@
  */
 
 import 'dotenv/config';
-import path from 'path';
 import { PrismaClient } from '../../src/generated/prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import Database from 'better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 import { hashSync } from 'bcryptjs';
 import { ASSESSMENT_SECTION_DEFS } from '../../src/config/assessment-sections';
 
-// Resolve file:./dev.db to absolute path
-const dbUrl = process.env.DATABASE_URL || 'file:./prisma/dev.db';
-const dbPath = path.resolve(process.cwd(), dbUrl.replace(/^file:/, ''));
-const adapter = new PrismaBetterSqlite3({ url: 'file:' + dbPath });
+// Connect to PostgreSQL
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('DATABASE_URL is not set');
+const pool = new pg.Pool({ connectionString: url });
+const adapter = new PrismaPg(pool);
 const prisma = new (PrismaClient as any)({ adapter });
 
 // ---------------------------------------------------------------------------

@@ -1,19 +1,17 @@
-import path from 'path';
 import { PrismaClient } from '@/generated/prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
+import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-function resolveDbUrl(): string {
-  const url = process.env.DATABASE_URL || 'file:./prisma/dev.db';
-  const filePath = url.replace(/^file:/, '');
-  return 'file:' + path.resolve(process.cwd(), filePath);
-}
-
 function createPrisma(): PrismaClient {
-  const adapter = new PrismaBetterSqlite3({ url: resolveDbUrl() });
+  const url = process.env.DATABASE_URL;
+  if (!url) throw new Error('DATABASE_URL is not set');
+
+  const pool = new pg.Pool({ connectionString: url });
+  const adapter = new PrismaPg(pool);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new (PrismaClient as any)({ adapter });
 }

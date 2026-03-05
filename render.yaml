@@ -1,3 +1,9 @@
+databases:
+  - name: chai-pmtct-db
+    plan: free
+    databaseName: chai_pmtct
+    user: chai_user
+
 services:
   - type: web
     name: chai-pmtct
@@ -7,7 +13,9 @@ services:
     startCommand: node .next/standalone/server.js
     envVars:
       - key: DATABASE_URL
-        value: file:./dev.db
+        fromDatabase:
+          name: chai-pmtct-db
+          property: connectionString
       - key: NEXTAUTH_SECRET
         generateValue: true
       - key: NEXTAUTH_URL
