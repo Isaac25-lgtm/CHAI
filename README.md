@@ -187,13 +187,6 @@ npx prisma db seed        # Seed sample data
 npm run dev               # → http://localhost:3000
 ```
 
-### Test Accounts
-
-| Role | Email | Password |
-|------|-------|----------|
-| Super Admin | `admin@chai.org` | `ChaiAdmin2026!` |
-| Field Assessor | `assessor@chai.org` | `ChaiUser2026!` |
-
 ---
 
 ## Deployment
