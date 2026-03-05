@@ -146,3 +146,27 @@ export const ASSESSMENT_SECTIONS = [
 ] as const;
 
 export const ITEMS_PER_PAGE = 20;
+
+/** All Uganda districts and cities (as of 2024). */
+export const UGANDA_DISTRICTS: string[] = [
+  'Abim', 'Adjumani', 'Agago', 'Alebtong', 'Amolatar', 'Amudat', 'Amuria', 'Amuru',
+  'Apac', 'Arua City', 'Arua', 'Budaka', 'Bududa', 'Bugiri', 'Bugweri', 'Buhweju',
+  'Buikwe', 'Bukedea', 'Bukomansimbi', 'Bukwo', 'Bulambuli', 'Buliisa', 'Bundibugyo',
+  'Bunyangabu', 'Bushenyi', 'Busia', 'Butaleja', 'Butambala', 'Butebo', 'Buvuma',
+  'Buyende', 'Dokolo', 'Fort Portal City', 'Gomba', 'Gulu City', 'Gulu', 'Hoima City',
+  'Hoima', 'Ibanda', 'Iganga', 'Isingiro', 'Jinja City', 'Jinja', 'Kaabong', 'Kabale',
+  'Kabarole', 'Kaberamaido', 'Kagadi', 'Kakumiro', 'Kalaki', 'Kalangala', 'Kaliro',
+  'Kalungu', 'Kampala', 'Kamuli', 'Kamwenge', 'Kanungu', 'Kapchorwa', 'Kapelebyong',
+  'Karenga', 'Kasese', 'Kassanda', 'Katakwi', 'Kayunga', 'Kazo', 'Kibaale', 'Kiboga',
+  'Kibuku', 'Kikuube', 'Kiruhura', 'Kiryandongo', 'Kisoro', 'Kitagwenda', 'Kitgum',
+  'Koboko', 'Kole', 'Kotido', 'Kumi', 'Kwania', 'Kween', 'Kyankwanzi', 'Kyegegwa',
+  'Kyenjojo', 'Kyotera', 'Lamwo', 'Lira City', 'Lira', 'Luuka', 'Luwero', 'Lwengo',
+  'Lyantonde', 'Madi-Okollo', 'Manafwa', 'Maracha', 'Masaka City', 'Masaka', 'Masindi',
+  'Mayuge', 'Mbale City', 'Mbale', 'Mbarara City', 'Mbarara', 'Mitooma', 'Mityana',
+  'Moroto', 'Moyo', 'Mpigi', 'Mubende', 'Mukono', 'Nabilatuk', 'Nakapiripirit',
+  'Nakaseke', 'Nakasongola', 'Namayingo', 'Namisindwa', 'Namutumba', 'Napak', 'Nebbi',
+  'Ngora', 'Ntoroko', 'Ntungamo', 'Nwoya', 'Obongi', 'Omoro', 'Otuke', 'Oyam',
+  'Pader', 'Pakwach', 'Pallisa', 'Rakai', 'Rubanda', 'Rubirizi', 'Rukiga', 'Rukungiri',
+  'Rwampara', 'Sembabule', 'Serere', 'Sheema', 'Sironko', 'Soroti City', 'Soroti',
+  'Terego', 'Tororo', 'Wakiso', 'Yumbe', 'Zombo',
+];

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
 import { requirePermission, Permission, getScopeFilter } from '@/lib/rbac';
@@ -7,25 +7,20 @@ import { requirePermission, Permission, getScopeFilter } from '@/lib/rbac';
 // GET /api/dashboard/overview — aggregated dashboard KPIs, charts, trends
 // ---------------------------------------------------------------------------
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const user = await requireAuth();
     requirePermission(user, Permission.DASHBOARD_OVERVIEW);
 
     const scope = getScopeFilter(user);
 
-    // Build base where clause for visits (scope-aware)
+    // Scope-aware facility filter fragment
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const visitWhere: any = {
-      archivedAt: null,
-      status: { in: ['SUBMITTED', 'REVIEWED'] },
-    };
-
-    if (scope?.districtId) {
-      visitWhere.facility = { districtId: scope.districtId };
-    } else if (scope?.regionId) {
-      visitWhere.facility = { district: { regionId: scope.regionId } };
-    }
+    const facilityScope: any = scope?.districtId
+      ? { facility: { districtId: scope.districtId } }
+      : scope?.regionId
+        ? { facility: { district: { regionId: scope.regionId } } }
+        : {};
 
     // Today boundaries
     const todayStart = new Date();
@@ -33,64 +28,49 @@ export async function GET(request: NextRequest) {
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
 
-    // Draft visits where clause
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const draftWhere: any = {
-      archivedAt: null,
-      status: 'DRAFT',
-    };
-    if (scope?.districtId) {
-      draftWhere.facility = { districtId: scope.districtId };
-    } else if (scope?.regionId) {
-      draftWhere.facility = { district: { regionId: scope.regionId } };
-    }
+    // 30 days ago
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // --- Parallel KPI queries ---
+    // Base where for submitted/reviewed visits
+    const submittedWhere = {
+      archivedAt: null,
+      status: { in: ['SUBMITTED', 'REVIEWED'] as const },
+      ...facilityScope,
+    };
+
+    // --- All queries in parallel ---
     const [
-      allSubmittedVisits,
+      facilitiesAssessed,
       submissionsToday,
       draftsPending,
       openActions,
       overdueActions,
+      summaryAgg,
+      problemDomains,
+      recentVisits,
     ] = await Promise.all([
-      // All submitted visits with summaries
+      // 1. Count distinct facilities with submitted visits
       db.visit.findMany({
-        where: visitWhere,
-        select: {
-          id: true,
-          facilityId: true,
-          visitDate: true,
-          facility: {
-            select: {
-              districtId: true,
-              district: { select: { id: true, name: true } },
-            },
-          },
-          visitSummary: {
-            select: {
-              overallStatus: true,
-              redCount: true,
-              yellowCount: true,
-              lightGreenCount: true,
-              darkGreenCount: true,
-              completionPct: true,
-            },
-          },
-        },
-      }),
+        where: submittedWhere,
+        select: { facilityId: true },
+        distinct: ['facilityId'],
+      }).then((rows: { facilityId: string }[]) => rows.length),
 
-      // Submissions today
+      // 2. Submissions today
       db.visit.count({
         where: {
-          ...visitWhere,
+          ...submittedWhere,
           submittedAt: { gte: todayStart, lte: todayEnd },
         },
       }),
 
-      // Drafts pending
-      db.visit.count({ where: draftWhere }),
+      // 3. Drafts pending
+      db.visit.count({
+        where: { archivedAt: null, status: 'DRAFT', ...facilityScope },
+      }),
 
-      // Open actions
+      // 4. Open actions
       db.actionPlan.count({
         where: {
           archivedAt: null,
@@ -103,7 +83,7 @@ export async function GET(request: NextRequest) {
         },
       }),
 
-      // Overdue actions
+      // 5. Overdue actions
       db.actionPlan.count({
         where: {
           archivedAt: null,
@@ -116,30 +96,58 @@ export async function GET(request: NextRequest) {
               : {}),
         },
       }),
+
+      // 6. Aggregate visit summaries (color counts + completion)
+      db.visitSummary.aggregate({
+        where: {
+          visit: submittedWhere,
+        },
+        _sum: {
+          redCount: true,
+          yellowCount: true,
+          lightGreenCount: true,
+          darkGreenCount: true,
+          completionPct: true,
+        },
+        _count: { id: true },
+      }),
+
+      // 7. Top problem domains (grouped)
+      db.domainScore.groupBy({
+        by: ['sectionId'],
+        where: {
+          colorStatus: { in: ['RED', 'YELLOW'] },
+          ...(scope?.districtId
+            ? { assessment: { visit: { facility: { districtId: scope.districtId } } } }
+            : scope?.regionId
+              ? { assessment: { visit: { facility: { district: { regionId: scope.regionId } } } } }
+              : {}),
+        },
+        _count: { id: true },
+      }),
+
+      // 8. Recent visits for trend + district chart (lightweight select)
+      db.visit.findMany({
+        where: submittedWhere,
+        select: {
+          visitDate: true,
+          facility: {
+            select: {
+              district: { select: { id: true, name: true } },
+            },
+          },
+          visitSummary: {
+            select: { completionPct: true },
+          },
+        },
+      }),
     ]);
 
-    // --- Compute KPIs from fetched visits ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const uniqueFacilities = new Set(allSubmittedVisits.map((v: any) => v.facilityId));
-    const facilitiesAssessed = uniqueFacilities.size;
-
-    let totalRedFindings = 0;
-    let totalYellowFindings = 0;
-    let totalLightGreenFindings = 0;
-    let totalDarkGreenFindings = 0;
-    let totalCompletionPct = 0;
-    let summariesCounted = 0;
-
-    for (const visit of allSubmittedVisits) {
-      if (visit.visitSummary) {
-        totalRedFindings += visit.visitSummary.redCount;
-        totalYellowFindings += visit.visitSummary.yellowCount;
-        totalLightGreenFindings += visit.visitSummary.lightGreenCount;
-        totalDarkGreenFindings += visit.visitSummary.darkGreenCount;
-        totalCompletionPct += visit.visitSummary.completionPct;
-        summariesCounted++;
-      }
-    }
+    // --- Compute KPIs from aggregates ---
+    const totalRedFindings = summaryAgg._sum.redCount ?? 0;
+    const totalYellowFindings = summaryAgg._sum.yellowCount ?? 0;
+    const totalLightGreenFindings = summaryAgg._sum.lightGreenCount ?? 0;
+    const totalDarkGreenFindings = summaryAgg._sum.darkGreenCount ?? 0;
 
     const totalGreen = totalLightGreenFindings + totalDarkGreenFindings;
     const totalFindings = totalRedFindings + totalYellowFindings + totalGreen;
@@ -149,7 +157,8 @@ export async function GET(request: NextRequest) {
 
     // --- Submissions by district ---
     const districtCounts: Record<string, { name: string; count: number }> = {};
-    for (const visit of allSubmittedVisits) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const visit of recentVisits as any[]) {
       const dId = visit.facility.district.id;
       const dName = visit.facility.district.name;
       if (!districtCounts[dId]) {
@@ -169,25 +178,7 @@ export async function GET(request: NextRequest) {
       DARK_GREEN: totalDarkGreenFindings,
     };
 
-    // --- Top problem domains (RED + YELLOW counts per section) ---
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const domainScopeWhere: any = {};
-    if (scope?.districtId) {
-      domainScopeWhere.assessment = { visit: { facility: { districtId: scope.districtId } } };
-    } else if (scope?.regionId) {
-      domainScopeWhere.assessment = { visit: { facility: { district: { regionId: scope.regionId } } } };
-    }
-
-    const problemDomains = await db.domainScore.groupBy({
-      by: ['sectionId'],
-      where: {
-        colorStatus: { in: ['RED', 'YELLOW'] },
-        ...domainScopeWhere,
-      },
-      _count: { id: true },
-    });
-
-    // Fetch section titles
+    // --- Top problem domains ---
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const sectionIds = problemDomains.map((d: any) => d.sectionId);
     const sections = sectionIds.length > 0
@@ -197,10 +188,9 @@ export async function GET(request: NextRequest) {
         })
       : [];
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const sectionMap: Map<string, { id: string; title: string; sectionNumber: number }> = new Map(
+    const sectionMap = new Map(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      sections.map((s: any) => [s.id, s]),
+      (sections as any[]).map((s) => [s.id, s]),
     );
     const topProblemDomains = problemDomains
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -210,21 +200,14 @@ export async function GET(request: NextRequest) {
         sectionNumber: sectionMap.get(d.sectionId)?.sectionNumber ?? 0,
         count: d._count.id,
       }))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .sort((a: any, b: any) => b.count - a.count)
+      .sort((a: { count: number }, b: { count: number }) => b.count - a.count)
       .slice(0, 10);
 
-    // --- Trend data (last 30 days, grouped by date) ---
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const recentVisits = allSubmittedVisits.filter(
-      (v: any) => new Date(v.visitDate) >= thirtyDaysAgo,
-    );
-
+    // --- Trend data (last 30 days) ---
     const trendMap: Record<string, { totalScore: number; count: number; submissions: number }> = {};
-    for (const visit of recentVisits) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const visit of recentVisits as any[]) {
+      if (new Date(visit.visitDate) < thirtyDaysAgo) continue;
       const dateStr = new Date(visit.visitDate).toISOString().split('T')[0];
       if (!trendMap[dateStr]) {
         trendMap[dateStr] = { totalScore: 0, count: 0, submissions: 0 };
@@ -237,10 +220,10 @@ export async function GET(request: NextRequest) {
     }
 
     const trendData = Object.entries(trendMap)
-      .map(([date, data]) => ({
+      .map(([date, d]) => ({
         date,
-        avgScore: data.count > 0 ? Math.round(data.totalScore / data.count) : 0,
-        submissions: data.submissions,
+        avgScore: d.count > 0 ? Math.round(d.totalScore / d.count) : 0,
+        submissions: d.submissions,
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
 

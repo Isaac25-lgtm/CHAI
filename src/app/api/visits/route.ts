@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
-import { requirePermission, Permission, getScopeFilter } from '@/lib/rbac';
+import { requirePermission, Permission, getScopeFilter, canAccessDistrict } from '@/lib/rbac';
 import { createAuditLog } from '@/lib/db/audit';
 import { generateVisitNumber } from '@/lib/db/visit-number';
 import { visitSchema, participantSchema } from '@/lib/validation';
@@ -181,11 +181,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Facility not found' }, { status: 400 });
     }
 
-    // Generate visit number
-    const visitNumber = await generateVisitNumber();
+    // Scope check: ensure user can access this facility's district
+    if (!canAccessDistrict(user, facility.districtId)) {
+      return NextResponse.json({ error: 'Forbidden: you cannot create visits for this facility' }, { status: 403 });
+    }
 
     // Create visit with participants in a transaction
     const visit = await db.$transaction(async (tx: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      // Generate visit number inside transaction to prevent race conditions
+      const visitNumber = await generateVisitNumber(tx);
+
       const created = await tx.visit.create({
         data: {
           visitNumber,

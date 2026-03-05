@@ -1,11 +1,11 @@
 // Generates visit numbers like VIS-2026-0001
-export async function generateVisitNumber(): Promise<string> {
-  // Import db inside function to avoid circular deps
-  const { db } = await import('./index');
+// Must be called INSIDE a Prisma transaction to prevent race conditions
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function generateVisitNumber(tx: any): Promise<string> {
   const year = new Date().getFullYear();
   const prefix = `VIS-${year}-`;
 
-  const lastVisit = await db.visit.findFirst({
+  const lastVisit = await tx.visit.findFirst({
     where: { visitNumber: { startsWith: prefix } },
     orderBy: { visitNumber: 'desc' },
   });

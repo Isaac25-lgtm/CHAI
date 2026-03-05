@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
-import { Menu, ChevronDown, LogOut, Settings, UserCog } from 'lucide-react';
+import { Menu, ChevronDown, LogOut, UserCog } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { useCurrentUser } from '@/hooks/use-session';
@@ -113,15 +113,10 @@ export function Topbar({ onMenuToggle, className }: TopbarProps) {
             <DropdownMenuSeparator />
 
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => router.push('/profile')}>
-                <UserCog className="mr-2 size-4" />
-                Profile
-              </DropdownMenuItem>
-
               {isAdmin(user) && (
-                <DropdownMenuItem onClick={() => router.push('/settings')}>
-                  <Settings className="mr-2 size-4" />
-                  Settings
+                <DropdownMenuItem onClick={() => router.push('/users')}>
+                  <UserCog className="mr-2 size-4" />
+                  Manage Users
                 </DropdownMenuItem>
               )}
             </DropdownMenuGroup>

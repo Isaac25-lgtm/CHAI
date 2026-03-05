@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
-import { requirePermission, Permission, hasPermission } from '@/lib/rbac';
+import { requirePermission, Permission, hasPermission, canAccessDistrict } from '@/lib/rbac';
 import { createAuditLog } from '@/lib/db/audit';
 import type { AuditAction } from '@/generated/prisma/enums';
 
@@ -51,6 +51,12 @@ export async function GET(
       return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
     }
 
+    // Scope check
+    const districtId = entry.visit?.facility?.district?.id;
+    if (districtId && !canAccessDistrict(user, districtId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     return NextResponse.json(entry);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal server error';
@@ -79,9 +85,18 @@ export async function PATCH(
 
     const existing = await db.namesRegistryEntry.findUnique({
       where: { id },
+      include: {
+        visit: { select: { facility: { select: { districtId: true } } } },
+      },
     });
     if (!existing) {
       return NextResponse.json({ error: 'Entry not found' }, { status: 404 });
+    }
+
+    // Scope check
+    const districtId = existing.visit?.facility?.districtId;
+    if (districtId && !canAccessDistrict(user, districtId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();

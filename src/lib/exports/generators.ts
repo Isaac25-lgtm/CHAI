@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * CHAI PMTCT System - Export Data Generators
  *
@@ -6,8 +5,6 @@
  * the user's role and returns an array of flat row objects suitable for
  * Excel/CSV generation.
  */
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { db } from '@/lib/db';
 import { getScopeFilter } from '@/lib/rbac';

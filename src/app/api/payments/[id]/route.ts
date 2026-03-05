@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
-import { requirePermission, Permission, hasPermission, isFinance, isAdmin } from '@/lib/rbac';
+import { requirePermission, Permission, hasPermission, isFinance, isAdmin, canAccessDistrict } from '@/lib/rbac';
 import { createAuditLog } from '@/lib/db/audit';
 import type { AuditAction, PaymentStatus } from '@/generated/prisma/enums';
 
@@ -47,6 +47,7 @@ export async function GET(
                 facility: {
                   select: {
                     name: true,
+                    districtId: true,
                     district: { select: { name: true } },
                   },
                 },
@@ -62,6 +63,12 @@ export async function GET(
 
     if (!payment) {
       return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
+    }
+
+    // Scope check: ensure user can access this district's data
+    const districtId = payment.namesEntry?.visit?.facility?.districtId;
+    if (districtId && !canAccessDistrict(user, districtId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     return NextResponse.json(payment);
@@ -93,12 +100,24 @@ export async function PATCH(
     const existing = await db.paymentRecord.findUnique({
       where: { id },
       include: {
-        namesEntry: { select: { fullName: true, visitId: true } },
+        namesEntry: {
+          select: {
+            fullName: true,
+            visitId: true,
+            visit: { select: { facility: { select: { districtId: true } } } },
+          },
+        },
       },
     });
 
     if (!existing) {
       return NextResponse.json({ error: 'Payment record not found' }, { status: 404 });
+    }
+
+    // Scope check
+    const districtId = existing.namesEntry?.visit?.facility?.districtId;
+    if (districtId && !canAccessDistrict(user, districtId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     const body = await request.json();

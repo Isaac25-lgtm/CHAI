@@ -50,7 +50,7 @@ The platform supports **2 user roles** for simplified operation:
 | **Charts** | Recharts | 3.7.0 |
 | **Animations** | Framer Motion | 12.x |
 | **ORM** | Prisma | 7.4.2 |
-| **Database** | PostgreSQL (production) / SQLite (local dev) | - |
+| **Database** | PostgreSQL | 18.x |
 | **DB Adapter** | @prisma/adapter-pg | 7.4.2 |
 | **Authentication** | NextAuth.js v5 (beta) | 5.0.0-beta.30 |
 | **Validation** | Zod | 4.x |

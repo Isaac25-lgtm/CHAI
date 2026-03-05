@@ -146,7 +146,8 @@ export async function POST(request: NextRequest) {
       code,
       level,
       ownership,
-      districtId,
+      districtId: rawDistrictId,
+      districtName,
       subcounty,
       parish,
       village,
@@ -174,14 +175,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid facility level' }, { status: 400 });
     }
 
-    if (!districtId || typeof districtId !== 'string') {
+    if (!rawDistrictId && !districtName) {
       return NextResponse.json({ error: 'District is required' }, { status: 400 });
     }
 
-    // Verify district exists
-    const district = await db.district.findUnique({ where: { id: districtId } });
-    if (!district) {
-      return NextResponse.json({ error: 'District not found' }, { status: 400 });
+    // Resolve district — by ID or by name (auto-create if needed)
+    let districtId = rawDistrictId;
+    if (!districtId && districtName) {
+      // Try to find existing district by name
+      let district = await db.district.findFirst({
+        where: { name: { equals: districtName, mode: 'insensitive' } },
+      });
+      if (!district) {
+        // Auto-create a default region and district
+        const region = await db.region.upsert({
+          where: { name: 'Uganda' },
+          update: {},
+          create: { name: 'Uganda', code: 'UG' },
+        });
+        district = await db.district.create({
+          data: { name: districtName, regionId: region.id },
+        });
+      }
+      districtId = district.id;
+    } else {
+      // Verify district exists by ID
+      const district = await db.district.findUnique({ where: { id: districtId } });
+      if (!district) {
+        return NextResponse.json({ error: 'District not found' }, { status: 400 });
+      }
     }
 
     // Check for duplicate code
@@ -231,6 +253,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
     console.error('[POST /api/facilities]', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    const detail = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: detail }, { status: 500 });
   }
 }

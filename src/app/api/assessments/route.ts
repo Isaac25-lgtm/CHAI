@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
-import { requirePermission, Permission, getScopeFilter } from '@/lib/rbac';
+import { requirePermission, Permission, getScopeFilter, canAccessDistrict } from '@/lib/rbac';
 import { createAuditLog } from '@/lib/db/audit';
 import type { AssessmentStatus } from '@/types';
 
@@ -166,6 +166,11 @@ export async function POST(request: NextRequest) {
 
     if (!visit) {
       return NextResponse.json({ error: 'Visit not found' }, { status: 404 });
+    }
+
+    // Scope check
+    if (!canAccessDistrict(user, visit.facility.districtId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     if (visit.status !== 'SUBMITTED') {

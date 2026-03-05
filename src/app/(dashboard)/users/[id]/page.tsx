@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -194,7 +194,7 @@ export default function UserDetailPage({
   const { data: regions = [] } = useQuery<Region[]>({
     queryKey: ['regions'],
     queryFn: async () => {
-      const res = await fetch('/api/regions');
+      const res = await fetch('/api/facilities/regions');
       if (!res.ok) return [];
       const json = await res.json();
       return json.data ?? json;
@@ -206,7 +206,7 @@ export default function UserDetailPage({
     queryKey: ['districts', editRegionId],
     queryFn: async () => {
       const params = editRegionId ? `?regionId=${editRegionId}` : '';
-      const res = await fetch(`/api/districts${params}`);
+      const res = await fetch(`/api/facilities/districts${params}`);
       if (!res.ok) return [];
       const json = await res.json();
       return json.data ?? json;
@@ -214,16 +214,17 @@ export default function UserDetailPage({
     enabled: isEditing,
   });
 
-  // Populate edit form when switching to edit mode
-  useEffect(() => {
-    if (userData && isEditing) {
+  // Populate edit form when entering edit mode
+  const startEditing = () => {
+    if (userData) {
       setEditName(userData.name);
       setEditPhone(userData.phone ?? '');
       setEditOrganization(userData.organization ?? '');
       setEditRegionId(userData.regionId ?? '');
       setEditDistrictId(userData.districtId ?? '');
     }
-  }, [userData, isEditing]);
+    setIsEditing(true);
+  };
 
   // Update mutation
   const updateMutation = useMutation({
@@ -251,25 +252,6 @@ export default function UserDetailPage({
     },
   });
 
-  // Delete (deactivate) mutation
-  const deleteMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error ?? 'Failed to deactivate user');
-      }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user', id] });
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      toast.success('User deactivated successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
 
   // Handlers
   const handleSaveProfile = () => {
@@ -384,7 +366,7 @@ export default function UserDetailPage({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setIsEditing(true)}
+                onClick={startEditing}
               >
                 Edit Profile
               </Button>

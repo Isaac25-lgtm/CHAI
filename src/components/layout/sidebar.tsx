@@ -68,7 +68,7 @@ const NAV_GROUPS: NavGroupConfig[] = [
       },
       {
         label: 'Assessment Analytics',
-        href: '/analytics',
+        href: '/assessment-analytics',
         icon: BarChart3,
         permission: Permission.DASHBOARD_ANALYTICS,
       },
@@ -102,7 +102,7 @@ const NAV_GROUPS: NavGroupConfig[] = [
     items: [
       {
         label: 'Action Plans',
-        href: '/action-plans',
+        href: '/actions',
         icon: ListTodo,
         permission: Permission.ACTIONS_LIST,
       },

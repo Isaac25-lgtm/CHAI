@@ -413,13 +413,18 @@ export default function VisitDetailPage({
               )}
               {!latestAssessment && canAssess && visit.status !== 'DRAFT' && (
                 <Button
-                  variant="outline"
                   onClick={() => router.push(`/assessments/new?visitId=${id}`)}
-                  className="gap-1.5"
+                  className="gap-1.5 bg-[#0F4C81] hover:bg-[#0D3F6B]"
                 >
                   <ClipboardCheck className="size-4" />
                   Start Assessment
                 </Button>
+              )}
+              {!latestAssessment && isDraft && (
+                <div className="flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs text-amber-700">
+                  <AlertCircle className="size-3.5" />
+                  Submit visit to start assessment
+                </div>
               )}
               {latestAssessment && (
                 <Button

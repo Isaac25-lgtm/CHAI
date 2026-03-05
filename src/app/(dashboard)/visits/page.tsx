@@ -5,13 +5,15 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
   ClipboardList,
+  ClipboardCheck,
   Plus,
   Search,
   ChevronLeft,
   ChevronRight,
   Calendar,
   Users,
-  FileCheck,
+  Eye,
+  Info,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable, type Column } from '@/components/common/data-table';
@@ -28,6 +30,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useCurrentUser } from '@/hooks/use-session';
 import { hasPermission, Permission } from '@/lib/rbac';
 
@@ -143,6 +151,7 @@ export default function VisitsPage() {
   });
 
   const canCreate = user ? hasPermission(user, Permission.VISITS_CREATE) : false;
+  const canAssess = user ? hasPermission(user, Permission.ASSESSMENTS_CREATE) : false;
 
   const visits = visitsData?.data ?? [];
   const total = visitsData?.total ?? 0;
@@ -243,6 +252,65 @@ export default function VisitsPage() {
       render: (item) => (
         <span className="text-sm text-[#64748B]">{item.createdBy.name}</span>
       ),
+    },
+    {
+      key: 'actions',
+      title: '',
+      render: (item) => {
+        // Already has an assessment — show "View" button
+        if (item.assessmentId) {
+          return (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1 text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/assessments/${item.assessmentId}`);
+              }}
+            >
+              <Eye className="size-3.5" />
+              View
+            </Button>
+          );
+        }
+        // Visit is submitted and user can assess — show "Assess" button
+        if (item.status !== 'DRAFT' && canAssess) {
+          return (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1 border-[#0F4C81]/30 text-xs text-[#0F4C81] hover:bg-[#0F4C81]/5"
+              onClick={(e) => {
+                e.stopPropagation();
+                router.push(`/assessments/new?visitId=${item.id}`);
+              }}
+            >
+              <ClipboardCheck className="size-3.5" />
+              Assess
+            </Button>
+          );
+        }
+        // Visit is still a draft — show disabled with tooltip
+        if (item.status === 'DRAFT') {
+          return (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-flex cursor-help items-center gap-1 text-xs text-[#94A3B8]">
+                    <Info className="size-3.5" />
+                    Submit first
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Submit this visit before starting an assessment</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          );
+        }
+        return null;
+      },
     },
   ];
 

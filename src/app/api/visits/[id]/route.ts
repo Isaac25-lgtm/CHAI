@@ -74,8 +74,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
     }
 
     // Check district access
-    const scope = getScopeFilter(user);
-    if (scope?.districtId && !canAccessDistrict(user, visit.facility.districtId)) {
+    if (!canAccessDistrict(user, visit.facility.districtId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

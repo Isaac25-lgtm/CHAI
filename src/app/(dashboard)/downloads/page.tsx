@@ -56,7 +56,7 @@ const EXPORT_TILES: ExportTile[] = [
     description:
       'Per-facility performance summary with overall status, domain breakdown, and trends.',
     icon: <FileBarChart2 className="size-6" />,
-    formats: ['Excel', 'PDF'],
+    formats: ['Excel', 'CSV'],
   },
   {
     id: 'district-summary',
@@ -64,7 +64,7 @@ const EXPORT_TILES: ExportTile[] = [
     description:
       'Aggregated district-level performance, facility counts, and key findings.',
     icon: <FileText className="size-6" />,
-    formats: ['Excel', 'PDF'],
+    formats: ['Excel', 'CSV'],
   },
   {
     id: 'national-summary',
@@ -72,7 +72,7 @@ const EXPORT_TILES: ExportTile[] = [
     description:
       'National overview across all districts and regions with comparative metrics.',
     icon: <FileSpreadsheet className="size-6" />,
-    formats: ['Excel', 'PDF'],
+    formats: ['Excel', 'CSV'],
   },
   {
     id: 'action-plan',
@@ -105,7 +105,7 @@ const EXPORT_TILES: ExportTile[] = [
     description:
       'Data quality flags, validation issues, and resolution statuses.',
     icon: <ShieldCheck className="size-6" />,
-    formats: ['Excel', 'PDF'],
+    formats: ['Excel', 'CSV'],
   },
   {
     id: 'audit-log',
@@ -125,7 +125,6 @@ const EXPORT_TILES: ExportTile[] = [
 const FORMAT_STYLES: Record<string, string> = {
   Excel: 'border-green-200 bg-green-50 text-green-700',
   CSV: 'border-blue-200 bg-blue-50 text-blue-700',
-  PDF: 'border-red-200 bg-red-50 text-red-700',
 };
 
 // ---------------------------------------------------------------------------
@@ -136,7 +135,7 @@ export default function DownloadsPage() {
   const { user } = useCurrentUser();
 
   const handleDownload = (tile: ExportTile, format: string) => {
-    const fmt = format.toLowerCase() === 'pdf' ? 'excel' : format.toLowerCase();
+    const fmt = format.toLowerCase();
     const url = `/api/exports/${tile.id}?format=${fmt}`;
     window.open(url, '_blank');
     toast.info(`Export generating...`, {

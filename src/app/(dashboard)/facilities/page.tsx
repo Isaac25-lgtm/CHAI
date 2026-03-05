@@ -2,13 +2,16 @@
 
 import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   Building2,
   Plus,
   Search,
   ChevronLeft,
   ChevronRight,
+  ClipboardCheck,
+  Loader2,
 } from 'lucide-react';
 import { PageHeader } from '@/components/common/page-header';
 import { DataTable, type Column } from '@/components/common/data-table';
@@ -137,6 +140,35 @@ export default function FacilitiesPage() {
   });
 
   const canCreate = user ? hasPermission(user, Permission.FACILITIES_CREATE) : false;
+  const canAssess = user
+    ? hasPermission(user, Permission.VISITS_CREATE) && hasPermission(user, Permission.ASSESSMENTS_CREATE)
+    : false;
+
+  const [assessingFacilityId, setAssessingFacilityId] = useState<string | null>(null);
+
+  const quickAssessMutation = useMutation({
+    mutationFn: async (facilityId: string) => {
+      setAssessingFacilityId(facilityId);
+      const res = await fetch('/api/visits/quick-assess', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ facilityId }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to start assessment');
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success('Assessment started');
+      router.push(`/assessments/${data.assessmentId}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+      setAssessingFacilityId(null);
+    },
+  });
 
   const facilities = facilitiesData?.data ?? [];
   const total = facilitiesData?.total ?? 0;
@@ -237,6 +269,33 @@ export default function FacilitiesPage() {
         </div>
       ),
     },
+    ...(canAssess
+      ? [
+          {
+            key: 'quickAssess' as const,
+            title: '',
+            render: (item: FacilityRow) => (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1 border-[#0F4C81]/30 text-xs text-[#0F4C81] hover:bg-[#0F4C81]/5"
+                disabled={!item.isActive || quickAssessMutation.isPending}
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  quickAssessMutation.mutate(item.id);
+                }}
+              >
+                {assessingFacilityId === item.id && quickAssessMutation.isPending ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <ClipboardCheck className="size-3.5" />
+                )}
+                Assess
+              </Button>
+            ),
+          },
+        ]
+      : []),
   ];
 
   const handleRowClick = (item: FacilityRow) => {
@@ -263,7 +322,7 @@ export default function FacilitiesPage() {
       >
         {canCreate && (
           <Button
-            onClick={() => router.push('/facilities?action=add')}
+            onClick={() => router.push('/facilities/new')}
             className="gap-2 bg-[#0F4C81] hover:bg-[#0D3F6B]"
           >
             <Plus className="size-4" />
@@ -422,7 +481,7 @@ export default function FacilitiesPage() {
             ) : canCreate ? (
               <Button
                 className="gap-2 bg-[#0F4C81] hover:bg-[#0D3F6B]"
-                onClick={() => router.push('/facilities?action=add')}
+                onClick={() => router.push('/facilities/new')}
               >
                 <Plus className="size-4" />
                 Add Facility

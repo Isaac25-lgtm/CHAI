@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
-import { requirePermission, Permission, getScopeFilter, isFinance, isAdmin } from '@/lib/rbac';
+import { requirePermission, Permission, getScopeFilter, isFinance, isAdmin, canAccessDistrict } from '@/lib/rbac';
 import { createAuditLog } from '@/lib/db/audit';
 import { paymentSchema } from '@/lib/validation';
 
@@ -166,11 +166,20 @@ export async function POST(request: NextRequest) {
     // Verify names entry exists and has no payment record yet
     const namesEntry = await db.namesRegistryEntry.findUnique({
       where: { id: data.namesEntryId },
-      include: { paymentRecord: true },
+      include: {
+        paymentRecord: true,
+        visit: { select: { facility: { select: { districtId: true } } } },
+      },
     });
 
     if (!namesEntry) {
       return NextResponse.json({ error: 'Names registry entry not found' }, { status: 400 });
+    }
+
+    // Scope check
+    const districtId = namesEntry.visit?.facility?.districtId;
+    if (districtId && !canAccessDistrict(user, districtId)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     if (namesEntry.paymentRecord) {

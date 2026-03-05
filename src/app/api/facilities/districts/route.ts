@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
 import { requirePermission, Permission, getScopeFilter } from '@/lib/rbac';
@@ -7,11 +7,12 @@ import { requirePermission, Permission, getScopeFilter } from '@/lib/rbac';
 // GET /api/facilities/districts — all districts grouped by region
 // ---------------------------------------------------------------------------
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await requireAuth();
     requirePermission(user, Permission.FACILITIES_LIST);
 
+    const regionId = request.nextUrl.searchParams.get('regionId');
     const scope = getScopeFilter(user);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -21,6 +22,11 @@ export async function GET() {
       where.id = scope.districtId;
     } else if (scope?.regionId) {
       where.regionId = scope.regionId;
+    }
+
+    // Apply optional region filter from query param
+    if (regionId) {
+      where.regionId = regionId;
     }
 
     const districts = await db.district.findMany({

@@ -100,7 +100,7 @@ export default function NewUserPage() {
   const { data: regions = [] } = useQuery<Region[]>({
     queryKey: ['regions'],
     queryFn: async () => {
-      const res = await fetch('/api/regions');
+      const res = await fetch('/api/facilities/regions');
       if (!res.ok) return [];
       const json = await res.json();
       return json.data ?? json;
@@ -114,7 +114,7 @@ export default function NewUserPage() {
       const params = selectedRegionId
         ? `?regionId=${selectedRegionId}`
         : '';
-      const res = await fetch(`/api/districts${params}`);
+      const res = await fetch(`/api/facilities/districts${params}`);
       if (!res.ok) return [];
       const json = await res.json();
       return json.data ?? json;
