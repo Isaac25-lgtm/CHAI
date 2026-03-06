@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
-import { requirePermission, Permission, getScopeFilter, isFinance, isAdmin, canAccessDistrict } from '@/lib/rbac';
+import { requirePermission, Permission, getScopeFilter, isFinance, isAdmin, canAccessDistrict, isSuperuser, isOwnRecord } from '@/lib/rbac';
 import { createAuditLog } from '@/lib/db/audit';
 import { paymentSchema } from '@/lib/validation';
 
@@ -149,7 +149,8 @@ const createPaymentSchema = paymentSchema.extend({
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
-    requirePermission(user, Permission.PAYMENTS_LIST);
+    // Assessors can create payments (via NAMES_CREATE), superusers via PAYMENTS_LIST
+    requirePermission(user, isSuperuser(user) ? Permission.PAYMENTS_LIST : Permission.NAMES_CREATE);
 
     const body = await request.json();
     const parsed = createPaymentSchema.safeParse(body);
@@ -168,7 +169,7 @@ export async function POST(request: NextRequest) {
       where: { id: data.namesEntryId },
       include: {
         paymentRecord: true,
-        visit: { select: { facility: { select: { districtId: true } } } },
+        visit: { select: { createdById: true, facility: { select: { districtId: true } } } },
       },
     });
 
@@ -176,7 +177,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Names registry entry not found' }, { status: 400 });
     }
 
-    // Scope check
+    // Scope check: assessors can only create payments for their own visits
+    if (!isSuperuser(user)) {
+      const visitCreatedById = namesEntry.visit?.createdById;
+      if (visitCreatedById && !isOwnRecord(user, visitCreatedById)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
+
     const districtId = namesEntry.visit?.facility?.districtId;
     if (districtId && !canAccessDistrict(user, districtId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

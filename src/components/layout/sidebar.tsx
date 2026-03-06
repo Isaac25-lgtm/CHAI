@@ -172,11 +172,11 @@ const NAV_GROUPS: NavGroupConfig[] = [
 // ---------------------------------------------------------------------------
 
 const ROLE_LABELS: Record<string, string> = {
-  SUPER_ADMIN: 'Super Admin',
-  NATIONAL_ADMIN: 'National Admin',
-  DISTRICT_SUPERVISOR: 'District Supervisor',
-  FIELD_ASSESSOR: 'Field Assessor',
-  FINANCE_OFFICER: 'Finance Officer',
+  SUPER_ADMIN: 'Superuser',
+  NATIONAL_ADMIN: 'Superuser',
+  DISTRICT_SUPERVISOR: 'Superuser',
+  FIELD_ASSESSOR: 'Assessor',
+  FINANCE_OFFICER: 'Superuser',
   VIEWER: 'Viewer',
 };
 

@@ -11,6 +11,7 @@
 <p align="center">
   <a href="#getting-started">Getting Started</a> •
   <a href="#features">Features</a> •
+  <a href="#architecture">Architecture</a> •
   <a href="#assessment-engine">Assessment Engine</a> •
   <a href="#api-reference">API Reference</a> •
   <a href="#deployment">Deployment</a>
@@ -22,7 +23,7 @@
   <img src="https://img.shields.io/badge/Prisma-7.4.2-2D3748?logo=prisma&logoColor=white" alt="Prisma" />
   <img src="https://img.shields.io/badge/PostgreSQL-18.x-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.x-06B6D4?logo=tailwindcss&logoColor=white" alt="Tailwind CSS" />
-  <img src="https://img.shields.io/badge/License-Proprietary-red" alt="License" />
+  <img src="https://img.shields.io/badge/Deploy-Render-46E3B7?logo=render&logoColor=white" alt="Render" />
 </p>
 
 ---
@@ -48,7 +49,25 @@ Built for the **Clinton Health Access Initiative (CHAI)** Uganda country team.
 | **Payment Tracking** | Mobile money payments (MTN/Airtel) with multi-level approval: Draft → Submitted → Verified → Approved → Paid → Reconciled |
 | **Exports** | 10 export types (Excel/CSV) scoped by geography and role |
 | **Audit Trail** | Full action logging with before/after snapshots, IP tracking |
-| **RBAC** | Two roles — Super Admin (full access) and Field Assessor (own visits/assessments) — with permission-filtered navigation |
+| **RBAC** | Two roles — Superuser (full access) and Assessor (own visits/assessments) — with permission-filtered navigation |
+
+---
+
+## Architecture
+
+The system is split into **two UX modes**, each with its own layout, routing, and navigation:
+
+### Superuser Mode (Desktop)
+Full admin dashboard with sidebar navigation, analytics, data management, user administration, payment approval workflows, and export capabilities. Accessed by Super Admins and National Admins.
+
+### Assessor Mode (Mobile-First)
+Minimal, linear wizard optimized for field use on phones. No sidebar, no admin clutter — just the steps needed to complete a facility visit:
+
+```
+HOME → PICK FACILITY → ADD PARTICIPANTS → COMPLETE ASSESSMENT → PAYMENT DETAILS → REVIEW & SUBMIT → DONE
+```
+
+The middleware enforces role-based routing: assessors are redirected away from admin pages, and superusers are redirected away from the field wizard.
 
 ---
 
@@ -89,10 +108,10 @@ The core of the system. 16 structured sections map to the full PMTCT cascade:
 
 | Color | Meaning | Threshold |
 |-------|---------|-----------|
-| 🟢 **Dark Green** | Excellent | ≥ 90% |
-| 🟩 **Light Green** | Good — minor gaps | 75%–89% |
-| 🟡 **Yellow** | Moderate gaps | 50%–74% |
-| 🔴 **Red** | Critical — urgent action needed | < 50% |
+| Dark Green | Excellent | >= 90% |
+| Light Green | Good — minor gaps | 75%–89% |
+| Yellow | Moderate gaps | 50%–74% |
+| Red | Critical — urgent action needed | < 50% |
 
 ---
 
@@ -100,31 +119,34 @@ The core of the system. 16 structured sections map to the full PMTCT cascade:
 
 | Layer | Technology |
 |-------|------------|
-| Framework | Next.js 16.1.6 (App Router) |
+| Framework | Next.js 16.1.6 (App Router, standalone output) |
 | Language | TypeScript 5.x |
 | UI | React 19 + Tailwind CSS 4 + shadcn/ui (43 components) |
 | Charts | Recharts 3.7 |
 | Animations | Framer Motion 12 |
 | ORM | Prisma 7.4.2 with `@prisma/adapter-pg` |
-| Database | PostgreSQL 18 |
+| Database | PostgreSQL |
 | Auth | NextAuth.js v5 (beta) with Credentials provider |
 | Validation | Zod 4 |
 | Data Fetching | TanStack React Query 5 |
 | Forms | React Hook Form 7 + @hookform/resolvers |
 | Exports | SheetJS (xlsx) + jsPDF + html2canvas |
+| Hosting | Render (Web Service + PostgreSQL) |
 
 ---
 
 ## Project Structure
 
 ```
-CHAI/
+chai-pmtct-system/
 ├── prisma/
 │   ├── schema.prisma          # 28 models, 25 enums
 │   └── seed/index.ts          # Regions, districts, facilities, users, sample data
+├── scripts/
+│   └── copy-standalone-assets.js  # Copies public/ and static/ for standalone deploy
 ├── src/
 │   ├── app/
-│   │   ├── (dashboard)/       # Protected route group
+│   │   ├── (dashboard)/       # Superuser route group (admin UI)
 │   │   │   ├── overview/      # KPI dashboard
 │   │   │   ├── facilities/    # Facility CRUD + detail views
 │   │   │   ├── visits/        # Visit lifecycle management
@@ -134,6 +156,18 @@ CHAI/
 │   │   │   ├── payments/      # Mobile money payments
 │   │   │   ├── downloads/     # Export center (10 types)
 │   │   │   └── ...            # analytics, audit-logs, settings, etc.
+│   │   ├── (field)/           # Assessor route group (mobile-first wizard)
+│   │   │   └── field/
+│   │   │       ├── page.tsx           # Assessor home (drafts, submitted)
+│   │   │       └── visit/
+│   │   │           ├── new/           # Facility picker (Step 1)
+│   │   │           └── [id]/
+│   │   │               ├── page.tsx       # Visit hub (step overview)
+│   │   │               ├── participants/  # Add participants (Step 2)
+│   │   │               ├── assess/        # Assessment launcher (Step 3)
+│   │   │               ├── payments/      # Payment details (Step 4)
+│   │   │               ├── review/        # Review & submit (Step 5)
+│   │   │               └── done/          # Submission confirmation
 │   │   ├── api/               # 12 API route groups
 │   │   └── auth/login/        # Login page
 │   ├── components/
@@ -142,7 +176,7 @@ CHAI/
 │   │   ├── layout/            # AppShell, sidebar, topbar
 │   │   └── ui/                # 43 shadcn/ui primitives
 │   ├── config/
-│   │   └── assessment-sections.ts  # 16 sections × 95 questions definition
+│   │   └── assessment-sections.ts  # 16 sections x 95 questions definition
 │   ├── lib/
 │   │   ├── auth/              # NextAuth config + session helpers
 │   │   ├── db/                # Prisma client, audit, data quality, derived computations
@@ -151,7 +185,7 @@ CHAI/
 │   │   ├── exports/           # Scope-aware data generators + Excel/CSV output
 │   │   └── validation/        # Zod schemas
 │   └── types/index.ts         # Shared TypeScript definitions
-├── render.yaml                # One-click Render deployment blueprint
+├── render.yaml                # Render deployment blueprint
 └── package.json
 ```
 
@@ -161,7 +195,7 @@ CHAI/
 
 ### Prerequisites
 
-- **Node.js** ≥ 18
+- **Node.js** >= 18
 - **PostgreSQL** instance (local or hosted)
 
 ### Install & Run
@@ -187,28 +221,52 @@ npx prisma db seed        # Seed sample data
 npm run dev               # → http://localhost:3000
 ```
 
+### Default Seed Users
+
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | admin@chai.org | *(set in seed script)* |
+| Field Assessor | assessor@chai.org | *(set in seed script)* |
+
 ---
 
 ## Deployment
 
 ### Render (Recommended)
 
-A `render.yaml` Blueprint is included for one-click deployment.
+The project includes a `render.yaml` Blueprint for one-click deployment with a PostgreSQL database and web service.
 
-1. Go to **Render → New → Blueprint**
+#### Option 1: Blueprint (Automatic)
+
+1. Go to **Render Dashboard → New → Blueprint**
 2. Connect the `Isaac25-lgtm/CHAI` repository
 3. Render auto-provisions a **PostgreSQL database** and **Web Service**
 4. Set `NEXTAUTH_URL` to your Render URL (e.g., `https://chai-pmtct.onrender.com`)
 5. Deploy
 
-### Environment Variables
+#### Option 2: Manual Setup
+
+1. **Create a PostgreSQL database** on Render (Free tier works)
+2. **Create a Web Service**:
+   - **Build Command:** `npm install && npm run build:render && node scripts/copy-standalone-assets.js`
+   - **Start Command:** `node .next/standalone/server.js`
+3. **Set environment variables:**
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@host:5432/chai_pmtct` |
+| `DATABASE_URL` | PostgreSQL connection string (from Render DB) | `postgresql://user:pass@host:5432/chai_pmtct` |
 | `NEXTAUTH_URL` | Public app URL | `https://chai-pmtct.onrender.com` |
-| `NEXTAUTH_SECRET` | JWT encryption secret | Auto-generated on Render |
+| `NEXTAUTH_SECRET` | JWT encryption secret (auto-generated) | `openssl rand -base64 32` |
 | `NODE_ENV` | Environment | `production` |
+| `PORT` | Server port (Render default) | `10000` |
+| `HOSTNAME` | Bind address | `0.0.0.0` |
+
+4. **Seed the database** (first deploy only):
+   - Open the Render **Shell** tab and run: `npx prisma db seed`
+
+### Standalone Output
+
+The project uses Next.js `output: 'standalone'` mode, which produces a minimal Node.js server at `.next/standalone/server.js`. The `scripts/copy-standalone-assets.js` script copies `public/` and `.next/static/` into the standalone directory so static assets are served correctly.
 
 ---
 
@@ -341,34 +399,13 @@ All endpoints live under `/api/`. Authentication is handled via NextAuth.js sess
 
 ---
 
-## Seed Data
-
-The seed script populates the database with realistic Uganda-specific data for immediate testing:
-
-| Entity | Count |
-|--------|------:|
-| Regions | 4 |
-| Districts | 12 |
-| Facilities | 30 |
-| Users | 2 |
-| Assessment Sections | 16 |
-| Assessment Questions | 95 |
-| Visits | 10 (6 submitted, 4 draft) |
-| Assessments | 6 (with domain scores) |
-| Action Plans | 19 |
-| Names Registry Entries | 30 |
-| Payment Records | 15 |
-| Data Quality Flags | 10 |
-| District Aggregates | 12 |
-
----
-
 ## Scripts
 
 | Command | What It Does |
 |---------|--------------|
 | `npm run dev` | Start dev server |
-| `npm run build` | Full production build (generate + push + build) |
+| `npm run build` | Production build (generate + build) |
+| `npm run build:render` | Render-specific build (generate + db push + build) |
 | `npm start` | Start production server |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript compiler check |

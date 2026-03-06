@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save, Loader2 } from 'lucide-react';
@@ -52,6 +52,14 @@ const findingColorConfig: Record<ColorStatus, { label: string; className: string
 // ---------------------------------------------------------------------------
 
 export default function NewActionPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="size-6 animate-spin text-slate-400" /></div>}>
+      <NewActionPageInner />
+    </Suspense>
+  );
+}
+
+function NewActionPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 

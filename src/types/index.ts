@@ -1,6 +1,14 @@
 // Re-export Prisma types where needed, plus UI-specific types
 
-export type UserRole = 'SUPER_ADMIN' | 'NATIONAL_ADMIN' | 'DISTRICT_SUPERVISOR' | 'FIELD_ASSESSOR' | 'FINANCE_OFFICER' | 'VIEWER';
+// Legacy roles kept for schema/DB compatibility — DO NOT use in active app logic
+export type LegacyUserRole = 'SUPER_ADMIN' | 'NATIONAL_ADMIN' | 'DISTRICT_SUPERVISOR' | 'FIELD_ASSESSOR' | 'FINANCE_OFFICER' | 'VIEWER';
+
+// Active roles used throughout the application
+export type ActiveRole = 'SUPER_ADMIN' | 'FIELD_ASSESSOR';
+
+// UserRole is the full union (needed for DB/Prisma compat), but active UI logic
+// should branch on isSuperuser() / isAssessor() helpers.
+export type UserRole = LegacyUserRole;
 
 export type ColorStatus = 'RED' | 'YELLOW' | 'LIGHT_GREEN' | 'DARK_GREEN' | 'NOT_SCORED';
 
@@ -52,6 +60,15 @@ export interface SessionUser {
   role: UserRole;
   regionId: string | null;
   districtId: string | null;
+}
+
+// Active role helpers
+export function isSuperuser(user: SessionUser): boolean {
+  return user.role === 'SUPER_ADMIN' || user.role === 'NATIONAL_ADMIN';
+}
+
+export function isAssessor(user: SessionUser): boolean {
+  return user.role === 'FIELD_ASSESSOR';
 }
 
 // Navigation item type

@@ -1,11 +1,7 @@
 /**
  * CHAI PMTCT System - RBAC barrel export
- *
- * Usage:
- *   import { Permission, hasPermission, requirePermission } from '@/lib/rbac';
  */
 
-// Permission constants, types, and role mapping
 export {
   Permission,
   ROLE_PERMISSIONS,
@@ -15,7 +11,6 @@ export {
 } from './permissions';
 export type { PermissionString } from './permissions';
 
-// Server-side helpers
 export {
   hasPermission,
   hasAnyPermission,
@@ -24,7 +19,11 @@ export {
   canAccessFacility,
   requirePermission,
   getScopeFilter,
+  getDistrictScopeFilter,
+  isOwnRecord,
   isAdmin,
   isFinance,
+  isSuperuser,
+  isAssessor,
 } from './helpers';
 export type { ScopeFilter } from './helpers';

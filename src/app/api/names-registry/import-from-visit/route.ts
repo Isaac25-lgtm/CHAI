@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
-import { requirePermission, Permission } from '@/lib/rbac';
+import { requirePermission, Permission, isSuperuser, isOwnRecord } from '@/lib/rbac';
 import { createAuditLog } from '@/lib/db/audit';
 
 // ---------------------------------------------------------------------------
@@ -45,6 +45,11 @@ export async function POST(request: NextRequest) {
 
     if (!visit) {
       return NextResponse.json({ error: 'Visit not found' }, { status: 404 });
+    }
+
+    // Assessors can only import from their own visits
+    if (!isSuperuser(user) && !isOwnRecord(user, visit.createdById)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     if (visit.participants.length === 0) {

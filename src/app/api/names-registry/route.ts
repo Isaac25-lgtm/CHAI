@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { requireAuth } from '@/lib/auth/session';
-import { requirePermission, Permission, getScopeFilter } from '@/lib/rbac';
+import { requirePermission, Permission, getScopeFilter, isSuperuser, isOwnRecord } from '@/lib/rbac';
 import { createAuditLog } from '@/lib/db/audit';
 import { namesRegistrySchema } from '@/lib/validation';
 
@@ -213,6 +213,11 @@ export async function POST(request: NextRequest) {
     });
     if (!visit) {
       return NextResponse.json({ error: 'Visit not found' }, { status: 400 });
+    }
+
+    // Assessors can only write to their own visits
+    if (!isSuperuser(user) && !isOwnRecord(user, visit.createdById)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Duplicate check: same name+phone in same visit, and across visits

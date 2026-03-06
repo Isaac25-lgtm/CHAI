@@ -9,10 +9,10 @@ services:
     name: chai-pmtct
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build
+    region: oregon
+    buildCommand: npm install && npm run build:render && node scripts/copy-standalone-assets.js
     startCommand: node .next/standalone/server.js
-    # To seed the database for the first time, run manually:
-    # npm run db:seed
+    healthCheckPath: /auth/login
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -24,3 +24,7 @@ services:
         sync: false
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: "10000"
+      - key: HOSTNAME
+        value: "0.0.0.0"

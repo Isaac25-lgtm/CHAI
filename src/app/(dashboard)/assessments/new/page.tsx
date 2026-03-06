@@ -1,11 +1,19 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, AlertCircle, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function NewAssessmentPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="size-6 animate-spin text-slate-400" /></div>}>
+      <NewAssessmentPageInner />
+    </Suspense>
+  );
+}
+
+function NewAssessmentPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const visitId = searchParams.get('visitId');

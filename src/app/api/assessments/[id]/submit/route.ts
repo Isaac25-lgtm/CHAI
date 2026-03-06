@@ -79,6 +79,18 @@ export async function POST(request: NextRequest, context: RouteContext) {
       allResponses[resp.question.questionCode] = qr;
     }
 
+    // Compute actual completion percentage based on required questions answered
+    const totalRequired = ASSESSMENT_SECTION_DEFS.flatMap((s) =>
+      s.questions.filter((q) => q.required),
+    ).length;
+    const answeredRequired = ASSESSMENT_SECTION_DEFS.flatMap((s) =>
+      s.questions.filter(
+        (q) => q.required && allResponses[q.code]?.value !== undefined && allResponses[q.code]?.value !== '',
+      ),
+    ).length;
+    const actualCompletionPct =
+      totalRequired > 0 ? Math.round((answeredRequired / totalRequired) * 100) : 0;
+
     // Run scoring engine
     const {
       sectionResults,
@@ -108,7 +120,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           status: 'SUBMITTED',
           submittedAt: now,
           submittedById: user.id,
-          completionPct: 100,
+          completionPct: actualCompletionPct,
         },
       });
 
@@ -176,7 +188,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           lightGreenCount,
           darkGreenCount,
           totalScored: scoredSectionCount,
-          completionPct: 100,
+          completionPct: actualCompletionPct,
           criticalFlags: JSON.stringify(criticalFlags),
           topRedDomains: JSON.stringify(topRedDomains),
           computedAt: now,
@@ -188,7 +200,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
           lightGreenCount,
           darkGreenCount,
           totalScored: scoredSectionCount,
-          completionPct: 100,
+          completionPct: actualCompletionPct,
           criticalFlags: JSON.stringify(criticalFlags),
           topRedDomains: JSON.stringify(topRedDomains),
           computedAt: now,

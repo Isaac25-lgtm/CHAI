@@ -2,7 +2,6 @@ import NextAuth from 'next-auth';
 import { authConfig } from '@/lib/auth/config';
 import { NextResponse } from 'next/server';
 
-// Use Edge-safe config (no db/bcrypt imports)
 const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
@@ -13,11 +12,37 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Protect dashboard routes - redirect to login if not authenticated
+  // Protect all matched routes - redirect to login if not authenticated
   if (!req.auth) {
     const loginUrl = new URL('/auth/login', req.nextUrl.origin);
     loginUrl.searchParams.set('callbackUrl', pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  const role = req.auth.user?.role;
+
+  // Role-based routing: assessors hitting admin-only pages get redirected to field home
+  const adminOnlyPaths = [
+    '/overview',
+    '/live-submissions',
+    '/assessment-analytics',
+    '/users',
+    '/data-quality',
+    '/downloads',
+    '/audit-logs',
+    '/settings',
+  ];
+
+  if (role === 'FIELD_ASSESSOR' && adminOnlyPaths.some((p) => pathname.startsWith(p))) {
+    return NextResponse.redirect(new URL('/field', req.nextUrl.origin));
+  }
+
+  // Superusers hitting /field get redirected to admin overview
+  if (
+    (role === 'SUPER_ADMIN' || role === 'NATIONAL_ADMIN') &&
+    pathname.startsWith('/field')
+  ) {
+    return NextResponse.redirect(new URL('/overview', req.nextUrl.origin));
   }
 
   return NextResponse.next();
@@ -39,6 +64,7 @@ export const config = {
     '/downloads/:path*',
     '/audit-logs/:path*',
     '/settings/:path*',
+    '/field/:path*',
     '/auth/:path*',
   ],
 };

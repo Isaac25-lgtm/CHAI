@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Create visit (auto-submitted) + assessment in a transaction
+    // Create visit as DRAFT + assessment in a transaction
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result = await db.$transaction(async (tx: any) => {
       const visitNumber = await generateVisitNumber(tx);
@@ -49,8 +49,7 @@ export async function POST(request: NextRequest) {
           visitDate: now,
           activityName: 'PMTCT Mentorship Assessment',
           createdById: user.id,
-          status: 'SUBMITTED',
-          submittedAt: now,
+          status: 'DRAFT',
         },
       });
 
