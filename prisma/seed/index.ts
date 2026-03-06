@@ -89,6 +89,9 @@ async function main() {
     { name: 'Gulu', code: 'GLU', region: 'Northern' },
     { name: 'Lira', code: 'LRA', region: 'Northern' },
     { name: 'Arua', code: 'ARU', region: 'Northern' },
+    { name: 'Pader', code: 'PDR', region: 'Northern' },
+    { name: 'Kitgum', code: 'KTG', region: 'Northern' },
+    { name: 'Amuru', code: 'AMR', region: 'Northern' },
     { name: 'Mbarara', code: 'MBR', region: 'Western' },
     { name: 'Kabarole', code: 'KBR', region: 'Western' },
     { name: 'Kabale', code: 'KBL', region: 'Western' },
@@ -160,6 +163,21 @@ async function main() {
     { name: 'Arua Regional Referral Hospital', code: 'FAC-ARU-001', level: 'REGIONAL_REFERRAL', ownership: 'GOVERNMENT', district: 'Arua', subcounty: 'Arua Municipality', inChargeName: 'Dr. Samuel Adriko', inChargePhone: '+256701234522' },
     { name: 'Kuluva Hospital', code: 'FAC-ARU-002', level: 'GENERAL_HOSPITAL', ownership: 'PNFP', district: 'Arua', subcounty: 'Arua Municipality', inChargeName: 'Dr. Janet Chandiru', inChargePhone: '+256701234523' },
     { name: 'Oli HC II', code: 'FAC-ARU-003', level: 'HC_II', ownership: 'GOVERNMENT', district: 'Arua', subcounty: 'Oli', inChargeName: 'Mr. Patrick Anguyo', inChargePhone: '+256701234524' },
+
+    // Pader
+    { name: 'Pader General Hospital', code: 'FAC-PDR-001', level: 'GENERAL_HOSPITAL', ownership: 'GOVERNMENT', district: 'Pader', subcounty: 'Pader Town Council', inChargeName: 'Dr. Christopher Onen', inChargePhone: '+256701234540' },
+    { name: 'Pajule HC IV', code: 'FAC-PDR-002', level: 'HC_IV', ownership: 'GOVERNMENT', district: 'Pader', subcounty: 'Pajule', inChargeName: 'Mr. Denis Oyet', inChargePhone: '+256701234541' },
+    { name: 'Atanga HC III', code: 'FAC-PDR-003', level: 'HC_III', ownership: 'GOVERNMENT', district: 'Pader', subcounty: 'Atanga', inChargeName: 'Sr. Grace Acan', inChargePhone: '+256701234542' },
+    { name: 'Acholi-Bur HC III', code: 'FAC-PDR-004', level: 'HC_III', ownership: 'GOVERNMENT', district: 'Pader', subcounty: 'Acholi-Bur', inChargeName: 'Mr. Walter Ojok', inChargePhone: '+256701234543' },
+
+    // Kitgum
+    { name: 'Kitgum General Hospital', code: 'FAC-KTG-001', level: 'GENERAL_HOSPITAL', ownership: 'GOVERNMENT', district: 'Kitgum', subcounty: 'Kitgum Town Council', inChargeName: 'Dr. Betty Lamuno', inChargePhone: '+256701234544' },
+    { name: 'St. Joseph Hospital Kitgum', code: 'FAC-KTG-002', level: 'GENERAL_HOSPITAL', ownership: 'PNFP', district: 'Kitgum', subcounty: 'Kitgum Town Council', inChargeName: 'Dr. Martin Opio', inChargePhone: '+256701234545' },
+    { name: 'Labongo HC III', code: 'FAC-KTG-003', level: 'HC_III', ownership: 'GOVERNMENT', district: 'Kitgum', subcounty: 'Labongo', inChargeName: 'Ms. Alice Adong', inChargePhone: '+256701234546' },
+
+    // Amuru
+    { name: 'Amuru HC IV', code: 'FAC-AMR-001', level: 'HC_IV', ownership: 'GOVERNMENT', district: 'Amuru', subcounty: 'Amuru Town Council', inChargeName: 'Dr. Simon Oola', inChargePhone: '+256701234547' },
+    { name: 'Atiak HC III', code: 'FAC-AMR-002', level: 'HC_III', ownership: 'GOVERNMENT', district: 'Amuru', subcounty: 'Atiak', inChargeName: 'Mr. Robert Okema', inChargePhone: '+256701234548' },
 
     // Mbarara
     { name: 'Mbarara Regional Referral Hospital', code: 'FAC-MBR-001', level: 'REGIONAL_REFERRAL', ownership: 'GOVERNMENT', district: 'Mbarara', subcounty: 'Mbarara Municipality', inChargeName: 'Dr. Stellah Kyarisiima', inChargePhone: '+256701234525' },

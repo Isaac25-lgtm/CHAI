@@ -6,7 +6,7 @@
  */
 
 import type { SessionUser } from '@/types';
-import { isSuperuser } from '@/types';
+import { isSuperuser, isAssessor } from '@/types';
 import { ROLE_PERMISSIONS } from './permissions';
 
 // ---------------------------------------------------------------------------
@@ -62,7 +62,7 @@ export function requirePermission(
 /**
  * Can the user access data belonging to `districtId`?
  * - SUPERUSER (SUPER_ADMIN, NATIONAL_ADMIN): always.
- * - ASSESSOR (FIELD_ASSESSOR): only when their districtId matches.
+ * - ASSESSOR (FIELD_ASSESSOR): always (they travel to facilities across districts).
  * - All others: only when districtId matches.
  */
 export function canAccessDistrict(
@@ -70,6 +70,7 @@ export function canAccessDistrict(
   districtId: string,
 ): boolean {
   if (isSuperuser(user)) return true;
+  if (isAssessor(user)) return true;
   return user.districtId === districtId;
 }
 

@@ -53,7 +53,7 @@ export default function FieldAssessPage({ params }: { params: Promise<{ id: stri
         if (cancelled) return;
 
         if (listData.data?.length > 0) {
-          router.replace(`/assessments/${listData.data[0].id}`);
+          router.replace(`/assessments/${listData.data[0].id}?from=field&visitId=${visitId}`);
           return;
         }
 
@@ -68,7 +68,7 @@ export default function FieldAssessPage({ params }: { params: Promise<{ id: stri
         if (!createRes.ok) {
           const err = await createRes.json();
           if (createRes.status === 409 && err.assessmentId) {
-            router.replace(`/assessments/${err.assessmentId}`);
+            router.replace(`/assessments/${err.assessmentId}?from=field&visitId=${visitId}`);
             return;
           }
           throw new Error(err.error || 'Failed to create assessment');
@@ -76,7 +76,7 @@ export default function FieldAssessPage({ params }: { params: Promise<{ id: stri
 
         const created = await createRes.json();
         if (cancelled) return;
-        router.replace(`/assessments/${created.id}`);
+        router.replace(`/assessments/${created.id}?from=field&visitId=${visitId}`);
       } catch (err) {
         if (!cancelled) {
           setError(err instanceof Error ? err.message : 'An error occurred');

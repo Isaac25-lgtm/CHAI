@@ -194,8 +194,9 @@ export const ROLE_PERMISSIONS: Readonly<Record<UserRole, ReadonlySet<string>>> =
   // FIELD_ASSESSOR
   // -----------------------------------------------------------------------
   FIELD_ASSESSOR: new Set([
-    // Facilities — list only
+    // Facilities — list and create (assessors can add new facilities in the field)
     Permission.FACILITIES_LIST,
+    Permission.FACILITIES_CREATE,
 
     // Visits — create, submit, view own
     Permission.VISITS_LIST,

@@ -133,7 +133,7 @@ export default function ParticipantsPage({ params }: { params: Promise<{ id: str
         </button>
         <div>
           <h1 className="text-lg font-bold text-slate-900">Add Participants</h1>
-          <p className="text-xs text-slate-500">Step 2 of 6 · {visit?.facility?.name}</p>
+          <p className="text-xs text-slate-500">Step 3 of 6 · {visit?.facility?.name}</p>
         </div>
       </div>
 

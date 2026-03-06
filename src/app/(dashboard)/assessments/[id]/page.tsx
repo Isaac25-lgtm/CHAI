@@ -1,7 +1,7 @@
 'use client';
 
-import { use, useCallback, useEffect, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { use, useCallback, useEffect, useMemo, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -107,14 +107,29 @@ interface SubmitResult {
 // Component
 // ---------------------------------------------------------------------------
 
-export default function AssessmentFormPage({
+export default function AssessmentFormPageWrapper({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  return (
+    <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="size-6 animate-spin text-slate-400" /></div>}>
+      <AssessmentFormPage params={params} />
+    </Suspense>
+  );
+}
+
+function AssessmentFormPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const isFromField = searchParams.get('from') === 'field';
+  const fieldVisitId = searchParams.get('visitId');
 
   const [currentSectionNum, setCurrentSectionNum] = useState(1);
   const [responses, setResponses] = useState<ResponseState>({});
@@ -468,6 +483,11 @@ export default function AssessmentFormPage({
   // -------------------------------------------------------------------------
 
   if (submitResult) {
+    const nextUrl = isFromField && fieldVisitId
+      ? `/field/visit/${fieldVisitId}/payments`
+      : `/visits/${assessment.visitId}`;
+    const nextLabel = isFromField ? 'Continue to Payments' : 'Back to Visit';
+
     return (
       <div className="space-y-6">
         <PageHeader
@@ -475,12 +495,21 @@ export default function AssessmentFormPage({
           description={`${assessment.visit.visitNumber} - ${assessment.visit.facility.name}`}
         >
           <Button
-            variant="outline"
-            onClick={() => router.push(`/visits/${assessment.visitId}`)}
+            variant={isFromField ? 'default' : 'outline'}
+            onClick={() => router.push(nextUrl)}
             className="gap-1.5"
           >
-            <ChevronLeft className="size-4" />
-            Back to Visit
+            {isFromField ? (
+              <>
+                {nextLabel}
+                <ArrowRight className="size-4" />
+              </>
+            ) : (
+              <>
+                <ChevronLeft className="size-4" />
+                {nextLabel}
+              </>
+            )}
           </Button>
         </PageHeader>
 
@@ -506,11 +535,15 @@ export default function AssessmentFormPage({
       <PageHeader title="Assessment Form">
         <Button
           variant="outline"
-          onClick={() => router.push(`/visits/${assessment.visitId}`)}
+          onClick={() => router.push(
+            isFromField && fieldVisitId
+              ? `/field/visit/${fieldVisitId}/participants`
+              : `/visits/${assessment.visitId}`
+          )}
           className="gap-1.5"
         >
           <ChevronLeft className="size-4" />
-          <span className="hidden sm:inline">Back to Visit</span>
+          <span className="hidden sm:inline">{isFromField ? 'Back' : 'Back to Visit'}</span>
         </Button>
       </PageHeader>
 

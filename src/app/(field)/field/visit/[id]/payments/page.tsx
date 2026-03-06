@@ -141,7 +141,7 @@ export default function PaymentsPage({ params }: { params: Promise<{ id: string 
         </button>
         <div>
           <h1 className="text-lg font-bold text-slate-900">Payment Details</h1>
-          <p className="text-xs text-slate-500">Step 4 of 6 · {visit?.facility?.name}</p>
+          <p className="text-xs text-slate-500">Step 5 of 6 · {visit?.facility?.name}</p>
         </div>
       </div>
 
@@ -200,7 +200,7 @@ export default function PaymentsPage({ params }: { params: Promise<{ id: string 
       {/* Navigation */}
       <div className="flex gap-2 pt-2">
         <button
-          onClick={() => router.push(`/field/visit/${id}`)}
+          onClick={() => router.push(`/field/visit/${id}/review`)}
           className="flex-1 rounded-lg border border-slate-200 bg-white py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
         >
           Skip
